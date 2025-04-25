@@ -9,7 +9,7 @@ import {
   StatusBadge,
   DataTablePaginationState,
   Skeleton,
-  FocusModal, 
+  FocusModal,
   Button,
   Select,
   createDataTableFilterHelper,
@@ -331,6 +331,35 @@ const OrdersPage = () => {
         }
       },
     }),
+    commandHelper.command({
+      label: "Exportar Packing Slips (PDF)",
+      shortcut: "P",
+      action: async (selection) => {
+        const ids = Object.keys(selection);
+        if (!ids.length) {
+          toast.info("Selecciona al menos una orden");
+          return;
+        }
+
+        try {
+          // Construir la URL con los IDs como parámetros de consulta
+          const queryParams = new URLSearchParams();
+          ids.forEach((id) => queryParams.append("ids", id));
+          const url = `/admin/orders/export-pdf-slips?${queryParams.toString()}`;
+
+          // Abrir una nueva pestaña para descargar el PDF
+          window.open(url, "_blank");
+          toast.success("¡PDF de packing slips generado correctamente!");
+        } catch (err) {
+          console.error(err);
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : "Error al exportar los packing slips"
+          );
+        }
+      },
+    }),
 
     // Puedes añadir más comandos aquí
   ];
@@ -525,25 +554,31 @@ const OrdersPage = () => {
                     <span className=" font-bold text-black dark:text-white">
                       E:
                     </span>
-                    Marcar como enviado
+                    Marcar como Enviado
                   </p>
                   <p className="flex gap-2 text-ui-fg-subtle">
                     <span className=" font-bold text-black dark:text-white">
                       S:
                     </span>
-                    Pasar a espera de stock
+                    Pasar a Espera de Stock
                   </p>
                   <p className="flex gap-2 text-ui-fg-subtle">
                     <span className=" font-bold text-black dark:text-white">
                       V:
                     </span>
-                    Pasar a producción de vinilos
+                    Pasar a Producción de Vinilos
                   </p>
                   <p className="flex gap-2 text-ui-fg-subtle">
                     <span className=" font-bold text-black dark:text-white">
                       X:
                     </span>
                     Exportar a CSV
+                  </p>
+                  <p className="flex gap-2 text-ui-fg-subtle">
+                    <span className=" font-bold text-black dark:text-white">
+                      P:
+                    </span>
+                    Exportar Packing Slips como PDF
                   </p>
                   <div className="flex gap-2 items-end ">
                     Filtros
