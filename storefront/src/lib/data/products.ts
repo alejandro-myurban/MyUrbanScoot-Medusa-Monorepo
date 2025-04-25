@@ -57,6 +57,9 @@ export const getProductsList = cache(async function ({
   const validPageParam = Math.max(pageParam, 1);
   const offset = (validPageParam - 1) * limit
   const region = await getRegion(countryCode)
+  const { tags, ...cleanQueryParams } = queryParams || {} as any;
+
+
 
   if (!region) {
     return {
@@ -71,7 +74,7 @@ export const getProductsList = cache(async function ({
         offset,
         region_id: region.id,
         fields: "*variants.calculated_price",
-        ...queryParams,
+        ...cleanQueryParams,
       },
       { next: { tags: ["products"] } }
     )

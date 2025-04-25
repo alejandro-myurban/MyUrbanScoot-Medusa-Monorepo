@@ -2,17 +2,16 @@
 
 import { Button } from "@medusajs/ui"
 import { isEqual } from "lodash"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
-
 import { useIntersection } from "@lib/hooks/use-in-view"
 import Divider from "@modules/common/components/divider"
 import OptionSelect from "@modules/products/components/product-actions/option-select"
-
 import MobileActions from "./mobile-actions"
 import ProductPrice from "../product-price"
 import { addToCart } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"
+import { useColorContext } from "@lib/context/color-content-provider"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
@@ -21,12 +20,19 @@ type ProductActionsProps = {
 }
 
 const optionsAsKeymap = (variantOptions: any) => {
-  return variantOptions?.reduce((acc: Record<string, string | undefined>, varopt: any) => {
-    if (varopt.option && varopt.value !== null && varopt.value !== undefined) {
-      acc[varopt.option.title] = varopt.value
-    }
-    return acc
-  }, {})
+  return variantOptions?.reduce(
+    (acc: Record<string, string | undefined>, varopt: any) => {
+      if (
+        varopt.option &&
+        varopt.value !== null &&
+        varopt.value !== undefined
+      ) {
+        acc[varopt.option.title] = varopt.value
+      }
+      return acc
+    },
+    {}
+  )
 }
 
 export default function ProductActions({
@@ -34,23 +40,46 @@ export default function ProductActions({
   region,
   disabled,
 }: ProductActionsProps) {
+  const { setSelectedColor } = useColorContext()
   const [options, setOptions] = useState<Record<string, string | undefined>>({})
   const [isAdding, setIsAdding] = useState(false)
   const countryCode = useParams().countryCode as string
+  const searchParams = useSearchParams()
 
-  // If there is only 1 variant, preselect the options
+  const initialColor = useMemo(() => {
+    const urlColor = searchParams?.get("color")
+    const colorOption = product.options?.find(
+      (opt) => opt.title === "Color" || opt.title === "Base"
+    )
+    const validColors = colorOption?.values?.map((v) => v.value) || []
+
+    // Validate URL color exists in product options
+    if (urlColor && validColors.includes(urlColor)) {
+      return urlColor
+    }
+
+    // Fallback to first available color
+    return validColors[0] || ""
+  }, [searchParams, product.options])
+
   useEffect(() => {
     if (product.variants?.length === 1) {
       const variantOptions = optionsAsKeymap(product.variants[0].options)
       setOptions(variantOptions ?? {})
+
+      // Actualiza el contexto si hay una opción "Base" o "Color"
+      if (variantOptions?.Base) {
+        setSelectedColor(variantOptions.Base)
+      } else if (variantOptions?.Color) {
+        setSelectedColor(variantOptions.Color)
+      }
     }
-  }, [product.variants])
+  }, [product.variants, setSelectedColor])
 
   const selectedVariant = useMemo(() => {
     if (!product.variants || product.variants.length === 0) {
       return
     }
-
     return product.variants.find((v) => {
       const variantOptions = optionsAsKeymap(v.options)
       return isEqual(variantOptions, options)
@@ -59,11 +88,40 @@ export default function ProductActions({
 
   // update the options when a variant is selected
   const setOptionValue = (title: string, value: string) => {
-    setOptions((prev) => ({
-      ...prev,
-      [title]: value,
-    }))
+    try {
+      setOptions((prev) => ({
+        ...prev,
+        [title]: value,
+      }))
+
+      // Update context if it's a relevant option
+      if (title === "Base" || title === "Color") {
+        console.log(`Setting ${title} option to:`, value)
+        setSelectedColor(value)
+      }
+    } catch (error) {
+      console.error("Error setting option value:", error)
+    }
   }
+
+  useEffect(() => {
+    const baseOption = product.options?.find((opt) => opt.title === "Base")
+    const colorOption = product.options?.find((opt) => opt.title === "Color")
+
+    if (baseOption?.values?.length && !options.Base) {
+      setOptions((prev) => ({
+        ...prev,
+        Base: initialColor,
+      }))
+      setSelectedColor(initialColor)
+    } else if (colorOption?.values?.length && !options.Color) {
+      setOptions((prev) => ({
+        ...prev,
+        Color: initialColor,
+      }))
+      setSelectedColor(initialColor)
+    }
+  }, [product.options, initialColor])
 
   // check if the selected variant is in stock
   const inStock = useMemo(() => {
@@ -114,20 +172,18 @@ export default function ProductActions({
         <div>
           {(product.variants?.length ?? 0) > 1 && (
             <div className="flex flex-col gap-y-4">
-              {(product.options || []).map((option) => {
-                return (
-                  <div key={option.id}>
-                    <OptionSelect
-                      option={option}
-                      current={options[option.title ?? ""]}
-                      updateOption={setOptionValue}
-                      title={option.title ?? ""}
-                      data-testid="product-options"
-                      disabled={!!disabled || isAdding}
-                    />
-                  </div>
-                )
-              })}
+              {(product.options || []).map((option) => (
+                <div key={option.id}>
+                  <OptionSelect
+                    option={option}
+                    current={options[option.title ?? ""]}
+                    updateOption={setOptionValue}
+                    title={option.title ?? ""}
+                    data-testid="product-options"
+                    disabled={!!disabled || isAdding}
+                  />
+                </div>
+              ))}
               <Divider />
             </div>
           )}

@@ -69,6 +69,34 @@ const CartDropdown = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalItems, itemRef.current])
 
+  const getVariantImage = (item: HttpTypes.StoreCartLineItem) => {
+    // Extraemos el producto desde la variante
+    const product = item.variant?.product
+    if (!product || !product.images || !product.images.length) {
+      return product?.thumbnail
+    }
+
+    // Buscar la opción "color" en las opciones de la variante
+    const colorOption = item.variant?.options?.find(
+      (opt) => opt.option?.title?.toLowerCase() === "color"
+    )
+    const colorValue = colorOption?.value?.toLowerCase()
+
+    if (!colorValue) {
+      return product?.thumbnail
+    }
+
+    // Filtrar las imágenes que contengan el valor del color en su URL
+    const colorImages = product.images.filter((img: any) =>
+      img.url.toLowerCase().includes(colorValue)
+    )
+    if (colorImages.length > 0) {
+      return colorImages[0].url
+    }
+
+    return product?.thumbnail
+  }
+
   return (
     <div
       className="h-full z-50"
@@ -121,7 +149,7 @@ const CartDropdown = ({
                           className="w-24"
                         >
                           <Thumbnail
-                            thumbnail={item.variant?.product?.thumbnail}
+                            thumbnail={getVariantImage(item)}
                             images={item.variant?.product?.images}
                             size="square"
                           />

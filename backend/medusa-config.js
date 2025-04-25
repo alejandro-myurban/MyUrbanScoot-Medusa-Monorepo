@@ -98,6 +98,7 @@ const medusaConfig = {
               channels: ['email'],
               api_key: SENDGRID_API_KEY,
               from: SENDGRID_FROM_EMAIL,
+              capture: true,
             }
           }] : []),
           ...(RESEND_API_KEY && RESEND_FROM_EMAIL ? [{

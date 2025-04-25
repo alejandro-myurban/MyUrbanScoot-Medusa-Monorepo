@@ -5,9 +5,13 @@ import { StoreRegion } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import CartButton from "@modules/layout/components/cart-button"
 import SideMenu from "@modules/layout/components/side-menu"
+import Link from "next/link"
+import Login from "./google-login"
 
 export default async function Nav() {
   const regions = await listRegions().then((regions: StoreRegion[]) => regions)
+  const medusa_url = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || ""
+  const authPath = process.env.NEXT_PUBLIC_AUTH_PATH || ""
 
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
@@ -25,7 +29,7 @@ export default async function Nav() {
               className="txt-compact-xlarge-plus hover:text-ui-fg-base uppercase"
               data-testid="nav-store-link"
             >
-              Medusa Store
+              MyUrbanScoot
             </LocalizedClientLink>
           </div>
 
@@ -48,6 +52,7 @@ export default async function Nav() {
               >
                 Account
               </LocalizedClientLink>
+              <Login />
             </div>
             <Suspense
               fallback={
