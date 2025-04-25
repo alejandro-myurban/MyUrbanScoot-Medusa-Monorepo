@@ -1,5 +1,4 @@
 // src/api/routes/admin/orders/export-pdf-slips/route.ts
-import fetch from "node-fetch"
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { getOrdersListWorkflow } from "@medusajs/medusa/core-flows"
 import type { OrderAddressDTO } from "@medusajs/framework/types"
@@ -53,7 +52,8 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     let logoDataUri: string | null = null
     try {
       const logoRes = await fetch(logoUrl)
-      const logoBuf = await logoRes.buffer()
+      const arrayBuffer = await logoRes.arrayBuffer()
+      const logoBuf = Buffer.from(arrayBuffer)
       const logoMime = logoRes.headers.get("content-type") || "image/png"
       logoDataUri = `data:${logoMime};base64,${logoBuf.toString("base64")}`
     } catch {
