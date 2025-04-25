@@ -22,7 +22,7 @@ export default async function userInviteHandler({
       template: EmailTemplates.INVITE_USER,
       data: {
         emailOptions: {
-          replyTo: 'info@example.com',
+          replyTo: 'info@myurbanscoot.com',
           subject: "You've been invited to Medusa!"
         },
         inviteLink: `${BACKEND_URL}/app/invite?token=${invite.token}`,

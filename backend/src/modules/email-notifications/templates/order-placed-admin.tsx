@@ -3,7 +3,7 @@ import * as React from 'react'
 import { Base } from './base'
 import { OrderDTO, OrderAddressDTO } from '@medusajs/framework/types'
 
-export const ORDER_PLACED = 'order-placed'
+export const ORDER_PLACED_ADMIN = 'order-placed-admin'
 
 interface OrderPlacedPreviewProps {
   order: OrderDTO & { display_id: string; summary: { raw_current_order_total: { value: number } } }
@@ -16,10 +16,10 @@ export interface OrderPlacedTemplateProps {
   preview?: string
 }
 
-export const isOrderPlacedTemplateData = (data: any): data is OrderPlacedTemplateProps =>
+export const isOrderPlacedAdminTemplateData = (data: any): data is OrderPlacedTemplateProps =>
   typeof data.order === 'object' && typeof data.shippingAddress === 'object'
 
-export const OrderPlacedTemplate: React.FC<OrderPlacedTemplateProps> & {
+export const OrderPlacedAdminTemplate: React.FC<OrderPlacedTemplateProps> & {
   PreviewProps: OrderPlacedPreviewProps
 } = ({ order, shippingAddress, preview = 'Your order has been placed!' }) => {
   return (
@@ -29,14 +29,13 @@ export const OrderPlacedTemplate: React.FC<OrderPlacedTemplateProps> & {
           Order Confirmation
         </Text>
 
-        <Text style={{ margin: '0 0 15px' }}>
-          Dear {shippingAddress.first_name} {shippingAddress.last_name},
-        </Text>
 
         <Text style={{ margin: '0 0 30px' }}>
-          Thank you for your recent order! Here are your order details:
+          El cliente ha realizado un pedido. Aquí están los detalles de su pedido:
         </Text>
-
+        <Text style={{ margin: '0 0 15px' }}>
+          Su nombre: {shippingAddress.first_name} {shippingAddress.last_name},
+        </Text>
         <Text style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 10px' }}>
           Order Summary
         </Text>
@@ -108,7 +107,7 @@ export const OrderPlacedTemplate: React.FC<OrderPlacedTemplateProps> & {
   )
 }
 
-OrderPlacedTemplate.PreviewProps = {
+OrderPlacedAdminTemplate.PreviewProps = {
   order: {
     id: 'test-order-id',
     display_id: 'ORD-123',
@@ -141,4 +140,4 @@ OrderPlacedTemplate.PreviewProps = {
   }
 } as OrderPlacedPreviewProps
 
-export default OrderPlacedTemplate
+export default OrderPlacedAdminTemplate

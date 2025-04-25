@@ -1,8 +1,12 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "module": "esnext"
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "lib": ["DOM", "ESNext"]
   },
-  "include": ["."],
+  "include": [".", "../api/admin/orders/[id]/workshop-status"],
   "exclude": ["**/*.spec.js"]
 }
