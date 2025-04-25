@@ -70,7 +70,8 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
         }
         try {
           const r = await fetch(thumbUrl)
-          const buf = await r.buffer()
+          const arrayBuffer = await r.arrayBuffer()
+          const buf = Buffer.from(arrayBuffer)
           const mime = r.headers.get("content-type") || "image/jpeg"
           item._thumb = `data:${mime};base64,${buf.toString("base64")}`
         } catch {
