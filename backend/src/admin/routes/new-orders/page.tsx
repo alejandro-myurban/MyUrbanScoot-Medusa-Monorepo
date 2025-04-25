@@ -292,10 +292,6 @@ const OrdersPage = () => {
           toast.info("Selecciona al menos una orden");
           return;
         }
-        console.log(
-          "🌐 BACKEND URL para admin:",
-          process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
-        );
         try {
           await sdk.client.fetch("/admin/orders/switch-to-delivered", {
             method: "POST",
