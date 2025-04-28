@@ -42,7 +42,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/puppeteer": "^7.0.4",
     "awilix": "^8.0.1",
-    "file-type": "^20.5.0",
+    "file-type": "16.5.4",
     "html-pdf-node": "^1.0.8",
     "jsonwebtoken": "^9.0.2",
     "medusajs-launch-utils": "^0.0.15",

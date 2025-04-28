@@ -6,7 +6,7 @@ import { randomBytes } from "crypto"
 import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
-import { fileTypeFromBuffer } from 'file-type' // Necesitamos instalar este paquete: npm install file-type
+import fileType from 'file-type' // Versión antigua de file-type
 
 type ShippingAddress = {
   first_name?: string
@@ -63,13 +63,13 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       const arrayBuffer = await logoRes.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
       
-      // Detectar el tipo de imagen
-      const fileType = await fileTypeFromBuffer(buffer)
-      if (!fileType) {
+      // Detectar el tipo de imagen - usando API antigua de file-type
+      const type = await fileType.fromBuffer(buffer)
+      if (!type) {
         console.warn("No se pudo detectar el tipo de imagen del logo, asumiendo PNG")
         logoImage = { buffer, mime: 'image/png' }
       } else {
-        logoImage = { buffer, mime: fileType.mime }
+        logoImage = { buffer, mime: type.mime }
       }
     } catch (error) {
       console.error("Error cargando logo:", error)
@@ -89,13 +89,13 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
           const arrayBuffer = await r.arrayBuffer()
           const buffer = Buffer.from(arrayBuffer)
           
-          // Detectar tipo de imagen
-          const fileType = await fileTypeFromBuffer(buffer)
-          if (!fileType) {
+          // Detectar tipo de imagen - usando API antigua de file-type
+          const type = await fileType.fromBuffer(buffer)
+          if (!type) {
             console.warn(`No se pudo detectar el tipo de imagen para el item ${item.id}, asumiendo JPEG`)
             item._thumbImage = { buffer, mime: 'image/jpeg' }
           } else {
-            item._thumbImage = { buffer, mime: fileType.mime }
+            item._thumbImage = { buffer, mime: type.mime }
           }
         } catch (error) {
           console.error(`Error cargando thumbnail para item ${item.id}:`, error)
@@ -181,11 +181,12 @@ async function generatePackingSlipsPDF(orders: any[], logoImage: ImageWithMime |
           doc.text(`Pedido Nº: ${order.display_id}     Fecha: ${date}`)
           doc.moveDown(0.5)
           
-          // Direcciones
-          const columnWidth = (doc.page.width - doc.page.margins.left - doc.page.margins.right) / 3
+          // Calculamos los anchos
+          const columnWidth = (doc.page.width - doc.page.margins.left - doc.page.margins.right) / 2
           
-          // Dirección de facturación
-          doc.font('Bold').text('Facturación:', doc.page.margins.left, doc.y)
+          // Dirección de facturación (columna izquierda)
+          const billingY = doc.y
+          doc.font('Bold').text('Facturación:', doc.page.margins.left, billingY)
           doc.font('Regular')
           doc.text(`${b.first_name || ""} ${b.last_name || ""}`)
           doc.text(`${b.address_1 || ""}`)
@@ -193,9 +194,10 @@ async function generatePackingSlipsPDF(orders: any[], logoImage: ImageWithMime |
           doc.text(`${b.phone || ""}`)
           doc.text(`${b.email || order.email || ""}`)
           
-          // Dirección de la empresa (columna central)
-          const companyY = doc.y
-          doc.font('Bold').text('De la dirección:', doc.page.margins.left + columnWidth, companyY - doc.currentLineHeight())
+          // Columna derecha (dividida en dos bloques)
+          
+          // Bloque superior derecho (antigua columna central)
+          doc.font('Bold').text('De la dirección:', doc.page.margins.left + columnWidth, billingY)
           doc.font('Regular')
           doc.text('MyUrbanScoot', doc.page.margins.left + columnWidth, doc.y)
           doc.text('Avda Peris y Valero 143, bajo derecha')
@@ -204,16 +206,19 @@ async function generatePackingSlipsPDF(orders: any[], logoImage: ImageWithMime |
           doc.text('+34 623 47 47 65')
           doc.text('B42702662')
           
-          // Dirección de envío (tercera columna)
-          const shippingY = doc.y
-          doc.font('Bold').text('Envío:', doc.page.margins.left + columnWidth * 2, companyY - doc.currentLineHeight())
+          // Guardamos la posición y después de MyUrbanScoot
+          const afterCompanyY = doc.y + 15
+          
+          // Bloque inferior derecho (antigua columna derecha)
+          doc.font('Bold').text('Envío:', doc.page.margins.left + columnWidth, afterCompanyY)
           doc.font('Regular')
-          doc.text(`${s.first_name || ""} ${s.last_name || ""}`, doc.page.margins.left + columnWidth * 2, doc.y)
+          doc.text(`${s.first_name || ""} ${s.last_name || ""}`, doc.page.margins.left + columnWidth, doc.y)
           doc.text(`${s.address_1 || ""}`)
           doc.text(`${s.postal_code || ""} ${s.city || ""} ${s.province ? `- ${s.province}` : ""}`)
           doc.text(`${s.phone || ""}`)
           
           // Asegurar que estamos debajo de todas las direcciones
+          const shippingY = doc.y
           doc.y = Math.max(doc.y, shippingY) + 20
           
           // Tabla de productos
@@ -231,7 +236,7 @@ async function generatePackingSlipsPDF(orders: any[], logoImage: ImageWithMime |
           const startY = doc.y
           const tableTop = startY
           const tableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right
-          const colWidths = [tableWidth * 0.1, tableWidth * 0.15, tableWidth * 0.15, tableWidth * 0.35, tableWidth * 0.1, tableWidth * 0.15]
+          const colWidths = [tableWidth * 0.1, tableWidth * 0.15, tableWidth * 0.15, tableWidth * 0.35, tableWidth * 0.15, tableWidth * 0.10]
           
           // Función para dibujar una celda de tabla
           const drawTableCell = (x: number, y: number, width: number, height: number, text: string, isHeader = false) => {
@@ -255,8 +260,8 @@ async function generatePackingSlipsPDF(orders: any[], logoImage: ImageWithMime |
             })
           }
           
-          // Altura de la fila
-          const rowHeight = 30
+          // Altura de la fila - AUMENTADA para contener la imagen
+          const rowHeight = 50  // Aumentado de 30 a 50 puntos
           
           // Dibujar encabezados
           const headerY = doc.y
@@ -278,7 +283,7 @@ async function generatePackingSlipsPDF(orders: any[], logoImage: ImageWithMime |
           // S.No
           drawTableCell(doc.page.margins.left, dataY, colWidths[0], rowHeight, '1')
           
-          // Imagen
+          // Imagen - Celda más grande
           const imgCell = {
             x: doc.page.margins.left + colWidths[0],
             y: dataY,
@@ -290,11 +295,13 @@ async function generatePackingSlipsPDF(orders: any[], logoImage: ImageWithMime |
           // Añadir thumbnail si existe
           if (item._thumbImage) {
             try {
+              // Tamaño de imagen ajustado para caber en la celda más grande
+              const imageSize = Math.min(imgCell.width - 10, imgCell.height - 10)
               doc.image(
                 item._thumbImage.buffer, 
-                imgCell.x + (imgCell.width - 40) / 2, 
-                imgCell.y + (imgCell.height - 40) / 2, 
-                { fit: [40, 40], align: 'center', valign: 'center' }
+                imgCell.x + (imgCell.width - imageSize) / 2, 
+                imgCell.y + (imgCell.height - imageSize) / 2, 
+                { fit: [imageSize, imageSize], align: 'center', valign: 'center' }
               )
             } catch (error) {
               console.error(`Error al insertar thumbnail para item ${item.id}:`, error)
@@ -344,11 +351,12 @@ async function generatePackingSlipsPDF(orders: any[], logoImage: ImageWithMime |
             weight
           )
           
-          // Pie de página
+          // Pie de página - MOVIDO DEBAJO DE LA TABLA
           doc.fontSize(10).fillColor('#666666')
-          doc.text('Gracias por confiar en MyUrbanScoot!', doc.page.width / 2, doc.page.height - 80, { align: 'center' })
-          doc.text('Código: -5€BABY', { align: 'center' })
-          doc.text('Incidencias: WhatsApp o llamada.', { align: 'center' })
+          const footerX = doc.page.margins.left + 0; // 20 puntos desde el margen izquierdo
+          doc.text('Gracias por confiar en MyUrbanScoot!', footerX, dataY + rowHeight + 20)
+          doc.text('Código: -5€BABY', footerX, doc.y)
+          doc.text('Incidencias: WhatsApp o llamada.', footerX, doc.y)
         })
       })
       
