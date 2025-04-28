@@ -3,7 +3,10 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { getOrdersListWorkflow } from "@medusajs/medusa/core-flows"
 import type { OrderAddressDTO } from "@medusajs/framework/types"
 import { randomBytes } from "crypto"
-import pdf from "html-pdf-node"
+import PDFDocument from 'pdfkit'
+import fs from 'fs'
+import path from 'path'
+import { fileTypeFromBuffer } from 'file-type' // Necesitamos instalar este paquete: npm install file-type
 
 type ShippingAddress = {
   first_name?: string
@@ -14,6 +17,11 @@ type ShippingAddress = {
   phone?: string
   email?: string
 } & Partial<OrderAddressDTO>
+
+type ImageWithMime = {
+  buffer: Buffer;
+  mime: string;
+}
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   // 1) IDs desde la query
@@ -47,55 +55,59 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       return res.status(404).json({ success: false, message: "No se encontraron órdenes" })
     }
 
-    // 3) Pre-cargar logo en Base64
+    // 3) Cargar logo con detección de tipo
     const logoUrl = "https://myurbanscoot.com/wp-content/uploads/2023/05/cropped-logoH-01-284x62.png"
-    let logoDataUri: string | null = null
+    let logoImage: ImageWithMime | null = null
     try {
       const logoRes = await fetch(logoUrl)
       const arrayBuffer = await logoRes.arrayBuffer()
-      const logoBuf = Buffer.from(arrayBuffer)
-      const logoMime = logoRes.headers.get("content-type") || "image/png"
-      logoDataUri = `data:${logoMime};base64,${logoBuf.toString("base64")}`
-    } catch {
-      logoDataUri = null
+      const buffer = Buffer.from(arrayBuffer)
+      
+      // Detectar el tipo de imagen
+      const fileType = await fileTypeFromBuffer(buffer)
+      if (!fileType) {
+        console.warn("No se pudo detectar el tipo de imagen del logo, asumiendo PNG")
+        logoImage = { buffer, mime: 'image/png' }
+      } else {
+        logoImage = { buffer, mime: fileType.mime }
+      }
+    } catch (error) {
+      console.error("Error cargando logo:", error)
+      logoImage = null
     }
 
-    // 4) Pre-cargar thumbnails de cada item en Base64
+    // 4) Pre-cargar thumbnails de cada item con detección de tipo
     await Promise.all(orders.flatMap(order =>
       order.items.map(async (item: any) => {
         const thumbUrl = item.variant?.product?.thumbnail
         if (!thumbUrl) {
-          item._thumb = null
+          item._thumbImage = null
           return
         }
         try {
           const r = await fetch(thumbUrl)
           const arrayBuffer = await r.arrayBuffer()
-          const buf = Buffer.from(arrayBuffer)
-          const mime = r.headers.get("content-type") || "image/jpeg"
-          item._thumb = `data:${mime};base64,${buf.toString("base64")}`
-        } catch {
-          item._thumb = null
+          const buffer = Buffer.from(arrayBuffer)
+          
+          // Detectar tipo de imagen
+          const fileType = await fileTypeFromBuffer(buffer)
+          if (!fileType) {
+            console.warn(`No se pudo detectar el tipo de imagen para el item ${item.id}, asumiendo JPEG`)
+            item._thumbImage = { buffer, mime: 'image/jpeg' }
+          } else {
+            item._thumbImage = { buffer, mime: fileType.mime }
+          }
+        } catch (error) {
+          console.error(`Error cargando thumbnail para item ${item.id}:`, error)
+          item._thumbImage = null
         }
       })
     ))
 
-    // 5) Generar HTML con Data URIs inline
-    const html = generatePackingSlipsHTML(orders, logoDataUri)
+    // 5) Crear el PDF con PDFKit
+    const pdfBuffer = await generatePackingSlipsPDF(orders, logoImage)
 
-    // 6) Opciones de PDF
-    const options = {
-      format: "A4",
-      margin: { top: "15mm", right: "15mm", bottom: "15mm", left: "15mm" },
-      printBackground: true,
-      preferCSSPageSize: true,
-    }
-
-    // 7) Generar PDF
-    const file = { content: html }
-    const pdfBuffer = await pdf.generatePdf(file, options)
-
-    // 8) Responder
+    // 6) Responder
     const shortId = randomBytes(4).toString("hex")
     res.setHeader("Content-Type", "application/pdf")
     res.setHeader("Content-Disposition", `attachment; filename="packing-slips-${shortId}.pdf"`)
@@ -114,133 +126,236 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
 export const AUTHENTICATE = true
 
 // ----------------------------------------------------------------
-// Genera el HTML usando logoDataUri e item._thumb inline
+// Genera el PDF usando PDFKit
 // ----------------------------------------------------------------
-function generatePackingSlipsHTML(orders: any[], logoDataUri: string | null): string {
-  // HTML y CSS idénticos al tuyo, pero <img src> con Data URIs
-  const companyInfo = `
-    <div class="company-info">
-      <p><strong>De la dirección:</strong></p>
-      <p>MyUrbanScoot</p>
-      <p>Avda Peris y Valero 143, bajo derecha</p>
-      <p>46005 Valencia</p>
-      <p>Valencia</p>
-      <p>+34 623 47 47 65</p>
-      <p>B42702662</p>
-    </div>
-  `
+async function generatePackingSlipsPDF(orders: any[], logoImage: ImageWithMime | null): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      // Configuración de página
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 42.5, // 15mm en puntos (42.5)
+        bufferPages: true
+      })
+      
+      // Recolectar datos en un buffer
+      const chunks: Buffer[] = []
+      doc.on('data', (chunk) => chunks.push(chunk))
+      doc.on('end', () => resolve(Buffer.concat(chunks)))
+      doc.on('error', (err) => reject(err))
 
-  const pages = orders.flatMap(order => {
-    const b = order.billing_address as ShippingAddress
-    const s = order.shipping_address as ShippingAddress
-    const date = new Date(order.created_at).toLocaleDateString("es-ES")
-
-    return order.items.map((item: any) => {
-      const thumbData = item._thumb || ""
-      const sku = item.variant?.sku || ""
-      const weight = item.weight ? `${(item.weight/1000).toFixed(2)}kg` : "n/a"
-      let title = item.title
-      let colorLabel = ""
-      if (title.includes("Color : ")) {
-        const parts = title.split("Color : ")
-        title = parts[0]
-        colorLabel = parts[1]
-      }
-
-      return `
-      <div class="page">
-        <div class="header">
-          <div class="title"><h1>Hoja de embalaje</h1></div>
-          <div class="logo">
-            ${logoDataUri ? `<img src="${logoDataUri}" alt="Logo"/>` : ""}
-          </div>
-        </div>
-        <div class="order-details">
-          <p><strong>Pedido Nº:</strong> ${order.display_id} &nbsp;&nbsp; <strong>Fecha:</strong> ${date}</p>
-        </div>
-        <div class="addresses-container">
-          <div class="address-column"><div class="address-block">
-            <p><strong>Facturación:</strong></p>
-            <p>${b.first_name||""} ${b.last_name||""}</p>
-            <p>${b.address_1||""}</p>
-            <p>${b.postal_code||""} ${b.city||""} ${b.province?`- ${b.province}`:""}</p>
-            <p>${b.phone||""}</p>
-            <p>${b.email||order.email||""}</p>
-          </div></div>
-          ${companyInfo}
-          <div class="address-column"><div class="address-block">
-            <p><strong>Envío:</strong></p>
-            <p>${s.first_name||""} ${s.last_name||""}</p>
-            <p>${s.address_1||""}</p>
-            <p>${s.postal_code||""} ${s.city||""} ${s.province?`- ${s.province}`:""}</p>
-            <p>${s.phone||""}</p>
-          </div></div>
-        </div>
-        <table class="items-table">
-          <thead>
-            <tr>
-              <th>S.No</th>
-              <th class="img-cell">Imagen</th>
-              <th>SKU</th>
-              <th>Producto</th>
-              <th>Cantidad</th>
-              <th>Total weight</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>1</td>
-              <td class="img-cell">
-                ${thumbData ? `<img src="${thumbData}" alt=""/>` : ""}
-              </td>
-              <td>${sku}</td>
-              <td>${title}${colorLabel?`<br><small>Color : ${colorLabel}</small>`:""}</td>
-              <td class="text-center">${item.quantity}</td>
-              <td class="text-center">${weight}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="footer">
-          <p>Gracias por confiar en MyUrbanScoot!</p>
-          <p>Código: <strong>-5€BABY</strong></p>
-          <p>Incidencias: WhatsApp o llamada.</p>
-        </div>
-      </div>`
-    })
+      // Registrar fuentes
+      doc.registerFont('Regular', 'Helvetica')
+      doc.registerFont('Bold', 'Helvetica-Bold')
+      
+      // Procesar cada orden
+      orders.forEach(order => {
+        const b = order.billing_address as ShippingAddress
+        const s = order.shipping_address as ShippingAddress
+        const date = new Date(order.created_at).toLocaleDateString("es-ES")
+        
+        // Procesar cada ítem como una página separada
+        order.items.forEach((item: any, index: number) => {
+          if (index > 0 || (order !== orders[0] || index !== 0)) {
+            doc.addPage() // Agregar nueva página excepto para el primer ítem del primer pedido
+          }
+          
+          // Cabecera con título y logo
+          doc.font('Bold').fontSize(24).fillColor('#00AEEF').text('Hoja de embalaje', {align: 'left'})
+          
+          // Logo
+          if (logoImage) {
+            try {
+              doc.image(logoImage.buffer, doc.page.width - 150, doc.y - 35, {
+                width: 120,
+                fit: [120, 40]
+              })
+            } catch (error) {
+              console.error("Error al insertar logo en PDF:", error)
+            }
+          }
+          
+          // Detalles del pedido
+          doc.font('Regular').fontSize(11).fillColor('black')
+          doc.moveDown(1)
+          doc.text(`Pedido Nº: ${order.display_id}     Fecha: ${date}`)
+          doc.moveDown(0.5)
+          
+          // Direcciones
+          const columnWidth = (doc.page.width - doc.page.margins.left - doc.page.margins.right) / 3
+          
+          // Dirección de facturación
+          doc.font('Bold').text('Facturación:', doc.page.margins.left, doc.y)
+          doc.font('Regular')
+          doc.text(`${b.first_name || ""} ${b.last_name || ""}`)
+          doc.text(`${b.address_1 || ""}`)
+          doc.text(`${b.postal_code || ""} ${b.city || ""} ${b.province ? `- ${b.province}` : ""}`)
+          doc.text(`${b.phone || ""}`)
+          doc.text(`${b.email || order.email || ""}`)
+          
+          // Dirección de la empresa (columna central)
+          const companyY = doc.y
+          doc.font('Bold').text('De la dirección:', doc.page.margins.left + columnWidth, companyY - doc.currentLineHeight())
+          doc.font('Regular')
+          doc.text('MyUrbanScoot', doc.page.margins.left + columnWidth, doc.y)
+          doc.text('Avda Peris y Valero 143, bajo derecha')
+          doc.text('46005 Valencia')
+          doc.text('Valencia')
+          doc.text('+34 623 47 47 65')
+          doc.text('B42702662')
+          
+          // Dirección de envío (tercera columna)
+          const shippingY = doc.y
+          doc.font('Bold').text('Envío:', doc.page.margins.left + columnWidth * 2, companyY - doc.currentLineHeight())
+          doc.font('Regular')
+          doc.text(`${s.first_name || ""} ${s.last_name || ""}`, doc.page.margins.left + columnWidth * 2, doc.y)
+          doc.text(`${s.address_1 || ""}`)
+          doc.text(`${s.postal_code || ""} ${s.city || ""} ${s.province ? `- ${s.province}` : ""}`)
+          doc.text(`${s.phone || ""}`)
+          
+          // Asegurar que estamos debajo de todas las direcciones
+          doc.y = Math.max(doc.y, shippingY) + 20
+          
+          // Tabla de productos
+          const sku = item.variant?.sku || ""
+          const weight = item.weight ? `${(item.weight/1000).toFixed(2)}kg` : "n/a"
+          let title = item.title
+          let colorLabel = ""
+          if (title.includes("Color : ")) {
+            const parts = title.split("Color : ")
+            title = parts[0]
+            colorLabel = parts[1]
+          }
+          
+          // Encabezados de tabla
+          const startY = doc.y
+          const tableTop = startY
+          const tableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right
+          const colWidths = [tableWidth * 0.1, tableWidth * 0.15, tableWidth * 0.15, tableWidth * 0.35, tableWidth * 0.1, tableWidth * 0.15]
+          
+          // Función para dibujar una celda de tabla
+          const drawTableCell = (x: number, y: number, width: number, height: number, text: string, isHeader = false) => {
+            // Dibujar borde
+            doc.rect(x, y, width, height).lineWidth(isHeader ? 1 : 0.5).stroke()
+            
+            // Configurar fuente y color
+            if (isHeader) {
+              doc.fillColor('#333333').rect(x, y, width, height).fill()
+              doc.fillColor('white').font('Bold')
+            } else {
+              doc.fillColor('black').font('Regular')
+            }
+            
+            // Texto centrado verticalmente con padding
+            const padding = 5
+            doc.text(text, x + padding, y + padding, {
+              width: width - padding * 2,
+              height: height - padding * 2,
+              align: text === '1' || text === item.quantity.toString() || text === weight ? 'center' : 'left'
+            })
+          }
+          
+          // Altura de la fila
+          const rowHeight = 30
+          
+          // Dibujar encabezados
+          const headerY = doc.y
+          const headers = ['S.No', 'Imagen', 'SKU', 'Producto', 'Cantidad', 'Total weight']
+          headers.forEach((header, i) => {
+            drawTableCell(
+              doc.page.margins.left + colWidths.slice(0, i).reduce((sum, w) => sum + w, 0),
+              headerY,
+              colWidths[i],
+              rowHeight,
+              header,
+              true
+            )
+          })
+          
+          // Dibujar fila de datos
+          const dataY = headerY + rowHeight
+          
+          // S.No
+          drawTableCell(doc.page.margins.left, dataY, colWidths[0], rowHeight, '1')
+          
+          // Imagen
+          const imgCell = {
+            x: doc.page.margins.left + colWidths[0],
+            y: dataY,
+            width: colWidths[1],
+            height: rowHeight
+          }
+          doc.rect(imgCell.x, imgCell.y, imgCell.width, imgCell.height).lineWidth(0.5).stroke()
+          
+          // Añadir thumbnail si existe
+          if (item._thumbImage) {
+            try {
+              doc.image(
+                item._thumbImage.buffer, 
+                imgCell.x + (imgCell.width - 40) / 2, 
+                imgCell.y + (imgCell.height - 40) / 2, 
+                { fit: [40, 40], align: 'center', valign: 'center' }
+              )
+            } catch (error) {
+              console.error(`Error al insertar thumbnail para item ${item.id}:`, error)
+              // Dibuja un cuadro gris en lugar de la imagen que falló
+              doc.rect(
+                imgCell.x + (imgCell.width - 30) / 2,
+                imgCell.y + (imgCell.height - 30) / 2,
+                30, 30
+              ).fillAndStroke('#CCCCCC', '#999999')
+            }
+          }
+          
+          // SKU
+          drawTableCell(doc.page.margins.left + colWidths[0] + colWidths[1], dataY, colWidths[2], rowHeight, sku)
+          
+          // Producto
+          const productCell = {
+            x: doc.page.margins.left + colWidths[0] + colWidths[1] + colWidths[2],
+            y: dataY,
+            width: colWidths[3],
+            height: rowHeight
+          }
+          doc.rect(productCell.x, productCell.y, productCell.width, productCell.height).lineWidth(0.5).stroke()
+          doc.font('Regular').fillColor('black')
+          doc.text(title, productCell.x + 5, productCell.y + 5, { width: productCell.width - 10 })
+          
+          if (colorLabel) {
+            doc.font('Regular').fontSize(9).fillColor('#666666')
+            doc.text(`Color : ${colorLabel}`, productCell.x + 5, doc.y, { width: productCell.width - 10 })
+          }
+          
+          // Cantidad
+          drawTableCell(
+            doc.page.margins.left + colWidths.slice(0, 4).reduce((sum, w) => sum + w, 0),
+            dataY,
+            colWidths[4],
+            rowHeight,
+            item.quantity.toString()
+          )
+          
+          // Peso
+          drawTableCell(
+            doc.page.margins.left + colWidths.slice(0, 5).reduce((sum, w) => sum + w, 0),
+            dataY,
+            colWidths[5],
+            rowHeight,
+            weight
+          )
+          
+          // Pie de página
+          doc.fontSize(10).fillColor('#666666')
+          doc.text('Gracias por confiar en MyUrbanScoot!', doc.page.width / 2, doc.page.height - 80, { align: 'center' })
+          doc.text('Código: -5€BABY', { align: 'center' })
+          doc.text('Incidencias: WhatsApp o llamada.', { align: 'center' })
+        })
+      })
+      
+      // Finalizar el documento
+      doc.end()
+    } catch (error) {
+      reject(error)
+    }
   })
-
-  return `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="utf-8"/>
-  <title>Hoja de embalaje</title>
-  <style>
-    @page { size: A4; margin: 15mm; }
-    body{margin:0;padding:0;font-family:Arial,sans-serif;font-size:11px;line-height:1.4;}
-    .page{page-break-after:always;}
-    .page:last-child{page-break-after:auto;}
-    h1{color:#00AEEF;font-size:24px;margin:0;}
-    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
-    .logo img{height:40px;}
-    .order-details{margin-bottom:15px;}
-    .addresses-container{display:flex;justify-content:space-between;margin-bottom:20px;}
-    .address-column{width:48%;}
-    .address-block{margin-bottom:20px;}
-    .company-info{margin-top:20px;}
-    p{margin:2px 0;}
-    .items-table{width:100%;border-collapse:collapse;margin-bottom:20px;}
-    .items-table th{background-color:#333;color:white;text-align:left;padding:8px 6px;border:1px solid #222;}
-    .items-table td{padding:8px 6px;border:1px solid #ddd;vertical-align:middle;}
-    .img-cell{text-align:center;width:60px;}
-    .img-cell img{max-width:40px;max-height:40px;display:block;margin:0 auto;}
-    .text-center{text-align:center;}
-    .footer{text-align:center;font-size:10px;color:#666;margin-top:30px;border-top:1px solid #eee;padding-top:10px;}
-    small{color:#666;font-size:9px;}
-    strong{font-weight:bold;}
-  </style>
-</head>
-<body>
-  ${pages.join("")}
-</body>
-</html>`
 }
