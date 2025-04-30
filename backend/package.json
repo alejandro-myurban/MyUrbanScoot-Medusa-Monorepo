@@ -21,6 +21,8 @@
     "email:dev": "email dev --dir=./src/modules/email-notifications/templates --port=3002"
   },
   "dependencies": {
+    "@lambdacurry/medusa-plugins-sdk": "^0.0.5",
+    "@lambdacurry/medusa-product-reviews": "^1.1.0",
     "@medusajs/admin-sdk": "latest",
     "@medusajs/cli": "latest",
     "@medusajs/core-flows": "latest",

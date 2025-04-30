@@ -11,6 +11,8 @@ import { HttpTypes } from "@medusajs/types"
 import { ColorContextProvider } from "../../../lib/context/color-content-provider"
 import ClientImageGallery from "../../products/components/image-gallery/client-image-gallery"
 import Spinner from "@modules/common/icons/spinner"
+import { ProductAverageReview } from "@modules/product-reviews/components/ProductAverageReview"
+import { ProductReviewsSummary } from "@modules/product-reviews/components/ProductReviewSummary"
 
 type ProductTemplateProps = {
   product: HttpTypes.StoreProduct
@@ -42,7 +44,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   // Set initial option value
   const initialValue = isValidOption
     ? selectedParam
-    : optionValues[0]?.value || "" 
+    : optionValues[0]?.value || ""
 
   console.log("ProductTemplate rendering with initialValue:", initialValue)
 
@@ -86,6 +88,10 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             className="content-container my-16 small:my-32"
             data-testid="related-products-container"
           >
+            <ProductReviewsSummary
+              productId={product.id}
+              productHandle={product.handle}
+            />
             <Suspense fallback={<SkeletonRelatedProducts />}>
               <RelatedProducts product={product} countryCode={countryCode} />
             </Suspense>

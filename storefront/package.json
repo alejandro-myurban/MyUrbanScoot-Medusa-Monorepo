@@ -24,6 +24,7 @@
   "dependencies": {
     "@headlessui/react": "^1.6.1",
     "@hookform/error-message": "^2.0.0",
+    "@lambdacurry/medusa-plugins-sdk": "^0.0.5",
     "@medusajs/js-sdk": "preview",
     "@medusajs/types": "preview",
     "@medusajs/ui": "preview",
@@ -34,7 +35,9 @@
     "@stripe/stripe-js": "^1.29.0",
     "algoliasearch": "^4.20.0",
     "axios": "^1.6.7",
+    "date-fns": "^4.1.0",
     "lodash": "^4.17.21",
+    "lucide-react": "^0.503.0",
     "medusajs-launch-utils": "latest",
     "next": "^14.0.0",
     "pg": "^8.11.3",

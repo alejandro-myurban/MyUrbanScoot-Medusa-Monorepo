@@ -17,6 +17,9 @@ importers:
       '@hookform/error-message':
         specifier: ^2.0.0
         version: 2.0.1(react-dom@18.3.1(react@18.3.1))(react-hook-form@7.54.2(react@18.3.1))(react@18.3.1)
+      '@lambdacurry/medusa-plugins-sdk':
+        specifier: ^0.0.5
+        version: 0.0.5(awilix@8.0.1)
       '@medusajs/js-sdk':
         specifier: preview
         version: 2.1.4-preview-20241227180154(awilix@8.0.1)
@@ -47,9 +50,15 @@ importers:
       axios:
         specifier: ^1.6.7
         version: 1.7.9
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
+      lucide-react:
+        specifier: ^0.503.0
+        version: 0.503.0(react@18.3.1)
       medusajs-launch-utils:
         specifier: latest
         version: 0.0.11
@@ -370,6 +379,10 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
+  '@lambdacurry/medusa-plugins-sdk@0.0.5':
+    resolution: {integrity: sha512-8325NYK9EHVpuZHKm7P63S5RDo1ls1W+R0d6ZPKq30/y1twvKV8y/7DESpwMcalpN+fbizT35UOD4g236V3ChQ==}
+    engines: {node: '>=20'}
+
   '@medusajs/client-types@0.2.12-preview-20240505115807':
     resolution: {integrity: sha512-f7T/7WUAGOFfsNsjdCcVoWLlAqryaQB+hF0v/Dzst2hv+PdJGqHfHwTNdeK3ZYhUwzSQ8YdnCYsj9OEJR9SPiQ==}
 
@@ -382,6 +395,10 @@ packages:
     resolution: {integrity: sha512-VTJoJOgZLYk3EU3foRTVaiuTcCSS98lQ4/DTpONJffERuwnt+bL2XC+nNHDQodYoHCPh2b0Vxg1+o3fgc20/0A==}
     engines: {node: '>=20'}
 
+  '@medusajs/js-sdk@2.7.1':
+    resolution: {integrity: sha512-k+1bJmFaTi610yBOJQ0K6OzXxz2W1b3vuCO8MmMcb91/ysl6tIPG7QNuT4RdUKsTyz8c55VK+pFSYZ2cTLJdHQ==}
+    engines: {node: '>=20'}
+
   '@medusajs/types@2.1.4-preview-20241227180154':
     resolution: {integrity: sha512-oTcBNOAz06lrgPrVHkPMQyceUHhy80atbQKmGDuMXmvNA9olOnbJDrrryOYAaUw6sXAt2dXnra2vjrEV8mufdg==}
     engines: {node: '>=20'}
@@ -389,6 +406,19 @@ packages:
       awilix: ^8.0.1
       ioredis: ^5.4.1
       vite: ^5.2.11
+    peerDependenciesMeta:
+      ioredis:
+        optional: true
+      vite:
+        optional: true
+
+  '@medusajs/types@2.7.1':
+    resolution: {integrity: sha512-N1CXDwNRH2XnQBcMvtPgl9dWdCPaMGFZKT+Yduro9rhTrmuFDOJUtJpSM/fZIU5yA7RwJbrnnCWxBtJ0lQsEdA==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      awilix: ^8.0.1
+      ioredis: ^5.4.1
+      vite: ^5 || ^6
     peerDependenciesMeta:
       ioredis:
         optional: true
@@ -1492,6 +1522,12 @@ packages:
   '@tanstack/virtual-core@3.11.2':
     resolution: {integrity: sha512-vTtpNt7mKCiZ1pwU9hfKPhpdVO2sVzFQsxoVBGtOSHxlrRRzYr8iQ2TlwbAcRYCcEiZ9ECAM8kBzH0v2+VzfKw==}
 
+  '@types/body-parser@1.19.5':
+    resolution: {integrity: sha512-fB3Zu92ucau0iQ0JMCFQE7b/dv8Ot07NI3KaZIkIUNXq82k4eBAqUaneXfleGY9JWskeS9y+u0nXMyspcuQrCg==}
+
+  '@types/connect@3.4.38':
+    resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
+
   '@types/dom-speech-recognition@0.0.1':
     resolution: {integrity: sha512-udCxb8DvjcDKfk1WTBzDsxFbLgYxmQGKrE/ricoMqHRNjSlSUCcamVTA5lIQqzY10mY5qCY0QDwBfFEwhfoDPw==}
 
@@ -1504,11 +1540,20 @@ packages:
   '@types/estree@1.0.6':
     resolution: {integrity: sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==}
 
+  '@types/express-serve-static-core@5.0.6':
+    resolution: {integrity: sha512-3xhRnjJPkULekpSzgtoNYYcTWgEZkp4myc+Saevii5JPnHNvHMRlBSHDbs7Bh1iPPoVTERHEZXyhyLbMEsExsA==}
+
+  '@types/express@5.0.1':
+    resolution: {integrity: sha512-UZUw8vjpWFXuDnjFTh7/5c2TWDlQqeXHi6hcN7F2XSVT5P+WmUnnbFS3KA6Jnc6IsEqI2qCVu2bK0R0J4A8ZQQ==}
+
   '@types/google.maps@3.58.1':
     resolution: {integrity: sha512-X9QTSvGJ0nCfMzYOnaVs/k6/4L+7F5uCS+4iUmkLEls6J9S/Phv+m/i3mDeyc49ZBgwab3EFO1HEoBY7k98EGQ==}
 
   '@types/hogan.js@3.0.5':
     resolution: {integrity: sha512-/uRaY3HGPWyLqOyhgvW9Aa43BNnLZrNeQxl2p8wqId4UHMfPKolSB+U7BlZyO1ng7MkLnyEAItsBzCG0SDhqrA==}
+
+  '@types/http-errors@2.0.4':
+    resolution: {integrity: sha512-D0CFMMtydbJAegzOyHjtiKPLlvnm3iTZyZRSZoLq2mRhDdmLfIWOCYPfQJ4cu2erKghU++QvjcUjp/5h7hESpA==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -1518,6 +1563,12 @@ packages:
 
   '@types/lodash@4.17.13':
     resolution: {integrity: sha512-lfx+dftrEZcdBPczf9d0Qv0x+j/rfNCMuC6OcfXmO8gkfeNAY88PgKUbvG56whcN23gc27yenwF6oJZXGFpYxg==}
+
+  '@types/mime@1.3.5':
+    resolution: {integrity: sha512-/pyBZWSLD2n0dcHE3hq8s8ZvcETHtEuF+3E7XVt0Ig2nvsVQXdghHVcEkIWjy9A0wKfTn97a/PSDYohKIlnP/w==}
+
+  '@types/multer@1.4.12':
+    resolution: {integrity: sha512-pQ2hoqvXiJt2FP9WQVLPRO+AmiIm/ZYkavPlIQnx282u4ZrVdztx0pkh3jjpQt0Kz+YI0YhSG264y08UJKoUQg==}
 
   '@types/node@17.0.21':
     resolution: {integrity: sha512-DBZCJbhII3r90XbQxI8Y9IjjiiOGlZ0Hr32omXIZvwwZ7p4DMMXGrKXVyPfuoBOri9XNtL0UK69jYIBIsRX3QQ==}
@@ -1534,6 +1585,9 @@ packages:
   '@types/qs@6.9.17':
     resolution: {integrity: sha512-rX4/bPcfmvxHDv0XjfJELTTr+iB+tn032nPILqHm5wbthUUUuVtNGGqzhya9XUxjTP8Fpr0qYgSZZKxGY++svQ==}
 
+  '@types/range-parser@1.2.7':
+    resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
+
   '@types/react-dom@18.3.5':
     resolution: {integrity: sha512-P4t6saawp+b/dFrUr2cvkVsfvPguwsxtH6dNIYRllMsefqFzkZk5UIjzyDOv5g1dXIPdG4Sp1yCR4Z6RCUsG/Q==}
     peerDependencies:
@@ -1547,6 +1601,12 @@ packages:
 
   '@types/react@18.3.18':
     resolution: {integrity: sha512-t4yC+vtgnkYjNSKlFx1jkAhH8LgTo2N/7Qvi83kdEaUtMDiwpbLAktKDaAMlRcJ5eSxZkH74eEGt1ky31d7kfQ==}
+
+  '@types/send@0.17.4':
+    resolution: {integrity: sha512-x2EM6TJOybec7c52BX0ZspPodMsQUd5L6PRwOunVyVUhXiBSKf3AezDL8Dgvgt5o0UfKNfuA0eMLr2wLT4AiBA==}
+
+  '@types/serve-static@1.15.7':
+    resolution: {integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==}
 
   '@typescript-eslint/parser@6.21.0':
     resolution: {integrity: sha512-tbsV1jPne5CkFQCgPBcDOt30ItF7aJoZL997JSF7MhGQqOeT3svWRYxiqlfA5RUdlHN6Fi+EI9bxqbdyAUZjYQ==}
@@ -1955,6 +2015,9 @@ packages:
     resolution: {integrity: sha512-BS8PfmtDGnrgYdOonGZQdLZslWIeCGFP9tpan0hi1Co2Zr2NKADsvGYA8XxuG/4UWgJ6Cjtv+YJnB6MM69QGlQ==}
     engines: {node: '>= 0.4'}
 
+  date-fns@4.1.0:
+    resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
+
   debug@3.2.7:
     resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
     peerDependencies:
@@ -2064,6 +2127,10 @@ packages:
 
   es-set-tostringtag@2.0.3:
     resolution: {integrity: sha512-3T8uNMC3OQTHkFUsFq8r/BwAXLHvU/9O9mE0fBc/MY5iq/8H7ncvO947LmYA6ldWw9Uh8Yhf25zu6n7nML5QWQ==}
+    engines: {node: '>= 0.4'}
+
+  es-set-tostringtag@2.1.0:
+    resolution: {integrity: sha512-j6vWzfrGVfyXxge+O0x5sh6cvxAog0a/4Rdd2K36zCMV5eJ+/+tOAngRO8cODMNWbVRdVlmGZQL2YS3yR8bIUA==}
     engines: {node: '>= 0.4'}
 
   es-shim-unscopables@1.0.2:
@@ -2278,6 +2345,10 @@ packages:
 
   form-data@4.0.1:
     resolution: {integrity: sha512-tzN8e4TX8+kkxGPK8D5u0FNmjPUjw3lwC9lSLxxoB/+GtsJG91CO8bSWy73APlgAZzZbXEYZJuxjkHH2w+Ezhw==}
+    engines: {node: '>= 6'}
+
+  form-data@4.0.2:
+    resolution: {integrity: sha512-hGfm/slu0ZabnNt4oaRZ6uREyfCj6P4fT/n6A1rGV+Z0VdGXjfOhVUpkn6qVQONHGIFwmveGXyDs75+nr6FM8w==}
     engines: {node: '>= 6'}
 
   fraction.js@4.3.7:
@@ -2665,6 +2736,11 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
+
+  lucide-react@0.503.0:
+    resolution: {integrity: sha512-HGGkdlPWQ0vTF8jJ5TdIqhQXZi6uh3LnNgfZ8MHiuxFfX3RZeA79r2MW2tHAZKlAVfoNE8esm3p+O6VkIvpj6w==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   make-dir@3.1.0:
     resolution: {integrity: sha512-g3FeP20LNwhALb/6Cz6Dd4F2ngze0jz7tbzrD2wAV+o9FeNHe4rL+yK2md0J/fiSf1sa1ADhXqi5+oVwOM/eGw==}
@@ -3964,6 +4040,17 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
+  '@lambdacurry/medusa-plugins-sdk@0.0.5(awilix@8.0.1)':
+    dependencies:
+      '@medusajs/js-sdk': 2.7.1(awilix@8.0.1)
+      '@types/express': 5.0.1
+      '@types/multer': 1.4.12
+      form-data: 4.0.2
+    transitivePeerDependencies:
+      - awilix
+      - ioredis
+      - vite
+
   '@medusajs/client-types@0.2.12-preview-20240505115807': {}
 
   '@medusajs/icons@2.1.4-preview-20241227180154(react@18.3.1)':
@@ -3980,7 +4067,22 @@ snapshots:
       - ioredis
       - vite
 
+  '@medusajs/js-sdk@2.7.1(awilix@8.0.1)':
+    dependencies:
+      '@medusajs/types': 2.7.1(awilix@8.0.1)
+      fetch-event-stream: 0.1.5
+      qs: 6.13.1
+    transitivePeerDependencies:
+      - awilix
+      - ioredis
+      - vite
+
   '@medusajs/types@2.1.4-preview-20241227180154(awilix@8.0.1)':
+    dependencies:
+      awilix: 8.0.1
+      bignumber.js: 9.1.2
+
+  '@medusajs/types@2.7.1(awilix@8.0.1)':
     dependencies:
       awilix: 8.0.1
       bignumber.js: 9.1.2
@@ -5517,6 +5619,15 @@ snapshots:
 
   '@tanstack/virtual-core@3.11.2': {}
 
+  '@types/body-parser@1.19.5':
+    dependencies:
+      '@types/connect': 3.4.38
+      '@types/node': 17.0.21
+
+  '@types/connect@3.4.38':
+    dependencies:
+      '@types/node': 17.0.21
+
   '@types/dom-speech-recognition@0.0.1': {}
 
   '@types/eslint-scope@3.7.7':
@@ -5531,15 +5642,36 @@ snapshots:
 
   '@types/estree@1.0.6': {}
 
+  '@types/express-serve-static-core@5.0.6':
+    dependencies:
+      '@types/node': 17.0.21
+      '@types/qs': 6.9.17
+      '@types/range-parser': 1.2.7
+      '@types/send': 0.17.4
+
+  '@types/express@5.0.1':
+    dependencies:
+      '@types/body-parser': 1.19.5
+      '@types/express-serve-static-core': 5.0.6
+      '@types/serve-static': 1.15.7
+
   '@types/google.maps@3.58.1': {}
 
   '@types/hogan.js@3.0.5': {}
+
+  '@types/http-errors@2.0.4': {}
 
   '@types/json-schema@7.0.15': {}
 
   '@types/json5@0.0.29': {}
 
   '@types/lodash@4.17.13': {}
+
+  '@types/mime@1.3.5': {}
+
+  '@types/multer@1.4.12':
+    dependencies:
+      '@types/express': 5.0.1
 
   '@types/node@17.0.21': {}
 
@@ -5554,6 +5686,8 @@ snapshots:
   '@types/prop-types@15.7.14': {}
 
   '@types/qs@6.9.17': {}
+
+  '@types/range-parser@1.2.7': {}
 
   '@types/react-dom@18.3.5(@types/react@18.3.18)':
     dependencies:
@@ -5574,6 +5708,17 @@ snapshots:
     dependencies:
       '@types/prop-types': 15.7.14
       csstype: 3.1.3
+
+  '@types/send@0.17.4':
+    dependencies:
+      '@types/mime': 1.3.5
+      '@types/node': 17.0.21
+
+  '@types/serve-static@1.15.7':
+    dependencies:
+      '@types/http-errors': 2.0.4
+      '@types/node': 17.0.21
+      '@types/send': 0.17.4
 
   '@typescript-eslint/parser@6.21.0(eslint@8.10.0)(typescript@5.3.2)':
     dependencies:
@@ -6058,6 +6203,8 @@ snapshots:
       es-errors: 1.3.0
       is-data-view: 1.0.2
 
+  date-fns@4.1.0: {}
+
   debug@3.2.7:
     dependencies:
       ms: 2.1.3
@@ -6207,6 +6354,13 @@ snapshots:
 
   es-set-tostringtag@2.0.3:
     dependencies:
+      get-intrinsic: 1.2.6
+      has-tostringtag: 1.0.2
+      hasown: 2.0.2
+
+  es-set-tostringtag@2.1.0:
+    dependencies:
+      es-errors: 1.3.0
       get-intrinsic: 1.2.6
       has-tostringtag: 1.0.2
       hasown: 2.0.2
@@ -6506,6 +6660,13 @@ snapshots:
     dependencies:
       asynckit: 0.4.0
       combined-stream: 1.0.8
+      mime-types: 2.1.35
+
+  form-data@4.0.2:
+    dependencies:
+      asynckit: 0.4.0
+      combined-stream: 1.0.8
+      es-set-tostringtag: 2.1.0
       mime-types: 2.1.35
 
   fraction.js@4.3.7: {}
@@ -6914,6 +7075,10 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  lucide-react@0.503.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
 
   make-dir@3.1.0:
     dependencies:

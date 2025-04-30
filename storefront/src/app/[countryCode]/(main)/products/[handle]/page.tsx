@@ -4,6 +4,9 @@ import { notFound } from "next/navigation"
 import ProductTemplate from "@modules/products/templates"
 import { getRegion, listRegions } from "@lib/data/regions"
 import { getProductByHandle, getProductsList } from "@lib/data/products"
+import { ProductReviewsSummary } from "@modules/product-reviews/components/ProductReviewSummary"
+import { sdk } from "@lib/config"
+import { StoreUpsertProductReviewsDTO } from "@lambdacurry/medusa-plugins-sdk"
 
 type Props = {
   params: { countryCode: string; handle: string }
@@ -79,11 +82,19 @@ export default async function ProductPage({ params }: Props) {
     notFound()
   }
 
+  // const productReviews = await sdk.store.productReviews.list({
+  //   product_id: pricedProduct.id,
+  //   offset: 0,
+  //   limit: 10,
+  // })
+
   return (
-    <ProductTemplate
-      product={pricedProduct}
-      region={region}
-      countryCode={params.countryCode}
-    />
+    <>
+      <ProductTemplate
+        product={pricedProduct}
+        region={region}
+        countryCode={params.countryCode}
+      />
+    </>
   )
 }
