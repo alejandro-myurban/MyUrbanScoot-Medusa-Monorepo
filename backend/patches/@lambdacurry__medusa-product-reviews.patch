@@ -1,0 +1,17 @@
+diff --git a/.medusa/server/src/workflows/upsert-product-reviews.js b/.medusa/server/src/workflows/upsert-product-reviews.js
+index e2ce1b72bcfb05bcbfb8d7d7ee64b47f1965554a..1b98403d9860b66bcbddc0ce3cec611043eef62d 100644
+--- a/.medusa/server/src/workflows/upsert-product-reviews.js
++++ b/.medusa/server/src/workflows/upsert-product-reviews.js
+@@ -18,10 +18,10 @@ exports.upsertProductReviewsWorkflow = (0, workflows_sdk_2.createWorkflow)("upse
+             "shipping_address.*",
+             "customer.*",
+             "items.*",
+-            "items.product_review.*",
++            // "items.product_review.*",
+         ],
+         filters: {
+-            id: orderIds,
++          id: { $in: orderIds },
+         },
+     });
+     const inputs = (0, workflows_sdk_1.transform)({ orders, reviews: input.reviews }, (values) => {
