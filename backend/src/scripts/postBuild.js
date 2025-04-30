@@ -2,6 +2,7 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 const path = require('path');
 
+const ROOT = process.cwd()
 const MEDUSA_SERVER_PATH = path.join(process.cwd(), '.medusa', 'server');
 
 // Check if .medusa/server exists - if not, build process failed
