@@ -14,7 +14,6 @@
   ],
   "scripts": {
     "build": "medusa build && node src/scripts/postBuild.js",
-    "postinstall": "patch-package",
     "seed": "medusa exec ./src/scripts/seed.ts",
     "ib": "init-backend",
     "start": "init-backend && cd .medusa/server && medusa start --verbose",
