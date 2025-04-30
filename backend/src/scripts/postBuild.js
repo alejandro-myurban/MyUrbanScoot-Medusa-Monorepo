@@ -24,6 +24,24 @@ if (fs.existsSync(envPath)) {
   );
 }
 
+// 4. **Copia tu patch** a .medusa/server/patches
+const patchSrc = path.join(
+  ROOT,
+  'patches',
+  '@lambdacurry_medusa-product-reviews.patch' // tu parche raíz
+)
+const serverPatchesDir = path.join(MEDUSA_SERVER_PATH, 'patches')
+const patchDest = path.join(
+  serverPatchesDir,
+  '@lambdacurry__medusa-product-reviews.patch'  // Medusa espera dobles guiones bajos
+)
+
+if (!fs.existsSync(serverPatchesDir)) {
+  fs.mkdirSync(serverPatchesDir, { recursive: true })
+}
+fs.copyFileSync(patchSrc, patchDest)
+console.log('➜ Patch copied to .medusa/server/patches')
+
 // Install dependencies
 console.log('Installing dependencies in .medusa/server...');
 execSync('pnpm i --prod --frozen-lockfile', { 
