@@ -42,3 +42,9 @@ export const setCartId = (cartId: string) => {
 export const removeCartId = () => {
   cookies().set("_medusa_cart_id", "", { maxAge: -1 })
 }
+
+
+// En cookies.ts o donde prefieras
+export async function getCacheTag(tag: string): Promise<string> {
+  return `medusa-${tag}`
+}

@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 
 const fetchCart = async () => {
   const cart = await retrieveCart()
+
   if (!cart) {
     return notFound()
   }

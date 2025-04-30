@@ -6,7 +6,13 @@ import { HttpTypes } from "@medusajs/types"
 import { omit } from "lodash"
 import { revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
-import { getAuthHeaders, getCartId, removeCartId, setCartId } from "./cookies"
+import {
+  getAuthHeaders,
+  getCacheTag,
+  getCartId,
+  removeCartId,
+  setCartId,
+} from "./cookies"
 import { getProductsById } from "./products"
 import { getRegion } from "./regions"
 
@@ -395,4 +401,31 @@ export async function updateRegion(countryCode: string, currentPath: string) {
   revalidateTag("products")
 
   redirect(`/${countryCode}${currentPath}`)
+}
+
+// APPLY THE LOYALTY POINTS
+
+export async function applyLoyaltyPointsOnCart() {
+  const cartId = await getCartId()
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  console.log("HOLAAA")
+
+  return await sdk.client
+    .fetch<{
+      cart: HttpTypes.StoreCart & {
+        promotions: HttpTypes.StorePromotion[]
+      }
+    }>(`/store/carts/${cartId}/loyalty-points`, {
+      method: "POST",
+      headers,
+    })
+    .then(async (result) => {
+      const cartCacheTag = await getCacheTag("carts")
+      revalidateTag(cartCacheTag)
+
+      return result
+    })
 }

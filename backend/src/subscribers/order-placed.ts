@@ -5,7 +5,6 @@ import {
 } from "@medusajs/framework/types";
 import { SubscriberArgs, SubscriberConfig } from "@medusajs/medusa";
 import { EmailTemplates } from "../modules/email-notifications/templates";
-import { sdk } from "admin/lib/sdk";
 
 export default async function orderPlacedHandler({
   event: { data },
@@ -16,6 +15,7 @@ export default async function orderPlacedHandler({
   const orderModuleService: IOrderModuleService = container.resolve(
     Modules.ORDER
   );
+
   const query = container.resolve(ContainerRegistrationKeys.QUERY);
 
   const order = await orderModuleService.retrieveOrder(data.id, {
