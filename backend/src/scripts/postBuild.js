@@ -29,7 +29,7 @@ if (fs.existsSync(envPath)) {
 const patchSrc = path.join(
   ROOT,
   'patches',
-  '@lambdacurry_medusa-product-reviews.patch' // tu parche raíz
+  '@lambdacurry__medusa-product-reviews.patch'  // ✅ la ruta real y nombre con doble "_"
 )
 const serverPatchesDir = path.join(MEDUSA_SERVER_PATH, 'patches')
 const patchDest = path.join(
