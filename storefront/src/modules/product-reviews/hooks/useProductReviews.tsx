@@ -69,7 +69,6 @@ export function useProductReviews(productId: string) {
     }
   }
 
-  console.log("STATS", stats?.product_review_stats[0].average_rating)
   /**
    * Envía una reseña de producto utilizando el SDK de LambdaCurry para Medusa
    */
@@ -150,7 +149,7 @@ export function useProductReviews(productId: string) {
     submitReview,
     refreshReviews: fetchReviews,
     refreshStats: fetchStats,
-    averageRating: stats?.product_review_stats[0].average_rating || null,
+    averageRating: stats?.product_review_stats?.[0]?.average_rating ?? null,
     // ratingsDistribution: stats?.ratings_count || {},
   }
 }
