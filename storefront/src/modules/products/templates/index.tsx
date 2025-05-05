@@ -11,8 +11,9 @@ import { HttpTypes } from "@medusajs/types"
 import { ColorContextProvider } from "../../../lib/context/color-content-provider"
 import ClientImageGallery from "../../products/components/image-gallery/client-image-gallery"
 import Spinner from "@modules/common/icons/spinner"
-import { ProductAverageReview } from "@modules/product-reviews/components/ProductAverageReview"
 import { ProductReviewsSummary } from "@modules/product-reviews/components/ProductReviewSummary"
+import BoughtTogether from "../components/bought-together"
+import BoughtTogetherServer from "../components/bought-together"
 
 type ProductTemplateProps = {
   product: HttpTypes.StoreProduct
@@ -30,7 +31,6 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   if (!product || !product.id) {
     return notFound()
   }
-
   // Get color or base option from product
   const variantOption = product.options?.find(
     (opt) => opt.title === "Color" || opt.title === "Base"
@@ -45,8 +45,6 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   const initialValue = isValidOption
     ? selectedParam
     : optionValues[0]?.value || ""
-
-  console.log("ProductTemplate rendering with initialValue:", initialValue)
 
   try {
     return (
@@ -81,6 +79,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                 }
               >
                 <ProductActionsWrapper id={product.id} region={region} />
+                <BoughtTogetherServer product={product} region={region} />
               </Suspense>
             </div>
           </div>
