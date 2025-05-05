@@ -8,6 +8,7 @@ import { revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import {
   getAuthHeaders,
+  getCacheOptions,
   getCacheTag,
   getCartId,
   removeCartId,
@@ -411,8 +412,6 @@ export async function applyLoyaltyPointsOnCart() {
     ...(await getAuthHeaders()),
   }
 
-  console.log("HOLAAA")
-
   return await sdk.client
     .fetch<{
       cart: HttpTypes.StoreCart & {
@@ -420,6 +419,32 @@ export async function applyLoyaltyPointsOnCart() {
       }
     }>(`/store/carts/${cartId}/loyalty-points`, {
       method: "POST",
+      headers,
+    })
+    .then(async (result) => {
+      const cartCacheTag = await getCacheTag("carts")
+      revalidateTag(cartCacheTag)
+
+      return result
+    })
+}
+
+export async function removeLoyaltyPointsOnCart() {
+  const cartId = await getCartId()
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+  const next = {
+    ...(await getCacheOptions("carts")),
+  }
+
+  return await sdk.client
+    .fetch<{
+      cart: HttpTypes.StoreCart & {
+        promotions: HttpTypes.StorePromotion[]
+      }
+    }>(`/store/carts/${cartId}/loyalty-points`, {
+      method: "DELETE",
       headers,
     })
     .then(async (result) => {

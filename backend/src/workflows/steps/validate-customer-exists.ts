@@ -10,7 +10,7 @@ export const validateCustomerExistsStep = createStep(
   "validate-customer-exists",
   async ({ customer }: ValidateCustomerExistsStepInput) => {
 
-    console.log(customer)
+    console.log("CUSTOMER EXISTE",customer)
 
     if (!customer) {
       throw new MedusaError(
@@ -18,6 +18,7 @@ export const validateCustomerExistsStep = createStep(
         "Customer not found"
       )
     }
+    
 
     if (!customer.has_account) {
       throw new MedusaError(

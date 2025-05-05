@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState } from "react"
 import { getLoyaltyPoints } from "../../../../lib/data/customer"
 import { Button, Heading } from "@medusajs/ui"
 import Link from "next/link"
-import { applyLoyaltyPointsOnCart } from "../../../../lib/data/cart"
+import { applyLoyaltyPointsOnCart } from "@lib/data/cart"
+import { removeLoyaltyPointsOnCart } from "@lib/data/cart"
 
 type LoyaltyPointsProps = {
   cart: HttpTypes.StoreCart & {
@@ -37,7 +38,7 @@ const LoyaltyPoints = ({ cart }: LoyaltyPointsProps) => {
     if (!isLoyaltyPointsPromoApplied) {
       await applyLoyaltyPointsOnCart()
     } else {
-      // TODO remove loyalty points
+      await removeLoyaltyPointsOnCart()
     }
   }
 

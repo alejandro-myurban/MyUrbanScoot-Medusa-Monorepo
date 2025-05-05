@@ -55,18 +55,19 @@ class LoyaltyModuleService extends MedusaService({
   }
 
   async calculatePointsFromAmount(amount: number): Promise<number> {
-    // Lógica personalizada: cada 100€ generan 5 puntos
-    // Por ejemplo, 250€ generarían 12 puntos (2 veces 5 puntos por 200€, más 2 puntos por 50€)
-    const points = Math.floor(amount / 100) * 5 + Math.floor((amount % 100) / 20)
-  
+    // Convert amount to points using a standard conversion rate
+    // For example, $1 = 1 point
+    // Round down to nearest whole point
+    const points = Math.floor(amount);
+
     if (points < 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Amount cannot be negative"
-      )
+      );
     }
-  
-    return points
+
+    return points;
   }
 }
 
