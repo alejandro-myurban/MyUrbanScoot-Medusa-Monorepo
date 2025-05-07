@@ -12,8 +12,9 @@ import { ColorContextProvider } from "../../../lib/context/color-content-provide
 import ClientImageGallery from "../../products/components/image-gallery/client-image-gallery"
 import Spinner from "@modules/common/icons/spinner"
 import { ProductReviewsSummary } from "@modules/product-reviews/components/ProductReviewSummary"
+// Importa solo el componente BoughtTogether correcto
 import BoughtTogether from "../components/bought-together"
-import BoughtTogetherServer from "../components/bought-together"
+import { CombinedCartProvider } from "../components/bought-together/bt-context"
 
 type ProductTemplateProps = {
   product: HttpTypes.StoreProduct
@@ -69,18 +70,20 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             </div>
             <div className="flex flex-col small:sticky small:top-48 small:py-0 small:max-w-[300px] w-full py-8 gap-y-12">
               <ProductOnboardingCta />
-              <Suspense
-                fallback={
-                  <ProductActions
-                    disabled={true}
-                    product={product}
-                    region={region}
-                  />
-                }
-              >
-                <ProductActionsWrapper id={product.id} region={region} />
-                <BoughtTogetherServer product={product} region={region} />
-              </Suspense>
+              <CombinedCartProvider>
+                <Suspense
+                  fallback={
+                    <ProductActions
+                      disabled={true}
+                      product={product}
+                      region={region}
+                    />
+                  }
+                >
+                  <ProductActionsWrapper id={product.id} region={region} />
+                  <BoughtTogether product={product} region={region} />
+                </Suspense>
+              </CombinedCartProvider>
             </div>
           </div>
           <div

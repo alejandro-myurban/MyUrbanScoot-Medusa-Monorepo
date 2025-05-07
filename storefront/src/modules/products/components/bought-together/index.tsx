@@ -39,7 +39,7 @@ export default async function BoughtTogether({
     const { products } = await sdk.store.product.list({
       id: ids,
       region_id: region.id, 
-      fields: "id,title,handle,thumbnail,*variants,prices,images",
+      fields: "id,title,handle,thumbnail,*variants,prices,images,*options,*options.values",
     })
     relatedProducts = products
   } catch (error) {

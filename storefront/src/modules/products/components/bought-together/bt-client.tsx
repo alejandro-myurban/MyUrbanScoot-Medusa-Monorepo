@@ -1,14 +1,13 @@
-// app/components/bought-together/BoughtTogetherClient.tsx
 "use client"
 
-import { useState } from "react"
-import { Button, Text } from "@medusajs/ui"
-import { addToCart } from "@lib/data/cart"
+import { useEffect, useState } from "react"
+import { Text } from "@medusajs/ui"
 import Thumbnail from "../thumbnail"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import PreviewPrice from "../product-preview/price"
 import { getProductPrice } from "@lib/util/get-product-price"
 import type { HttpTypes } from "@medusajs/types"
+import { useCombinedCart } from "../bought-together/bt-context"
 
 interface ClientProps {
   products: HttpTypes.StoreProduct[]
@@ -21,62 +20,74 @@ export default function BoughtTogetherClient({
   region,
   discount,
 }: ClientProps) {
-  const [selected, setSelected] = useState<Record<string, boolean>>({})
-  const [isAdding, setIsAdding] = useState(false)
+  const { extras, toggleExtra } = useCombinedCart()
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<string, Record<string, string>>
+  >({})
 
-  const toggleSelect = (variantId: string) => {
-    setSelected((prev) => ({
+  // Inicializar las opciones predeterminadas al cargar
+  useEffect(() => {
+    const defaultOptions: Record<string, Record<string, string>> = {}
+
+    products.forEach((product) => {
+      if (product.id) {
+        const productOptions: Record<string, string> = {}
+        product.options?.forEach((option) => {
+          if (option.values && option.values.length > 0 && option.id) {
+            productOptions[option.id] = option.values[0].value
+          }
+        })
+        defaultOptions[product.id] = productOptions
+      }
+    })
+
+    setSelectedOptions(defaultOptions)
+  }, [products])
+
+  const handleOptionChange = (
+    productId: string,
+    optionId: string,
+    value: string
+  ) => {
+    setSelectedOptions((prev) => ({
       ...prev,
-      [variantId]: !prev[variantId],
+      [productId]: {
+        ...(prev[productId] || {}),
+        [optionId]: value,
+      },
     }))
   }
 
-  const handleAddSelected = async () => {
-    const toAdd = products
-      .map((p) => {
-        const variant = p.variants?.[0]
-        return variant ? { variantId: variant.id, quantity: 1 } : null
-      })
-      .filter(
-        (v): v is { variantId: string; quantity: number } =>
-          v !== null && selected[v.variantId]
-      )
-
-    if (toAdd.length === 0) return
-
-    setIsAdding(true)
-    try {
-      await Promise.all(
-        toAdd.map((params) =>
-          addToCart({ ...params, countryCode: region.countries?.[0]?.iso_2 || "us" })
-        )
-      )
-      // aquí podrías lanzar un toast de éxito
-    } catch (err) {
-      console.error("Error añadiendo al carrito:", err)
-      // aquí un toast de error
-    } finally {
-      setIsAdding(false)
+  const findMatchingVariant = (product: HttpTypes.StoreProduct) => {
+    if (!product.id || !selectedOptions[product.id]) {
+      return product.variants?.[0]
     }
+    const productOpts = selectedOptions[product.id]
+    return (
+      product.variants?.find((variant) =>
+        variant.options?.every(
+          (variantOption) =>
+            variantOption.option_id &&
+            productOpts[variantOption.option_id] === variantOption.value
+        )
+      ) || product.variants?.[0]
+    )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {products.map((p) => {
-        const variant = p.variants?.[0]
+        const variant = findMatchingVariant(p)
         if (!variant) return null
 
-        // obtener precio original
-        const { cheapestPrice } = getProductPrice({ product: p })
+        // Precio original
+        const { cheapestPrice } = getProductPrice({ product: p, variantId: variant.id })
         let displayPrice = cheapestPrice
 
-        // lógica de descuento (igual que en ProductPreview)
         if (cheapestPrice && discount) {
           const discountAmount =
             typeof discount === "string" ? parseFloat(discount) : discount
-
           if (!isNaN(discountAmount) && discountAmount > 0) {
-            // price as number
             const originalPriceNumber =
               cheapestPrice.calculated_price_number ||
               parseFloat(
@@ -85,76 +96,85 @@ export default function BoughtTogetherClient({
                   .replace(/[^0-9.,]+/g, "")
                   .replace(",", ".")
               )
-
-            // apply discount
             const discountedPriceNumber =
               originalPriceNumber * (1 - discountAmount / 100)
-
-            // format
-            let formattedDiscountedPrice: string
-            if (
+            const formatted =
               typeof cheapestPrice.calculated_price === "string" &&
               cheapestPrice.calculated_price.includes("€")
-            ) {
-              formattedDiscountedPrice = `€${discountedPriceNumber.toFixed(2)}`
-            } else if (
-              typeof cheapestPrice.calculated_price === "string" &&
-              cheapestPrice.calculated_price.includes("$")
-            ) {
-              formattedDiscountedPrice = `$${discountedPriceNumber.toFixed(2)}`
-            } else {
-              formattedDiscountedPrice = discountedPriceNumber.toFixed(2)
-            }
-
-            // asignar descuento
+                ? `€${discountedPriceNumber.toFixed(2)}`
+                : typeof cheapestPrice.calculated_price === "string" &&
+                  cheapestPrice.calculated_price.includes("$")
+                ? `$${discountedPriceNumber.toFixed(2)}`
+                : discountedPriceNumber.toFixed(2)
             displayPrice = {
-              ...cheapestPrice, 
+              ...cheapestPrice,
               calculated_price_number: discountedPriceNumber,
-              calculated_price: formattedDiscountedPrice,
+              calculated_price: formatted,
               original_price: cheapestPrice.calculated_price,
               price_type: "sale",
             }
           }
         }
 
-        console.log("displayPrice", displayPrice)
-
         return (
-          <div key={variant.id} className="flex items-center gap-x-4">
-            <input
-              type="checkbox"
-              checked={!!selected[variant.id]}
-              onChange={() => toggleSelect(variant.id)}
-              disabled={isAdding}
-            />
-            <LocalizedClientLink
-              href={`/products/${p.handle}`}
-              className="flex items-center gap-x-4 group"
-            >
-              <Thumbnail
-                thumbnail={p.thumbnail}
-                images={p.images}
-                size="full"
+          <div key={p.id} className="p-4 border rounded-lg">
+            <div className="flex items-center gap-x-4 mb-3">
+              <input
+                type="checkbox"
+                checked={extras.includes(variant.id)}
+                onChange={() => toggleExtra(variant.id)}
+                className="h-5 w-5"
               />
-              <div className="flex flex-col">
-                <Text className="group-hover:underline">
-                  {p.title}
-                </Text>
-                {displayPrice && <PreviewPrice price={displayPrice} />}
+              <LocalizedClientLink
+                href={`/products/${p.handle}`}
+                className="flex items-center gap-x-4 group flex-1"
+              >
+                <Thumbnail thumbnail={p.thumbnail} images={p.images} size="small" />
+                <div className="flex flex-col">
+                  <Text className="group-hover:underline font-medium">
+                    {p.title}
+                  </Text>
+                  {displayPrice && <PreviewPrice price={displayPrice} />}
+                </div>
+              </LocalizedClientLink>
+            </div>
+
+            {p.options && p.options.length > 0 && p.id && (
+              <div className="pl-9 space-y-3">
+                {p.options.map((option) => (
+                  <div key={option.id} className="space-y-2">
+                    <Text size="small" className="text-gray-600">
+                      {option.title}:
+                    </Text>
+                    <div className="flex flex-wrap gap-2">
+                      {option.values?.map((value) => (
+                        <button
+                          key={value.id}
+                          onClick={() =>
+                            option.id &&
+                            handleOptionChange(p.id!, option.id, value.value)
+                          }
+                          type="button"
+                          className={`px-3 py-1 text-sm border rounded-md transition-colors
+                            ${
+                              option.id &&
+                              selectedOptions[p.id!]?.[option.id] === value.value
+                                ? 'bg-gray-900 text-white border-gray-900'
+                                : 'border-gray-300 hover:border-gray-500'
+                            }
+                          `}
+                        >
+                          {value.value}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </LocalizedClientLink>
+            )}
           </div>
         )
       })}
-
-      <Button
-        onClick={handleAddSelected}
-        disabled={isAdding}
-        variant="primary"
-        className="w-full mt-4"
-      >
-        {isAdding ? "Añadiendo…" : "Añadir seleccionados al carrito"}
-      </Button>
     </div>
   )
 }

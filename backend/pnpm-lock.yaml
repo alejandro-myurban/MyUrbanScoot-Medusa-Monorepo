@@ -94,6 +94,9 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2
+      medusa-variant-images:
+        specifier: ^1.1.1
+        version: 1.1.1(z5obvkyxivkqatj6v4nlkz52ea)
       medusajs-launch-utils:
         specifier: ^0.0.15
         version: 0.0.15
@@ -6145,6 +6148,9 @@ packages:
     resolution: {integrity: sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g==}
     engines: {node: '>=8'}
 
+  lodash-es@4.17.21:
+    resolution: {integrity: sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw==}
+
   lodash.assignin@4.2.0:
     resolution: {integrity: sha512-yX/rx6d/UTVh7sSVWVSIMjfnz95evAgDFdb1ZozC35I9mSFCkmzptOzevxjgbQUsc78NR44LVHWjsoMQXy9FDg==}
 
@@ -6299,6 +6305,26 @@ packages:
 
   mediaquery-text@1.2.0:
     resolution: {integrity: sha512-cJyRqgYQi+hsYhRkyd5le0s4LsEPvOB7r+6X3jdEELNqVlM9mRIgyUPg9BzF+PuTqQH1ZekgIjYVOeWSXWq35Q==}
+
+  medusa-variant-images@1.1.1:
+    resolution: {integrity: sha512-m6QoDln2o88GMg7N2kdeH/5HPJebwiHT2hyvKQxGMpXaUYykKufdykiFBq6ZsfOihambgSyqiDkw/7INZIZDAg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@medusajs/admin-sdk': ^2.7.0
+      '@medusajs/cli': ^2.7.0
+      '@medusajs/framework': ^2.7.0
+      '@medusajs/icons': ^2.7.0
+      '@medusajs/js-sdk': ^2.7.0
+      '@medusajs/medusa': ^2.7.0
+      '@medusajs/test-utils': ^2.7.0
+      '@medusajs/ui': ^4.0.3
+      '@mikro-orm/cli': ^6.4.3
+      '@mikro-orm/core': ^6.4.3
+      '@mikro-orm/knex': ^6.4.3
+      '@mikro-orm/migrations': ^6.4.3
+      '@mikro-orm/postgresql': ^6.4.3
+      awilix: ^8.0.1
+      pg: ^8.13.0
 
   medusajs-launch-utils@0.0.15:
     resolution: {integrity: sha512-tLrAyvQLqu4KebiVeFbLSHRnIlAjJ+iI3ryr+gRudaAnHdEZOpSuWQe0SzZVYpJQlLDjoBq3zXztGh/fDOGVuQ==}
@@ -15745,6 +15771,8 @@ snapshots:
     dependencies:
       p-locate: 4.1.0
 
+  lodash-es@4.17.21: {}
+
   lodash.assignin@4.2.0: {}
 
   lodash.bind@4.2.1: {}
@@ -15872,6 +15900,25 @@ snapshots:
   mediaquery-text@1.2.0:
     dependencies:
       cssom: 0.5.0
+
+  medusa-variant-images@1.1.1(z5obvkyxivkqatj6v4nlkz52ea):
+    dependencies:
+      '@medusajs/admin-sdk': 2.7.1
+      '@medusajs/cli': 2.7.1(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31))
+      '@medusajs/framework': 2.7.1(@medusajs/cli@2.7.1(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31)))(@mikro-orm/cli@6.4.3(pg@8.15.5))(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31))
+      '@medusajs/icons': 2.7.1(react@18.3.1)
+      '@medusajs/js-sdk': 2.7.1(awilix@8.0.1)(ioredis@5.6.1)(vite@5.4.18(@types/node@20.17.31))
+      '@medusajs/medusa': 2.7.1(74xa25f7jn47hmrsha7r7ork2y)
+      '@medusajs/test-utils': 2.7.1(@medusajs/framework@2.7.1(@medusajs/cli@2.7.1(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31)))(@mikro-orm/cli@6.4.3(pg@8.15.5))(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31)))(@medusajs/medusa@2.7.1(74xa25f7jn47hmrsha7r7ork2y))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)
+      '@medusajs/ui': 4.0.9(@types/react-dom@18.3.6(@types/react@18.3.20))(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)
+      '@mikro-orm/cli': 6.4.3(pg@8.15.5)
+      '@mikro-orm/core': 6.4.3
+      '@mikro-orm/knex': 6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5)
+      '@mikro-orm/migrations': 6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5)
+      '@mikro-orm/postgresql': 6.4.3(@mikro-orm/core@6.4.3)
+      awilix: 8.0.1
+      lodash-es: 4.17.21
+      pg: 8.15.5
 
   medusajs-launch-utils@0.0.15:
     dependencies:

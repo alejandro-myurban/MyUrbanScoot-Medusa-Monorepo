@@ -9,6 +9,7 @@ type ItemsTemplateProps = {
   items?: HttpTypes.StoreCartLineItem[]
 }
 
+
 const ItemsTemplate = ({ items }: ItemsTemplateProps) => {
   return (
     <div>

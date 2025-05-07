@@ -40,7 +40,7 @@ const Item = ({ item, type = "full" }: ItemProps) => {
         try {
           const data = await getProductsById({
             ids: productId.filter(Boolean) as string[],
-            regionId: "reg_01JR88JEHHXNBCD73H7SFE2ZMS",
+            regionId: "reg_01JSP4QGE8SADHTVCS3M91T6B2",
           })
           console.log("data", data)
           setProductData(data)

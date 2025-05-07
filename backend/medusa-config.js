@@ -162,6 +162,10 @@ const medusaConfig = {
   ],
   plugins: [
     {
+      resolve: "medusa-variant-images",
+      options: {},
+    },
+    {
       resolve: "@lambdacurry/medusa-product-reviews",
       options: {
         defaultReviewStatus: "pending", // OPTIONAL, default is 'approved'

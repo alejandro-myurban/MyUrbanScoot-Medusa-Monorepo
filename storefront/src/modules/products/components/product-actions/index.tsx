@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@medusajs/ui"
+import { Button, toast, Toaster } from "@medusajs/ui"
 import { isEqual } from "lodash"
 import { useParams, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -12,6 +12,7 @@ import ProductPrice from "../product-price"
 import { addToCart } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"
 import { useColorContext } from "@lib/context/color-content-provider"
+import { useCombinedCart } from "../bought-together/bt-context"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
@@ -45,6 +46,7 @@ export default function ProductActions({
   const [isAdding, setIsAdding] = useState(false)
   const countryCode = useParams().countryCode as string
   const searchParams = useSearchParams()
+  const { extras, clearExtras } = useCombinedCart()
 
   const initialColor = useMemo(() => {
     const urlColor = searchParams?.get("color")
@@ -153,17 +155,38 @@ export default function ProductActions({
 
   // add the selected variant to the cart
   const handleAddToCart = async () => {
-    if (!selectedVariant?.id) return null
-
+    if (!selectedVariant?.id) return
     setIsAdding(true)
-
-    await addToCart({
-      variantId: selectedVariant.id,
-      quantity: 1,
-      countryCode,
-    })
-
-    setIsAdding(false)
+    try {
+      // 1) añado el producto principal
+      await addToCart({
+        variantId: selectedVariant.id,
+        quantity: 1,
+        countryCode,
+      })
+      // 2) añado los extras marcados
+      if (extras.length) {
+        await Promise.all(
+          extras.map((variantId) =>
+            addToCart({
+              variantId,
+              quantity: 1,
+              countryCode,
+            })
+          )
+        )
+        clearExtras()
+      }
+      toast.success(
+        "¡Producto añadido al carrito con éxito!"
+      )
+      // aquí toast éxito…
+    } catch (error) {
+      console.error("Error adding to cart:", error)
+      // toast error…
+    } finally {
+      setIsAdding(false)
+    }
   }
 
   return (
@@ -190,7 +213,7 @@ export default function ProductActions({
         </div>
 
         <ProductPrice product={product} variant={selectedVariant} />
-
+        <Toaster />
         <Button
           onClick={handleAddToCart}
           disabled={!inStock || !selectedVariant || !!disabled || isAdding}
