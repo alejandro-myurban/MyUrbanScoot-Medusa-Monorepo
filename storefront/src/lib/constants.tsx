@@ -22,7 +22,7 @@ export const paymentInfoMap: Record<
     title: "Bancontact",
     icon: <Bancontact />,
   },
-  pp_paypal_paypal: {
+  "pp_stripe-paypal_stripe": {
     title: "PayPal",
     icon: <PayPal />,
   },
@@ -37,11 +37,13 @@ export const paymentInfoMap: Record<
 export const isStripe = (providerId?: string) => {
   return providerId?.startsWith("pp_stripe_")
 }
+
 export const isPaypal = (providerId?: string) => {
-  return providerId?.startsWith("pp_paypal")
+  return providerId?.includes("paypal")
 }
+
 export const isManual = (providerId?: string) => {
-  return providerId?.startsWith("pp_system_default")
+  return providerId === "pp_system_default"
 }
 
 // Add currencies that don't need to be divided by 100
