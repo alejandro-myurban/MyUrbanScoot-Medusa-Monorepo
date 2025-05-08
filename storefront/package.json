@@ -25,6 +25,7 @@
     "@headlessui/react": "^1.6.1",
     "@hookform/error-message": "^2.0.0",
     "@lambdacurry/medusa-plugins-sdk": "^0.0.5",
+    "@medusajs/icons": "^2.7.1",
     "@medusajs/js-sdk": "preview",
     "@medusajs/types": "preview",
     "@medusajs/ui": "preview",

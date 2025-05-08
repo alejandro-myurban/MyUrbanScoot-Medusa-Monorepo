@@ -12,6 +12,7 @@ const CartTemplate = ({
   cart: HttpTypes.StoreCart | null
   customer: HttpTypes.StoreCustomer | null
 }) => {
+
   return (
     <div className="py-12">
       <div className="content-container" data-testid="cart-container">

@@ -49,6 +49,19 @@ const Payment = ({
   const paymentReady =
     (activeSession && cart?.shipping_methods.length !== 0) || paidByGiftcard
 
+  const handlePaymentMethodChange = async (value: string) => {
+    setSelectedPaymentMethod(value)
+    if (activeSession) {
+      try {
+        await initiatePaymentSession(cart, {
+          provider_id: value,
+        })
+      } catch (err: any) {
+        setError(err.message)
+      }
+    }
+  }
+
   const useOptions: StripeCardElementOptions = useMemo(() => {
     return {
       style: {
@@ -113,6 +126,9 @@ const Payment = ({
     setError(null)
   }, [isOpen])
 
+  console.log("selectedPayment", selectedPaymentMethod)
+  console.log("activeSession", activeSession)
+
   return (
     <div className="bg-white">
       <div className="flex flex-row items-center justify-between mb-6">
@@ -147,7 +163,7 @@ const Payment = ({
             <>
               <RadioGroup
                 value={selectedPaymentMethod}
-                onChange={(value: string) => setSelectedPaymentMethod(value)}
+                onChange={(value: string) => handlePaymentMethodChange(value)}
               >
                 {availablePaymentMethods
                   .sort((a, b) => {
