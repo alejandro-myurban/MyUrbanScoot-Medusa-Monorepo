@@ -2,7 +2,7 @@
 
 import { sdk } from "@lib/config"
 import medusaError from "@lib/util/medusa-error"
-import { HttpTypes } from "@medusajs/types"
+import { HttpTypes, PaymentSessionDTO } from "@medusajs/types"
 import { omit } from "lodash"
 import { revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
@@ -150,6 +150,14 @@ export async function deleteLineItem(lineId: string) {
     })
     .catch(medusaError)
   revalidateTag("cart")
+
+  const { cart } = await sdk.store.cart.retrieve(cartId, {}, getAuthHeaders())
+
+  if (!cart.items?.length) {
+    removeCartId()
+  }
+
+  return cart
 }
 
 export async function enrichLineItems(
@@ -453,4 +461,46 @@ export async function removeLoyaltyPointsOnCart() {
 
       return result
     })
+}
+
+type PaymentSessionDTO = {
+  provider_id: string
+}
+
+/**
+ * Actualiza el método de pago del carrito
+ * @param cartId - ID del carrito
+ * @param paymentSessionDTO - Datos de la sesión de pago
+ */
+export async function updateCartPaymentMethod(
+  cartId: string,
+  paymentSessionDTO: PaymentSessionDTO
+) {
+  try {
+    // Primero, aseguramos que las sesiones de pago estén inicializadas
+    // Diferentes versiones de Medusa tienen diferentes formas de hacer esto
+    try {
+      // Intentamos primero con refreshPaymentSession (Medusa nueva versión)
+      await sdk.store.payment.refreshPaymentSession(cartId, paymentSessionDTO.provider_id)
+    } catch (error) {
+      // Si falla, intentamos con el método alternativo o asumimos que ya están inicializadas
+      console.log("Refresh session failed, continuing with selection", error)
+    }
+
+    // Ahora, seleccionamos la sesión de pago
+    const { cart } = await medusaClient.carts.setPaymentSession(cartId, {
+      provider_id: paymentSessionDTO.provider_id,
+    })
+
+    // Actualizar las cookies y revalidar las etiquetas para actualizar la UI
+    const cartCookies = cookies()
+    cartCookies.set("_medusa_cart_id", cart.id, { path: "/" })
+    
+    revalidateTag("cart")
+
+    return cart
+  } catch (error) {
+    console.error("Error updating payment method:", error)
+    throw new Error("No se pudo actualizar el método de pago")
+  }
 }

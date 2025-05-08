@@ -20,6 +20,9 @@ importers:
       '@lambdacurry/medusa-plugins-sdk':
         specifier: ^0.0.5
         version: 0.0.5(awilix@8.0.1)
+      '@medusajs/icons':
+        specifier: ^2.7.1
+        version: 2.7.1(react@18.3.1)
       '@medusajs/js-sdk':
         specifier: preview
         version: 2.1.4-preview-20241227180154(awilix@8.0.1)
@@ -388,6 +391,11 @@ packages:
 
   '@medusajs/icons@2.1.4-preview-20241227180154':
     resolution: {integrity: sha512-WvgSe9TVNfhR6BH0r4bzCl/na3zQb/s/iqNlYHvj81JTK9j8w5sasoRmQmYPkt0rK/RtZ5/DHry4tSvu62jAcA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+
+  '@medusajs/icons@2.7.1':
+    resolution: {integrity: sha512-UzSAHH+kKY5jjV4EUVugPD3NN6Ii2xEiGBpGWFF/kBEi9JhK5JAQcR+operus2hWcH1P4oToBbwuo69pEPyMeA==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
 
@@ -4054,6 +4062,10 @@ snapshots:
   '@medusajs/client-types@0.2.12-preview-20240505115807': {}
 
   '@medusajs/icons@2.1.4-preview-20241227180154(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+
+  '@medusajs/icons@2.7.1(react@18.3.1)':
     dependencies:
       react: 18.3.1
 
