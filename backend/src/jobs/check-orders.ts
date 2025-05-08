@@ -35,4 +35,4 @@ export default async function checkOrders7DaysJob(container: MedusaContainer) {
 export const config = {
   name: "check-orders-7days",
   schedule: "0 12 * * *",
-};
+}; 
