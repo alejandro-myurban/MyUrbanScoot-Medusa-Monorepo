@@ -81,11 +81,6 @@ export default async function ProductPage({ params }: Props) {
   }
 
 
-  // const productReviews = await sdk.store.productReviews.list({
-  //   product_id: pricedProduct.id,
-  //   offset: 0,
-  //   limit: 10,
-  // })
 
   return (
     <>

@@ -15,6 +15,7 @@ import BillingAddress from "../billing_address"
 import ErrorMessage from "../error-message"
 import ShippingAddress from "../shipping-address"
 import { SubmitButton } from "../submit-button"
+import { useEffect, useRef } from "react"
 
 const Addresses = ({
   cart,
@@ -26,8 +27,8 @@ const Addresses = ({
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
-
-  const isOpen = searchParams.get("step") === "address"
+  const formRef = useRef<HTMLFormElement>(null)
+  const isOpen = searchParams.get("step") === "address" || "delivery"
 
   const { state: sameAsBilling, toggle: toggleSameAsBilling } = useToggleState(
     cart?.shipping_address && cart?.billing_address
@@ -38,6 +39,22 @@ const Addresses = ({
   const handleEdit = () => {
     router.push(pathname + "?step=address")
   }
+
+  useEffect(() => {
+    const form = formRef.current
+    if (!form) return
+
+    const onBlur = (e: Event) => {
+      const tgt = e.target as HTMLInputElement
+      if (tgt.name === "email") {
+        form.requestSubmit()
+      }
+    }
+
+    // escuchamos en captura para pillar el blur antes de que se propague
+    form.addEventListener("blur", onBlur, true)
+    return () => form.removeEventListener("blur", onBlur, true)
+  }, [formRef])
 
   const [message, formAction] = useFormState(setAddresses, null)
 
@@ -64,7 +81,7 @@ const Addresses = ({
         )}
       </div>
       {isOpen ? (
-        <form action={formAction}>
+        <form ref={formRef} action={formAction}>
           <div className="pb-8">
             <ShippingAddress
               customer={customer}
@@ -85,9 +102,14 @@ const Addresses = ({
                 <BillingAddress cart={cart} />
               </div>
             )}
-            <SubmitButton className="mt-6" data-testid="submit-address-button">
-              Continue to delivery
-            </SubmitButton>
+            {cart?.shipping_address && (
+              <SubmitButton
+                className="mt-6"
+                data-testid="submit-address-button"
+              >
+                Actualizar datos
+              </SubmitButton>
+            )}
             <ErrorMessage error={message} data-testid="address-error-message" />
           </div>
         </form>

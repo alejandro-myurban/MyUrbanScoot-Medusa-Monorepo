@@ -17,9 +17,7 @@ import {
 import { getProductsById } from "./products"
 import { getRegion } from "./regions"
 
-export async function retrieveCart() {
-  const cartId = getCartId()
-
+export async function retrieveCart(cartId = getCartId()) {
   if (!cartId) {
     return null
   }
@@ -354,6 +352,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
         province: formData.get("billing_address.province"),
         phone: formData.get("billing_address.phone"),
       }
+    console.log("data", data)
     await updateCart(data)
   } catch (e: any) {
     return e.message
@@ -364,8 +363,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
   )
 }
 
-export async function placeOrder() {
-  const cartId = getCartId()
+export async function placeOrder(cartId = getCartId()) {
   if (!cartId) {
     throw new Error("No existing cart found when placing an order")
   }
@@ -481,7 +479,10 @@ export async function updateCartPaymentMethod(
     // Diferentes versiones de Medusa tienen diferentes formas de hacer esto
     try {
       // Intentamos primero con refreshPaymentSession (Medusa nueva versión)
-      await sdk.store.payment.refreshPaymentSession(cartId, paymentSessionDTO.provider_id)
+      await sdk.store.payment.refreshPaymentSession(
+        cartId,
+        paymentSessionDTO.provider_id
+      )
     } catch (error) {
       // Si falla, intentamos con el método alternativo o asumimos que ya están inicializadas
       console.log("Refresh session failed, continuing with selection", error)
@@ -495,7 +496,7 @@ export async function updateCartPaymentMethod(
     // Actualizar las cookies y revalidar las etiquetas para actualizar la UI
     const cartCookies = cookies()
     cartCookies.set("_medusa_cart_id", cart.id, { path: "/" })
-    
+
     revalidateTag("cart")
 
     return cart

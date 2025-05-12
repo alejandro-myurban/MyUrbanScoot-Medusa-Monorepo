@@ -22,7 +22,7 @@ export const paymentInfoMap: Record<
     title: "Bancontact",
     icon: <Bancontact />,
   },
-  "pp_stripe-paypal_stripe": {
+  "paypal": {
     title: "PayPal",
     icon: <PayPal />,
   },

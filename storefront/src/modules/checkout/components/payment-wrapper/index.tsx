@@ -25,14 +25,6 @@ const Wrapper: React.FC<WrapperProps> = ({ cart, children }) => {
     (s) => s.status === "pending"
   )
 
-  console.log("🍀 Wrapper render:");
-  console.log("  • stripeKey:", stripeKey)
-  console.log("  • stripePromise:", stripePromise)
-  console.log("  • paymentSession:", paymentSession)
-  console.log("  • isStripe:", isStripe(paymentSession?.provider_id))
-  console.log("  • paypalClientId:", paypalClientId)
-  console.log("  • isPaypal:", isPaypal(paymentSession?.provider_id))
-
   if (
     isStripe(paymentSession?.provider_id) &&
     paymentSession &&

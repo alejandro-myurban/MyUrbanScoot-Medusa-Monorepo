@@ -29,7 +29,7 @@ export default async function reviewRequestHandler({
           subject: "¡Cuéntanos cómo fue tu compra!",
         },
         greeting: `¡Hola ${order.shipping_address?.first_name || ''}! Esperamos que ya hayas recibido tu pedido.`,  
-        actionUrl: `https://misitio.com/orden/${order.id}/review`,
+        actionUrl: `${process.env.STORE_CORS}/es/reviews/${order.id}`,
         preview: "Tu opinión es muy importante para nosotros",
       },
     })
@@ -39,5 +39,5 @@ export default async function reviewRequestHandler({
 }
 
 export const config: SubscriberConfig = {
-  event: "order.check_orders_1day",
+  event: ["order.check_orders_1day", "order.placed"]
 }
