@@ -17,6 +17,49 @@ import {
 import { getProductsById } from "./products"
 import { getRegion } from "./regions"
 
+/**
+ * Añade un cargo adicional a los items del carrito que tienen custom_name en sus metadatos
+ * @returns {Promise<boolean>} - True si la operación fue exitosa
+ */
+export async function addCustomNameFee() {
+  const cartId = getCartId();
+  if (!cartId) {
+    throw new Error("No se encontró un carrito existente");
+  }
+
+  return sdk.client
+    .fetch(`/store/carts/${cartId}/custom-line-items`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    })
+    .then(async (response : any) => {
+      // Parse the response body
+      revalidateTag("cart");
+      return response.success; // Access the `success` property directly
+    })
+    .catch(medusaError);
+}
+
+export async function deleteRelatedItems(id: string) {
+  const cartId = getCartId();
+  if (!cartId) {
+    throw new Error("No se encontró un carrito existente");
+  }
+
+  return sdk.client
+    .fetch(`/store/carts/${cartId}/delete-related-items`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+      body: { line_item_id: id },
+    })
+    .then(async (response : any) => {
+      // Parse the response body
+      revalidateTag("cart");
+      return response.sucess; // Access the `success` property directly
+    })
+    .catch(medusaError);
+}
+
 export async function retrieveCart(cartId = getCartId()) {
   if (!cartId) {
     return null
@@ -77,10 +120,12 @@ export async function addToCart({
   variantId,
   quantity,
   countryCode,
+  metadata,
 }: {
   variantId: string
   quantity: number
   countryCode: string
+  metadata?: Record<string, unknown>
 }) {
   if (!variantId) {
     throw new Error("Missing variant ID when adding to cart")
@@ -97,6 +142,7 @@ export async function addToCart({
       {
         variant_id: variantId,
         quantity,
+        metadata,
       },
       {},
       getAuthHeaders()

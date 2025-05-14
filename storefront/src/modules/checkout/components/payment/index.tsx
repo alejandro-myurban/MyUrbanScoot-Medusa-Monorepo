@@ -2,7 +2,7 @@
 
 import { paymentInfoMap } from "@lib/constants"
 import { initiatePaymentSession } from "@lib/data/cart"
-import { CheckCircleSolid, CreditCard } from "@medusajs/icons"
+import { CheckCircleSolid, CreditCard, Spinner } from "@medusajs/icons"
 import { Button, Container, Heading, Text, clx } from "@medusajs/ui"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import { StripeContext } from "@modules/checkout/components/payment-wrapper/index"
@@ -10,7 +10,7 @@ import Divider from "@modules/common/components/divider"
 import { PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js"
 import { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useCallback, useContext, useEffect, useState } from "react"
+import { Suspense, useCallback, useContext, useEffect, useState } from "react"
 
 const Payment = ({
   cart,
@@ -156,12 +156,14 @@ const Payment = ({
             availablePaymentMethods?.length &&
             stripeReady && (
               <div className="mt-5 transition-all duration-150 ease-in-out">
-                <PaymentElement
-                  onChange={handlePaymentElementChange}
-                  options={{
-                    layout: "tabs",
-                  }}
-                />
+                <Suspense fallback={<Spinner />}>
+                  <PaymentElement
+                    onChange={handlePaymentElementChange}
+                    options={{
+                      layout: "tabs",
+                    }}
+                  />
+                </Suspense>
               </div>
             )}
           {paidByGiftcard && (
@@ -199,7 +201,7 @@ const Payment = ({
             Continue to review
           </Button>
         </div>
-          
+
         <div className={isOpen ? "hidden" : "block"}>
           {cart && paymentReady && activeSession && selectedPaymentMethod ? (
             <div className="flex items-start gap-x-1 w-full">
