@@ -1,34 +1,35 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk";
 import { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types";
-import { toast } from "@medusajs/ui";
+import { Button, toast } from "@medusajs/ui";
 import { Editor } from "@tinymce/tinymce-react";
 import { sdk } from "../lib/sdk";
 import { useState } from "react";
+
+// @ts-ignore
+const TINYMCE_API_KEY = import.meta.env.VITE_TINYMCE_API_KEY;
 
 export default function TextEditorTinyMCE({
   data,
 }: DetailWidgetProps<AdminProduct>) {
   const [content, setContent] = useState(data.description || "");
+  const [loading, setLoading] = useState(false);
 
-  const handleEditorChange = (newContent) => {
+  const handleEditorChange = (newContent: string) => {
     setContent(newContent);
   };
 
   const saveContent = async () => {
+    setLoading(true);
     try {
-        console.log("Guardando contenido:", content);
-      // Ejemplo de guardado usando el cliente de Medusa
-      // Asume que estás actualizando la descripción de un producto
       const updatedProduct = await sdk.admin.product.update(data.id, {
         description: content,
       });
-      console.log("jeje",updatedProduct)
-      // Muestra notificación de éxito
       toast.success("Descripción guardada exitosamente");
     } catch (error) {
-      // Manejo de errores
       console.error("Error al guardar:", error);
       toast.error("No se pudo guardar la descripción");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,7 +37,7 @@ export default function TextEditorTinyMCE({
     <div>
       <Editor
         onEditorChange={handleEditorChange}
-        apiKey="1kedj9oa6ewl5ym7pvre26w4dutsz95rhev19qzgyxz4j4he"
+        apiKey={TINYMCE_API_KEY}
         init={{
           plugins: [
             // Core editing features
@@ -82,9 +83,14 @@ export default function TextEditorTinyMCE({
             "exportword",
             "exportpdf",
           ],
-
+          content_style: `
+          body {
+            background-color: #212124; /* equiv. Tailwind gray-100 */
+          }
+        `,
           value: content,
-          content_css: "dark",
+          skin: "oxide-dark",
+          content_css: "tinymce-5-dark",
           toolbar:
             "undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table mergetags | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat",
           tinycomments_mode: "embedded",
@@ -99,15 +105,15 @@ export default function TextEditorTinyMCE({
             ),
         }}
         initialValue={data.description || ""}
-        
       />
       <div className="mt-4 flex">
-        <button
+        <Button
+          disabled={loading}
           onClick={saveContent}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          className="b text-white py-2 px-4 rounded"
         >
           Guardar Descripción
-        </button>
+        </Button>
       </div>
     </div>
   );

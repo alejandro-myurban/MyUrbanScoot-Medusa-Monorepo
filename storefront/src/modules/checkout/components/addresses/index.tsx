@@ -15,7 +15,7 @@ import BillingAddress from "../billing_address"
 import ErrorMessage from "../error-message"
 import ShippingAddress from "../shipping-address"
 import { SubmitButton } from "../submit-button"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 
 const Addresses = ({
   cart,
@@ -28,7 +28,9 @@ const Addresses = ({
   const router = useRouter()
   const pathname = usePathname()
   const formRef = useRef<HTMLFormElement>(null)
+  const [submitCount, setSubmitCount] = useState(0)
   const isOpen = searchParams.get("step") === "address" || "delivery"
+  const [showButton, setShowButton] = useState<boolean>(false)
 
   const { state: sameAsBilling, toggle: toggleSameAsBilling } = useToggleState(
     cart?.shipping_address && cart?.billing_address
@@ -48,15 +50,32 @@ const Addresses = ({
       const tgt = e.target as HTMLInputElement
       if (tgt.name === "email") {
         form.requestSubmit()
+        
+        // Set a timeout to show the button after 5 seconds
+        const timer = setTimeout(() => {
+          setShowButton(true)
+        }, 5000)
+
+        // Clean up the timer if the component unmounts
+        return () => clearTimeout(timer)
       }
     }
 
-    // escuchamos en captura para pillar el blur antes de que se propague
+    // Listen in capture phase to catch blur before it propagates
     form.addEventListener("blur", onBlur, true)
-    return () => form.removeEventListener("blur", onBlur, true)
+    
+    return () => {
+      form.removeEventListener("blur", onBlur, true)
+    }
   }, [formRef])
 
   const [message, formAction] = useFormState(setAddresses, null)
+
+  // Wrap the formAction to increment submit count
+  const handleSubmit = (formData: FormData) => {
+    setSubmitCount((prev) => prev + 1)
+    return formAction(formData)
+  }
 
   return (
     <div className="bg-white">
@@ -81,7 +100,7 @@ const Addresses = ({
         )}
       </div>
       {isOpen ? (
-        <form ref={formRef} action={formAction}>
+        <form ref={formRef} action={handleSubmit} key={submitCount}>
           <div className="pb-8">
             <ShippingAddress
               customer={customer}
@@ -102,7 +121,7 @@ const Addresses = ({
                 <BillingAddress cart={cart} />
               </div>
             )}
-            {cart?.shipping_address && (
+            {showButton && (
               <SubmitButton
                 className="mt-6"
                 data-testid="submit-address-button"
