@@ -173,9 +173,25 @@ const OrdersPage = () => {
         return (
           <div className="flex flex-col gap-1">
             {items.map((item, index) => (
-              <span key={`${item.id || index}`}>
-                {item.title} <strong>({item.quantity})</strong>
-              </span>
+              <div key={item.id ?? index} className="flex flex-col">
+                {/* Primera línea: título + cantidad */}
+                <span>
+                  {item.title} <strong>({item.quantity})</strong>
+                </span>
+
+                {/* Segunda línea: si hay custom_name, mostramos:
+                    Nombre personalizado (cantidad) – custom_name */}
+                {item.metadata?.custom_name && (
+                  <span>
+                    Nombre: <strong>{item.metadata.custom_name}</strong>
+                  </span>
+                )}
+                {item.metadata?.custom_number && (
+                  <span>
+                    Número: <strong>{item.metadata.custom_number}</strong>
+                  </span>
+                )}
+              </div>
             ))}
           </div>
         );
