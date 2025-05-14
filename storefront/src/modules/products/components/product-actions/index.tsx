@@ -46,7 +46,7 @@ export default function ProductActions({
   const [isAdding, setIsAdding] = useState(false)
   const countryCode = useParams().countryCode as string
   const searchParams = useSearchParams()
-  const { extras, clearExtras } = useCombinedCart()
+  const { extras, clearExtras , clearCustomFields, customMetadata} = useCombinedCart()
 
   const initialColor = useMemo(() => {
     const urlColor = searchParams?.get("color")
@@ -158,12 +158,14 @@ export default function ProductActions({
     if (!selectedVariant?.id) return
     setIsAdding(true)
     try {
-      // 1) añado el producto principal
+      // 1) añado el producto principal con los metadatos personalizados
       await addToCart({
         variantId: selectedVariant.id,
         quantity: 1,
         countryCode,
+        metadata: customMetadata, // Añadimos los metadatos personalizados aquí
       })
+
       // 2) añado los extras marcados
       if (extras.length) {
         await Promise.all(
@@ -177,13 +179,14 @@ export default function ProductActions({
         )
         clearExtras()
       }
-      toast.success(
-        "¡Producto añadido al carrito con éxito!"
-      )
-      // aquí toast éxito…
+
+      // 3) Limpiamos los campos personalizados
+      clearCustomFields()
+
+      toast.success("¡Producto añadido al carrito con éxito!")
     } catch (error) {
       console.error("Error adding to cart:", error)
-      // toast error…
+      toast.error("Error al añadir al carrito")
     } finally {
       setIsAdding(false)
     }

@@ -31,7 +31,6 @@ const Item = ({ item, type = "full" }: ItemProps) => {
   console.log("item!!!!!!!", item)
   const { handle } = item.variant?.product ?? {}
   const productId = [item.product?.id]
-  console.log("id!!!!!!!", productId)
 
   useEffect(() => {
     const getProductData = async () => {

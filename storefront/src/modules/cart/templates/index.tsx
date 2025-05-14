@@ -4,6 +4,7 @@ import EmptyCartMessage from "../components/empty-cart-message"
 import SignInPrompt from "../components/sign-in-prompt"
 import Divider from "@modules/common/components/divider"
 import { HttpTypes } from "@medusajs/types"
+import { addCustomNameFee } from "@lib/data/cart"
 
 const CartTemplate = ({
   cart,
@@ -12,6 +13,7 @@ const CartTemplate = ({
   cart: HttpTypes.StoreCart | null
   customer: HttpTypes.StoreCustomer | null
 }) => {
+
 
   return (
     <div className="py-12">

@@ -15,6 +15,7 @@ import { ProductReviewsSummary } from "@modules/product-reviews/components/Produ
 // Importa solo el componente BoughtTogether correcto
 import BoughtTogether from "../components/bought-together"
 import { CombinedCartProvider } from "../components/bought-together/bt-context"
+import CustomNameNumberForm from "../components/custom-name-number"
 
 type ProductTemplateProps = {
   product: HttpTypes.StoreProduct
@@ -80,6 +81,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                     />
                   }
                 >
+                  <CustomNameNumberForm product={product} />
                   <ProductActionsWrapper id={product.id} region={region} />
                   <BoughtTogether product={product} region={region} />
                 </Suspense>

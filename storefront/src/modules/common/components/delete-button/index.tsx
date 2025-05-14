@@ -1,4 +1,4 @@
-import { deleteLineItem } from "@lib/data/cart"
+import { deleteLineItem, deleteRelatedItems } from "@lib/data/cart"
 import { Spinner, Trash } from "@medusajs/icons"
 import { clx } from "@medusajs/ui"
 import { useState } from "react"
@@ -16,6 +16,7 @@ const DeleteButton = ({
 
   const handleDelete = async (id: string) => {
     setIsDeleting(true)
+    await deleteRelatedItems(id)
     await deleteLineItem(id).catch((err) => {
       setIsDeleting(false)
     })

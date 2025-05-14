@@ -8,7 +8,7 @@ import {
   Heading,
 } from "@medusajs/ui";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { sdk } from "../lib/sdk";
+import { sdk } from "../lib/sdk.js";
 import { useState, useEffect } from "react";
 
 function useDebouncedValue<T>(value: T, delay: number): T {
