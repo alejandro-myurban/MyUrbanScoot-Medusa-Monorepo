@@ -19,7 +19,7 @@ export const addCustomLineItemIfCustomNameWorkflow = createWorkflow(
   ({ cart_id, quantity = 1 }: Input) => {
     // IDs de los variants de tarifa según el tipo
     const NAME_FEE_VARIANT_ID = "variant_01JV4R20FJ07VWECNGVKSY76HM";
-    const NUMBER_FEE_VARIANT_ID = "variant_01JV7720S8EAQ6VHJWRMWVHRFY";
+    const NUMBER_FEE_VARIANT_ID = "variant_01JVAAEJD9QF8DV88FVRB00Q3C";
 
     // 1️⃣ Traemos el carrito completo
     const { data: carts } = useQueryGraphStep({

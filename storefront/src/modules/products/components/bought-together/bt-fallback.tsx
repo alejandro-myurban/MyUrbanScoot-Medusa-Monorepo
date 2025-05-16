@@ -3,7 +3,7 @@ import Thumbnail from "../thumbnail"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import PreviewPrice from "../product-preview/price"
 import { getProductPrice } from "@lib/util/get-product-price"
-import { Button, Text } from "@medusajs/ui"  // import Spinner
+import { Button, Text } from "@medusajs/ui" // import Spinner
 import type { HttpTypes } from "@medusajs/types"
 import Spinner from "@modules/common/icons/spinner"
 
@@ -102,7 +102,7 @@ export default function BoughtTogetherFallback({
             {/* Opciones del producto (versión estática para el fallback) */}
             {p.options && p.options.length > 0 && (
               <div className="pl-9 space-y-3">
-                {p.options.map(option => (
+                {p.options.map((option) => (
                   <div key={option.id} className="space-y-2">
                     <Text size="small" className="text-gray-600">
                       {option.title}:
@@ -113,13 +113,13 @@ export default function BoughtTogetherFallback({
                           key={value.id}
                           className={`px-3 py-1 w-20 h-[30px] text-sm border rounded-md transition-colors flex items-center justify-center ${
                             idx === 0
-                              ? 'bg-ui-button-inverted text-white border-gray-900'
-                              : 'border-gray-300'
+                              ? "bg-ui-button-inverted text-white border-gray-900"
+                              : "border-gray-300"
                           }`}
                           type="button"
                           disabled={true}
                         >
-                          <Spinner /> 
+                          <Spinner />
                         </button>
                       ))}
                     </div>
@@ -130,14 +130,6 @@ export default function BoughtTogetherFallback({
           </div>
         )
       })}
-
-      <Button
-        disabled={true}
-        variant="primary"
-        className="w-full mt-6 flex items-center justify-center"
-      >
-        <Spinner /> {/* spinner en botón principal */}
-      </Button>
     </div>
   )
 }

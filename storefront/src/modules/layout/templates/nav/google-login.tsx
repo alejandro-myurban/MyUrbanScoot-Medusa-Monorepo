@@ -1,6 +1,7 @@
-"use client" // include with Next.js 13+
+"use client" 
 
 import { sdk } from "@lib/config"
+import Google2 from "./google-icon"
 
 export default function Login() {
   const loginWithGoogle = async () => {
@@ -27,7 +28,7 @@ export default function Login() {
 
   return (
     <div>
-      <button onClick={loginWithGoogle}>Login with Google</button>
+      <button className="flex justify-center items-center gap-2" onClick={loginWithGoogle}>Login with <Google2 className="text-2xl" /></button>
     </div>
   )
 }

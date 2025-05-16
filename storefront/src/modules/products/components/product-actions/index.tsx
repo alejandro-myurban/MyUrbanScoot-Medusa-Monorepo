@@ -13,6 +13,7 @@ import { addToCart } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"
 import { useColorContext } from "@lib/context/color-content-provider"
 import { useCombinedCart } from "../bought-together/bt-context"
+import { useTranslation } from "react-i18next"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
@@ -46,8 +47,9 @@ export default function ProductActions({
   const [isAdding, setIsAdding] = useState(false)
   const countryCode = useParams().countryCode as string
   const searchParams = useSearchParams()
-  const { extras, clearExtras , clearCustomFields, customMetadata} = useCombinedCart()
-
+  const { extras, clearExtras, clearCustomFields, customMetadata } =
+    useCombinedCart()
+  const { t } = useTranslation()
   const initialColor = useMemo(() => {
     const urlColor = searchParams?.get("color")
     const colorOption = product.options?.find(
@@ -229,7 +231,7 @@ export default function ProductActions({
             ? "Select variant"
             : !inStock
             ? "Out of stock"
-            : "Add to cart"}
+            : t("product.addToCart")}
         </Button>
         <MobileActions
           product={product}

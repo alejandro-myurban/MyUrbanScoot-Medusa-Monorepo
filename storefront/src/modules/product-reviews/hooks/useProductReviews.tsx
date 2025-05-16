@@ -1,155 +1,104 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import {
-  ProductReview,
-  ProductReviewCreateBody,
-  ProductReviewStats,
-} from "../types"
-import { sdk } from "@lib/config"
+import { useEffect, useMemo, useState } from "react"
 import {
   StoreListProductReviewsResponse,
-  StoreListProductReviewStatsQuery,
-  StoreListProductReviewStatsResponse,
   StoreUpsertProductReviewsDTO,
 } from "@lambdacurry/medusa-plugins-sdk"
+import { sdk } from "@lib/config"
 
-const API_BASE = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "/api"
+type CreateReviewData = {
+  order_id: string
+  order_line_item_id: string
+  rating: number
+  content: string
+  images?: { url: string }[]
+}
 
-export function useProductReviews(productId: string) {
+export function useProductReviews(productId?: string) {
   const [reviews, setReviews] = useState<StoreListProductReviewsResponse>()
-  const [stats, setStats] = useState<StoreListProductReviewStatsResponse>()
   const [loading, setLoading] = useState(false)
-  const [statsLoading, setStatsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const fetchReviews = async () => {
-    if (!productId) return
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await sdk.store.productReviews.list({
-        product_id: productId,
-        offset: 0,
-        limit: 10,
-        status: "approved",
-      })
-      console.log(response)
-      setReviews(response)
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error("An unknown error occurred")
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchStats = async () => {
-    if (!productId) return
-
-    setStatsLoading(true)
-
-    try {
-      const response = await sdk.store.productReviews.listStats({
-        product_id: productId,
-        offset: 0,
-        limit: 10,
-      })
-      console.log("EEEEEEEEEEEEEEE", response)
-
-      setStats(response)
-    } catch (err) {
-      console.error("Error fetching review stats:", err)
-    } finally {
-      setStatsLoading(false)
-    }
-  }
-
-  /**
-   * Envía una reseña de producto utilizando el SDK de LambdaCurry para Medusa
-   */
-  const submitReview = async (
-    reviewData: Omit<
-      StoreUpsertProductReviewsDTO["reviews"][number],
-      "product_id"
-    >,
-    {
-      productId,
-      setSubmitting,
-      setError,
-      fetchReviews,
-      fetchStats,
-    }: {
-      productId: string
-      setSubmitting: (value: boolean) => void
-      setError: (error: Error | null) => void
-      fetchReviews: () => Promise<void>
-      fetchStats: () => Promise<void>
-    }
-  ) => {
-    if (!productId) return
-
+  // Función para crear una nueva reseña
+  const createReview = async (reviewData: CreateReviewData) => {
     setSubmitting(true)
-    setError(null)
+    setSubmitError(null)
 
     try {
-      // Usando el cliente de LambdaCurry Medusa
-      const { product_reviews } = await sdk.store.productReviews.upsert({
+      const payload: StoreUpsertProductReviewsDTO = {
         reviews: [
           {
-            order_id: "test_order_123",
-            order_line_item_id: "test_line_item_123",
-            rating: 5,
-            content: "This is a test review content",
-            images: [
-              {
-                url: "https://example.com/test-image.jpg",
-              },
-            ],
+            order_id: reviewData.order_id,
+            order_line_item_id: reviewData.order_line_item_id,
+            rating: reviewData.rating,
+            content: reviewData.content,
+            images: reviewData.images || [],
           },
         ],
-      })
-
-      if (error) {
-        throw new Error(error.message || "Failed to submit review")
       }
 
-      // Recargar reseñas y estadísticas después de enviar
-      await Promise.all([fetchReviews(), fetchStats()])
+      await sdk.store.productReviews.upsert(payload)
+
+      // Si la reseña es para el producto actual, refrescamos las reseñas
+      if (productId) {
+        await fetchReviews()
+      }
+
       return true
-    } catch (err) {
-      console.error("Error submitting review:", err)
-      setError(
-        err instanceof Error ? err : new Error("An unknown error occurred")
-      )
+    } catch (err: any) {
+      console.error(err)
+      setSubmitError(err.message || "Error enviando la reseña")
       return false
     } finally {
       setSubmitting(false)
     }
   }
 
-  useEffect(() => {
-    if (productId) {
-      fetchReviews()
-      fetchStats()
+  const fetchReviews = async () => {
+    if (!productId) return
+
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await sdk.store.productReviews.list({
+        product_id: productId,
+        offset: 0,
+        limit: 100, // por si tienes muchas reseñas
+        status: "approved", // solo traemos aprobadas
+      })
+      setReviews(response)
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("Unknown error"))
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
+    fetchReviews()
   }, [productId])
 
+  // Solo reviews aprobadas (aunque ya las filtramos en la API, lo reforzamos)
+  const list = useMemo(() => reviews?.product_reviews ?? [], [reviews])
+
+  // Media de ratings (0 si no hay ninguna)
+  const averageRating = useMemo(() => {
+    if (list.length === 0) return 0
+    const sum = list.reduce((acc, r) => acc + r.rating, 0)
+    return sum / list.length
+  }, [list])
   return {
     reviews,
-    stats,
     loading,
-    statsLoading,
     error,
     submitting,
-    submitReview,
     refreshReviews: fetchReviews,
-    refreshStats: fetchStats,
-    averageRating: stats?.product_review_stats?.[0]?.average_rating ?? null,
-    // ratingsDistribution: stats?.ratings_count || {},
+    averageRating, // media real de aprobadas
+    totalApprovedReviews: list.length,
+    createReview,
+    submitError,
   }
 }

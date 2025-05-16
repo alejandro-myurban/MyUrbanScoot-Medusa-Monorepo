@@ -1,0 +1,16 @@
+{
+  "appName": "Demo Store",
+  "appDescription": "A demo store to showcase the capabilities of the Commerce.js API",
+  "cart": {
+    "title": "Cart",
+    "empty": "Your cart is empty",
+    "checkout": "Checkout",
+    "continueShopping": "Continue Shopping"
+  },
+  "product": {
+    "addToCart": "Add to Cart"
+  },
+  "footer": {
+    "poweredBy": "Powered by"
+  }
+}

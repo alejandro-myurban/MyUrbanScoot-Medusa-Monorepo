@@ -97,6 +97,9 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2
+      medusa-plugin-tolgee:
+        specifier: ^1.1.1
+        version: 1.1.1(koakkhe5fiefmigwhoucarrjna)
       medusa-variant-images:
         specifier: ^1.1.1
         version: 1.1.1(z5obvkyxivkqatj6v4nlkz52ea)
@@ -4019,6 +4022,17 @@ packages:
   '@tokenizer/token@0.3.0':
     resolution: {integrity: sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A==}
 
+  '@tolgee/core@6.2.5':
+    resolution: {integrity: sha512-9+B73ig2k7RkR1379SosJCTsneUs/kAL0efOjVfw+pyegm1cpX6gUTDJXvcSpHHbYRDkv1kvCCi5JDnHHP7Wjw==}
+
+  '@tolgee/react@6.2.5':
+    resolution: {integrity: sha512-m4COuw4w0CeShH668hnnf1caOkVUQHOAKY7bZCagqiU0S1ZNqoQP6guxlQMRsS/mAmxQS6qxB7FMf2s6jreRHQ==}
+    peerDependencies:
+      react: ^16.14.0 || ^17.0.1 || ^18.1.0 || ^19
+
+  '@tolgee/web@6.2.5':
+    resolution: {integrity: sha512-cWa/JbsWZfshN2UKvvCzubm2Gnkdm+GZQN4oUzSRrpjpcUrVDlVU9MCQjowq1vuE+ivUmcbAQ8Z4Q3Kg3+UUIQ==}
+
   '@tootallnate/quickjs-emscripten@0.23.0':
     resolution: {integrity: sha512-C5Mc6rdnsaJDjO3UpGW/CQTHtCKaYlScZTly4JIu97Jxo/odCiH0ITnDXSJPTOrEKk/ycSZ0AOgTmkDtkOsvIA==}
 
@@ -6318,6 +6332,26 @@ packages:
 
   mediaquery-text@1.2.0:
     resolution: {integrity: sha512-cJyRqgYQi+hsYhRkyd5le0s4LsEPvOB7r+6X3jdEELNqVlM9mRIgyUPg9BzF+PuTqQH1ZekgIjYVOeWSXWq35Q==}
+
+  medusa-plugin-tolgee@1.1.1:
+    resolution: {integrity: sha512-dSZ1wRwlzHaodpAaaTBkmW/ljJU1peR1R5g3YJuLmCxaYY4xJFBjBEBZhvXQQKPxBtDXLZyQQiVI6kT90e4iXw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@medusajs/admin-sdk': 2.7.0
+      '@medusajs/cli': 2.7.0
+      '@medusajs/framework': 2.7.0
+      '@medusajs/icons': 2.7.0
+      '@medusajs/medusa': 2.7.0
+      '@medusajs/test-utils': 2.7.0
+      '@medusajs/ui': 4.0.8
+      '@mikro-orm/cli': 6.4.3
+      '@mikro-orm/core': 6.4.3
+      '@mikro-orm/knex': 6.4.3
+      '@mikro-orm/migrations': 6.4.3
+      '@mikro-orm/postgresql': 6.4.3
+      awilix: ^8.0.1
+      pg: ^8.13.0
+      react-i18next: ^13.5.0
 
   medusa-variant-images@1.1.1:
     resolution: {integrity: sha512-m6QoDln2o88GMg7N2kdeH/5HPJebwiHT2hyvKQxGMpXaUYykKufdykiFBq6ZsfOihambgSyqiDkw/7INZIZDAg==}
@@ -13195,6 +13229,17 @@ snapshots:
 
   '@tokenizer/token@0.3.0': {}
 
+  '@tolgee/core@6.2.5': {}
+
+  '@tolgee/react@6.2.5(react@18.3.1)':
+    dependencies:
+      '@tolgee/web': 6.2.5
+      react: 18.3.1
+
+  '@tolgee/web@6.2.5':
+    dependencies:
+      '@tolgee/core': 6.2.5
+
   '@tootallnate/quickjs-emscripten@0.23.0': {}
 
   '@tsconfig/node10@1.0.11': {}
@@ -15919,6 +15964,29 @@ snapshots:
   mediaquery-text@1.2.0:
     dependencies:
       cssom: 0.5.0
+
+  medusa-plugin-tolgee@1.1.1(koakkhe5fiefmigwhoucarrjna):
+    dependencies:
+      '@medusajs/admin-sdk': 2.7.1
+      '@medusajs/cli': 2.7.1(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31))
+      '@medusajs/framework': 2.7.1(@medusajs/cli@2.7.1(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31)))(@mikro-orm/cli@6.4.3(pg@8.15.5))(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31))
+      '@medusajs/icons': 2.7.1(react@18.3.1)
+      '@medusajs/medusa': 2.7.1(74xa25f7jn47hmrsha7r7ork2y)
+      '@medusajs/test-utils': 2.7.1(@medusajs/framework@2.7.1(@medusajs/cli@2.7.1(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31)))(@mikro-orm/cli@6.4.3(pg@8.15.5))(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31)))(@medusajs/medusa@2.7.1(74xa25f7jn47hmrsha7r7ork2y))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)
+      '@medusajs/ui': 4.0.9(@types/react-dom@18.3.6(@types/react@18.3.20))(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)
+      '@mikro-orm/cli': 6.4.3(pg@8.15.5)
+      '@mikro-orm/core': 6.4.3
+      '@mikro-orm/knex': 6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5)
+      '@mikro-orm/migrations': 6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5)
+      '@mikro-orm/postgresql': 6.4.3(@mikro-orm/core@6.4.3)
+      '@tolgee/core': 6.2.5
+      '@tolgee/react': 6.2.5(react@18.3.1)
+      '@tolgee/web': 6.2.5
+      awilix: 8.0.1
+      pg: 8.15.5
+      react-i18next: 13.5.0(i18next@23.7.11)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    transitivePeerDependencies:
+      - react
 
   medusa-variant-images@1.1.1(z5obvkyxivkqatj6v4nlkz52ea):
     dependencies:

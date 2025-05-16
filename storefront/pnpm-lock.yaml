@@ -56,6 +56,15 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      i18next:
+        specifier: ^25.1.3
+        version: 25.1.3(typescript@5.3.2)
+      i18next-browser-languagedetector:
+        specifier: ^8.1.0
+        version: 8.1.0
+      i18next-http-backend:
+        specifier: ^3.0.2
+        version: 3.0.2
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -83,12 +92,18 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
+      react-i18next:
+        specifier: ^15.5.1
+        version: 15.5.1(i18next@25.1.3(typescript@5.3.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.3.2)
       react-instantsearch-hooks-web:
         specifier: ^6.29.0
         version: 6.47.3(algoliasearch@4.24.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-intersection-observer:
         specifier: ^9.3.4
         version: 9.14.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-jwt:
+        specifier: ^1.3.0
+        version: 1.3.0(react@18.3.1)
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
@@ -274,6 +289,10 @@ packages:
 
   '@babel/runtime@7.26.0':
     resolution: {integrity: sha512-FDSOghenHTiToteC/QRlv2q3DhPZ/oOXTBoirfWNx1Cx3TMVcGWQtMMmQcSvb/JjpNeGzx8Pq/b4fKEJuWm1sw==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.27.1':
+    resolution: {integrity: sha512-1x3D2xEk2fRo3PAhwQwu5UubzgiVWSXTBfWpVd2Mx2AzRqJuDJCsgaDVZ7HB5iGzDW1Hl1sWN2mFyKjmR9uAog==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.25.9':
@@ -1988,6 +2007,9 @@ packages:
   cross-fetch@3.1.8:
     resolution: {integrity: sha512-cvA+JwZoU0Xq+h6WkMvAUqPEYy92Obet6UdKLfW60qn99ftItKjB5T+BkyWOFWe2pUyfQ+IJHmpOTznqk1M6Kg==}
 
+  cross-fetch@4.0.0:
+    resolution: {integrity: sha512-e4a5N8lVvuLgAWgnCrLr2PP0YyDOTHa9H/Rj54dirp61qXnNq46m82bRhNqIA5VccJtWBvPTFRV3TtvHUKPB1g==}
+
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
@@ -2489,6 +2511,23 @@ packages:
 
   htm@3.1.1:
     resolution: {integrity: sha512-983Vyg8NwUE7JkZ6NmOqpCZ+sh1bKv2iYTlUkzlWmA5JD2acKoxd4KVxbMmxX/85mtfdnDmTFoNKcg5DGAvxNQ==}
+
+  html-parse-stringify@3.0.1:
+    resolution: {integrity: sha512-KknJ50kTInJ7qIScF3jeaFRpMpE8/lfiTdzf/twXyPBLAGrLRTmkz3AdTnKeh40X8k9L2fdYwEp/42WGXIRGcg==}
+
+  i18next-browser-languagedetector@8.1.0:
+    resolution: {integrity: sha512-mHZxNx1Lq09xt5kCauZ/4bsXOEA2pfpwSoU11/QTJB+pD94iONFwp+ohqi///PwiFvjFOxe1akYCdHyFo1ng5Q==}
+
+  i18next-http-backend@3.0.2:
+    resolution: {integrity: sha512-PdlvPnvIp4E1sYi46Ik4tBYh/v/NbYfFFgTjkwFl0is8A18s7/bx9aXqsrOax9WUbeNS6mD2oix7Z0yGGf6m5g==}
+
+  i18next@25.1.3:
+    resolution: {integrity: sha512-VY1iKox3YWPRTNMHFdgk5TV+Jq6rNKexLCLpPmP5oXXJ5Kl7yDBi3ycZ5fyEKZ1tNBW5gOqD4WV0XqE7rl3JUg==}
+    peerDependencies:
+      typescript: ^5
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
@@ -3194,6 +3233,22 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
 
+  react-i18next@15.5.1:
+    resolution: {integrity: sha512-C8RZ7N7H0L+flitiX6ASjq9p5puVJU1Z8VyL3OgM/QOMRf40BMZX+5TkpxzZVcTmOLPX5zlti4InEX5pFyiVeA==}
+    peerDependencies:
+      i18next: '>= 23.2.3'
+      react: '>= 16.8.0'
+      react-dom: '*'
+      react-native: '*'
+      typescript: ^5
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-native:
+        optional: true
+      typescript:
+        optional: true
+
   react-instantsearch-hooks-web@6.47.3:
     resolution: {integrity: sha512-JTkPm11xwCX9eO4FgeeJ4v4O98wz1L7cAa2LkspgzDD1MPjMLtmiRVzvGxuYnOayQTtfC5+0GOBwuJEN8TDI8A==}
     deprecated: package has moved to react-instantsearch
@@ -3220,6 +3275,12 @@ packages:
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
+
+  react-jwt@1.3.0:
+    resolution: {integrity: sha512-aC+X6q8pi63zoO7A060/4mfF5jM6Ay+4YyY4QgdD8dDOqp89sPcg0IhWEHyPACnVETMjBWzmxMPgIPosQNeYyw==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   react-remove-scroll-bar@2.3.8:
     resolution: {integrity: sha512-9r+yi9+mgU33AKcj6IbT9oRCO78WriSj6t/cF8DWBZJ9aOGPOTEDvdUDz1FwKim7QXWwmHqtdHnRJfhAxEG46Q==}
@@ -3652,6 +3713,10 @@ packages:
   v8-compile-cache@2.4.0:
     resolution: {integrity: sha512-ocyWc3bAHBB/guyqJQVI5o4BZkPhznPYUG2ea80Gond/BgNWpap8TOmLSeeQG7bnh2KMISxskdADG59j7zruhw==}
 
+  void-elements@3.1.0:
+    resolution: {integrity: sha512-Dhxzh5HZuiHQhbvTW9AMetFfBHDMYpo23Uo9btPXgdYP+3T5S+p+jgNy7spra+veYhBP2dCSgxR/i2Y02h5/6w==}
+    engines: {node: '>=0.10.0'}
+
   watchpack@2.4.2:
     resolution: {integrity: sha512-TnbFSbcOCcDgjZ4piURLCbJ3nJhznVh9kw6F6iokjiFPl8ONxe9A6nMDVXDiNbrSfLILs6vB07F7wLBrwPYzJw==}
     engines: {node: '>=10.13.0'}
@@ -3807,7 +3872,7 @@ snapshots:
   '@algolia/ui-components-highlight-vdom@1.2.3':
     dependencies:
       '@algolia/ui-components-shared': 1.2.3
-      '@babel/runtime': 7.26.0
+      '@babel/runtime': 7.27.1
 
   '@algolia/ui-components-shared@1.2.3': {}
 
@@ -3896,6 +3961,8 @@ snapshots:
   '@babel/runtime@7.26.0':
     dependencies:
       regenerator-runtime: 0.14.1
+
+  '@babel/runtime@7.27.1': {}
 
   '@babel/template@7.25.9':
     dependencies:
@@ -6179,6 +6246,12 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  cross-fetch@4.0.0:
+    dependencies:
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
+
   cross-spawn@7.0.6:
     dependencies:
       path-key: 3.1.1
@@ -6824,6 +6897,26 @@ snapshots:
       nopt: 1.0.10
 
   htm@3.1.1: {}
+
+  html-parse-stringify@3.0.1:
+    dependencies:
+      void-elements: 3.1.0
+
+  i18next-browser-languagedetector@8.1.0:
+    dependencies:
+      '@babel/runtime': 7.27.1
+
+  i18next-http-backend@3.0.2:
+    dependencies:
+      cross-fetch: 4.0.0
+    transitivePeerDependencies:
+      - encoding
+
+  i18next@25.1.3(typescript@5.3.2):
+    dependencies:
+      '@babel/runtime': 7.27.1
+    optionalDependencies:
+      typescript: 5.3.2
 
   ignore@5.3.2: {}
 
@@ -7535,6 +7628,16 @@ snapshots:
     dependencies:
       react: 18.3.1
 
+  react-i18next@15.5.1(i18next@25.1.3(typescript@5.3.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.3.2):
+    dependencies:
+      '@babel/runtime': 7.26.0
+      html-parse-stringify: 3.0.1
+      i18next: 25.1.3(typescript@5.3.2)
+      react: 18.3.1
+    optionalDependencies:
+      react-dom: 18.3.1(react@18.3.1)
+      typescript: 5.3.2
+
   react-instantsearch-hooks-web@6.47.3(algoliasearch@4.24.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@babel/runtime': 7.26.0
@@ -7546,7 +7649,7 @@ snapshots:
 
   react-instantsearch-hooks@6.47.3(algoliasearch@4.24.0)(react@18.3.1):
     dependencies:
-      '@babel/runtime': 7.26.0
+      '@babel/runtime': 7.27.1
       algoliasearch: 4.24.0
       algoliasearch-helper: 3.14.0(algoliasearch@4.24.0)
       instantsearch.js: 4.56.8(algoliasearch@4.24.0)
@@ -7560,6 +7663,12 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
 
   react-is@16.13.1: {}
+
+  react-jwt@1.3.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+    optionalDependencies:
+      fsevents: 2.3.3
 
   react-remove-scroll-bar@2.3.8(@types/react@18.3.18)(react@18.3.1):
     dependencies:
@@ -8071,6 +8180,8 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   v8-compile-cache@2.4.0: {}
+
+  void-elements@3.1.0: {}
 
   watchpack@2.4.2:
     dependencies:

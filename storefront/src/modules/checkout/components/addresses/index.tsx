@@ -50,11 +50,11 @@ const Addresses = ({
       const tgt = e.target as HTMLInputElement
       if (tgt.name === "email") {
         form.requestSubmit()
-        
+
         // Set a timeout to show the button after 5 seconds
         const timer = setTimeout(() => {
           setShowButton(true)
-        }, 5000)
+        }, 1000)
 
         // Clean up the timer if the component unmounts
         return () => clearTimeout(timer)
@@ -63,7 +63,7 @@ const Addresses = ({
 
     // Listen in capture phase to catch blur before it propagates
     form.addEventListener("blur", onBlur, true)
-    
+
     return () => {
       form.removeEventListener("blur", onBlur, true)
     }
@@ -123,7 +123,7 @@ const Addresses = ({
             )}
             {showButton && (
               <SubmitButton
-                className="mt-6"
+                className="mt-6 animate-enter"
                 data-testid="submit-address-button"
               >
                 Actualizar datos

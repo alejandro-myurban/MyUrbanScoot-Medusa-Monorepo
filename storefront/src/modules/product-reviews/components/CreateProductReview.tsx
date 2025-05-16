@@ -1,10 +1,9 @@
-// src/modules/product-reviews/components/CreateProductReview.tsx
 "use client"
 
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { StoreOrder } from "@medusajs/types"
-import { sdk } from "@lib/config"
+import { useProductReviews } from "../hooks/useProductReviews"
 
 interface Props {
   order: StoreOrder
@@ -14,43 +13,29 @@ interface Props {
 export default function CreateProductReview({ order, countryCode }: Props) {
   const router = useRouter()
 
-  // Lista de items de la orden para elegir cuál reseñar
+  // Usamos el hook refactorizado (no necesitamos productId aquí)
+  const { createReview, submitting, submitError } = useProductReviews()
+
   const lineItems = order.items || []
   const [orderLineItemId, setOrderLineItemId] = useState(
     lineItems.length > 0 ? lineItems[0].id : ""
   )
   const [rating, setRating] = useState<number>(5)
   const [comment, setComment] = useState<string>("")
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitting(true)
-    setError(null)
 
-    try {
-      const payload = {
-        reviews: [
-          {
-            order_id: order.id,
-            order_line_item_id: orderLineItemId,
-            rating,
-            content: comment,
-            images: [] as { url: string }[], // Si luego subes URLs o IDs de imágenes
-          },
-        ],
-      }
+    const success = await createReview({
+      order_id: order.id,
+      order_line_item_id: orderLineItemId,
+      rating,
+      content: comment,
+      images: [],
+    })
 
-      console.log("Payload", payload)
-      await sdk.store.productReviews.upsert(payload)
-
+    if (success) {
       router.push(`/${countryCode}`)
-    } catch (err: any) {
-      console.error(err)
-      setError(err.message || "Error enviando la reseña")
-    } finally {
-      setSubmitting(false)
     }
   }
 
@@ -104,7 +89,7 @@ export default function CreateProductReview({ order, countryCode }: Props) {
           />
         </label>
 
-        {error && <p className="text-red-600">{error}</p>}
+        {submitError && <p className="text-red-600">{submitError}</p>}
 
         <button
           type="submit"

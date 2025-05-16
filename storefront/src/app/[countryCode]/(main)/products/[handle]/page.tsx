@@ -5,7 +5,6 @@ import ProductTemplate from "@modules/products/templates"
 import { getRegion, listRegions } from "@lib/data/regions"
 import { getProductByHandle, getProductsList } from "@lib/data/products"
 
-
 type Props = {
   params: { countryCode: string; handle: string }
 }
@@ -44,51 +43,62 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { handle } = params
-  const region = await getRegion(params.countryCode)
-
-  if (!region) {
-    notFound()
-  }
+  const { countryCode, handle } = params
+  const region = await getRegion(countryCode)
+  if (!region) notFound()
 
   const product = await getProductByHandle(handle, region.id)
+  if (!product) notFound()
 
-  if (!product) {
-    notFound()
-  }
+  // ——————— Localización para metadata ———————
+  //@ts-ignore
+  const translations = product.translations ?? {}
+  const localeData =
+    (translations as Record<string, any>)[countryCode] ?? translations.en ?? {}
+  const localizedTitle = localeData.title ?? product.title
 
   return {
-    title: `${product.title} | Medusa Store`,
-    description: `${product.title}`,
+    title: `${localizedTitle} | MyUrbanScoot`,
+    description: localizedTitle,
     openGraph: {
-      title: `${product.title} | Medusa Store`,
-      description: `${product.title}`,
+      title: `${localizedTitle} | MyUrbanScoot`,
+      description: localizedTitle,
       images: product.thumbnail ? [product.thumbnail] : [],
     },
   }
 }
 
 export default async function ProductPage({ params }: Props) {
-  const region = await getRegion(params.countryCode)
+  const { countryCode, handle } = params
+  const region = await getRegion(countryCode)
+  if (!region) notFound()
 
-  if (!region) {
-    notFound()
+  const pricedProduct = await getProductByHandle(handle, region.id)
+  if (!pricedProduct) notFound()
+
+  // ——————— Localización de título/descr. ———————
+  //@ts-ignore
+
+  const translations = pricedProduct.translations ?? {}
+  const localeData =
+    (translations as Record<string, any>)[countryCode] ?? translations.en ?? {}
+
+  const localizedTitle = localeData.title ?? pricedProduct.title
+  const localizedDescription =
+    localeData.description ?? pricedProduct.description
+
+  // Creamos un “producto” clonado con título/descr. overrideados
+  const localizedProduct = {
+    ...pricedProduct,
+    title: localizedTitle,
+    description: localizedDescription,
   }
-
-  const pricedProduct = await getProductByHandle(params.handle, region.id)
-  if (!pricedProduct) {
-    notFound()
-  }
-
-
 
   return (
-    <>
-      <ProductTemplate
-        product={pricedProduct}
-        region={region}
-        countryCode={params.countryCode}
-      />
-    </>
+    <ProductTemplate
+      product={localizedProduct}
+      region={region}
+      countryCode={countryCode}
+    />
   )
 }

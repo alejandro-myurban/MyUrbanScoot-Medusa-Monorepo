@@ -1,3 +1,5 @@
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
+import { TolgeeModuleConfig } from "medusa-plugin-tolgee";
 import { loadEnv, Modules, defineConfig } from "@medusajs/utils";
 import {
   ADMIN_CORS,
@@ -45,6 +47,33 @@ const medusaConfig = {
     disable: SHOULD_DISABLE_ADMIN,
   },
   modules: [
+    {
+      // ...
+      key: Modules.AUTH,
+      resolve: "@medusajs/medusa/auth",
+      dependencies: [Modules.CACHE, ContainerRegistrationKeys.LOGGER],
+      options: {
+        providers: [
+          // other providers...
+          {
+            resolve: "@medusajs/medusa/auth-google",
+            id: "google",
+            options: {
+              clientId: process.env.GOOGLE_CLIENT_ID,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+              callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+            },
+          },
+          {
+            resolve: "@medusajs/medusa/auth-emailpass",
+            id: "emailpass",
+            options: {
+              // opciones si las necesitas
+            },
+          },
+        ],
+      },
+    },
     {
       resolve: "./src/modules/loyalty",
     },
@@ -162,6 +191,18 @@ const medusaConfig = {
       : []),
   ],
   plugins: [
+    {
+      resolve: `medusa-plugin-tolgee`,
+      options: {
+        baseURL: process.env.TOLGEE_API_URL,
+        apiKey: process.env.TOLGEE_API_KEY,
+        projectId: "17702",
+        keys: {
+          // Optional
+          product: ["title", "subtitle", "description"],
+        },
+      },
+    },
     {
       resolve: "medusa-variant-images",
       options: {},
