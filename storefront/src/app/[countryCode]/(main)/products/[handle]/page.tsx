@@ -80,7 +80,7 @@ export default async function ProductPage({ params }: Props) {
     notFound()
   }
 
- console.log("pricedProduct", pricedProduct)
+
 
   return (
     <>
