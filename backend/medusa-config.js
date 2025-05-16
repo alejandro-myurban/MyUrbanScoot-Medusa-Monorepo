@@ -163,6 +163,18 @@ const medusaConfig = {
   ],
   plugins: [
     {
+      resolve: `medusa-plugin-tolgee`,
+      options: {
+        baseURL: process.env.TOLGEE_API_URL,
+        apiKey: process.env.TOLGEE_API_KEY,
+        projectId: "17702",
+        keys: {
+          // Optional
+          product: ["title", "subtitle", "description"],
+        },
+      },
+    },
+    {
       resolve: "medusa-variant-images",
       options: {},
     },
