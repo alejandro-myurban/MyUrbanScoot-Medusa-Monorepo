@@ -5,6 +5,7 @@ import ProductTemplate from "@modules/products/templates"
 import { getRegion, listRegions } from "@lib/data/regions"
 import { getProductByHandle, getProductsList } from "@lib/data/products"
 
+
 type Props = {
   params: { countryCode: string; handle: string }
 }
@@ -69,38 +70,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const region = await getRegion(params.countryCode)
-  const { countryCode, handle } = params
 
   if (!region) {
     notFound()
   }
+
   const pricedProduct = await getProductByHandle(params.handle, region.id)
   if (!pricedProduct) {
     notFound()
   }
-  // ——————— Localización de título/descr. ———————
-  //@ts-ignore
 
-  const translations = pricedProduct.translations ?? {}
-  const localeData =
-    (translations as Record<string, any>)[countryCode] ?? translations.en ?? {}
-
-  const localizedTitle = localeData.title ?? pricedProduct.title
-  const localizedDescription =
-    localeData.description ?? pricedProduct.description
-
-  // Creamos un “producto” clonado con título/descr. overrideados
-  const localizedProduct = {
-    ...pricedProduct,
-    title: localizedTitle,
-    description: localizedDescription,
-  }
+ console.log("pricedProduct", pricedProduct)
 
   return (
-    <ProductTemplate
-      product={localizedProduct}
-      region={region}
-      countryCode={countryCode}
-    />
+    <>
+      <ProductTemplate
+        product={pricedProduct}
+        region={region}
+        countryCode={params.countryCode}
+      />
+    </>
   )
 }
