@@ -5,7 +5,6 @@ import ProductTemplate from "@modules/products/templates"
 import { getRegion, listRegions } from "@lib/data/regions"
 import { getProductByHandle, getProductsList } from "@lib/data/products"
 
-
 type Props = {
   params: { countryCode: string; handle: string }
 }
@@ -51,18 +50,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     notFound()
   }
 
-  const product = await getProductByHandle(handle, region.id)
+  const selectedCountry = region.countries?.find(
+    (c) => c.iso_2 === params.countryCode
+  )
+
+  if (!selectedCountry) {
+    notFound()
+  }
+
+  const product = await getProductByHandle(handle, region.id, params.countryCode)
 
   if (!product) {
     notFound()
   }
 
+  // Use translated title if available, fallback to original title
+  const title = product.translations?.title || product.title
+  const description = product.translations?.description || product.description || product.title
+
   return {
-    title: `${product.title} | Medusa Store`,
-    description: `${product.title}`,
+    title: `${title} | Medusa Store`,
+    description: `${description}`,
     openGraph: {
-      title: `${product.title} | Medusa Store`,
-      description: `${product.title}`,
+      title: `${title} | Medusa Store`,
+      description: `${description}`,
       images: product.thumbnail ? [product.thumbnail] : [],
     },
   }
@@ -83,18 +94,30 @@ export default async function ProductPage({ params }: Props) {
     notFound()
   }
 
-  const pricedProduct = await getProductByHandle(params.handle, region.id, selectedCountry.iso_2)
+
+  const countryCodeGb = params.countryCode === "gb" ? params.countryCode = "en" : params.countryCode
+
+  const pricedProduct = await getProductByHandle(params.handle, region.id, countryCodeGb)
+  
   if (!pricedProduct) {
     notFound()
   }
 
-  console.log("AAAAAAAAAAAAAAAAA", selectedCountry.iso_2)
-  console.log("pricedProduct", pricedProduct)
+  // Use translations if available
+  const translatedProduct = {
+    ...pricedProduct,
+    title: pricedProduct.translations?.title || pricedProduct.title,
+    description: pricedProduct.translations?.description || pricedProduct.description,
+    subtitle: pricedProduct.translations?.subtitle || pricedProduct.subtitle,
+  }
+
+  console.log("Country Code:", params.countryCode)
+  console.log("Translated Product:", translatedProduct)
 
   return (
     <>
       <ProductTemplate
-        product={pricedProduct}
+        product={translatedProduct}
         region={region}
         countryCode={params.countryCode}
       />
