@@ -8,36 +8,55 @@ import { sortProducts } from "@lib/util/sort-products"
 export const getProductsById = cache(async function ({
   ids,
   regionId,
+  countryCode,
 }: {
   ids: string[]
   regionId: string
+  countryCode?: string
 }) {
+  const translationsField = countryCode ? `,+translations.${countryCode}` : ""
+  
   return sdk.store.product
     .list(
       {
         id: ids,
         region_id: regionId,
-        fields: "*variants.calculated_price,+variants.inventory_quantity,+metadata,+translations.*",
+        fields: `*variants.calculated_price,+variants.inventory_quantity,+metadata${translationsField}`,
       },
       { next: { tags: ["products"] } }
     )
-    .then(({ products }) => products)
+    .then(({ products }) => products.map(product => ({
+      ...product,
+      translations: countryCode ? product.translations?.[countryCode] : undefined,
+    })))
 })
 
 export const getProductByHandle = cache(async function (
   handle: string,
-  regionId: string
+  regionId: string,
+  countryCode?: string
 ) {
+  const translationsField = countryCode ? `,+translations.${countryCode}` : ""
+  
   return sdk.store.product
     .list(
       {
         handle,
         region_id: regionId,
-        fields: "*variants.calculated_price, +variants.inventory_quantity,+metadata,+translations.*"
+        fields: `*variants.calculated_price,+variants.inventory_quantity,+metadata${translationsField}`
       },
       { next: { tags: ["products"] } }
     )
-    .then(({ products }) => products[0])
+    .then(({ products }) => {
+      const product = products[0]
+      if (product && countryCode) {
+        return {
+          ...product,
+          translations: countryCode ? product.translations?.[countryCode] : undefined,
+        }
+      }
+      return product
+    })
 })
 
 export const getProductsList = cache(async function ({

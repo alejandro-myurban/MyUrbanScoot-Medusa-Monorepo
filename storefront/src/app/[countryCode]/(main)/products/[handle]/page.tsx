@@ -74,13 +74,21 @@ export default async function ProductPage({ params }: Props) {
   if (!region) {
     notFound()
   }
+  
+  const selectedCountry = region.countries?.find(
+    (c) => c.iso_2 === params.countryCode
+  )
 
-  const pricedProduct = await getProductByHandle(params.handle, region.id)
+  if (!selectedCountry) {
+    notFound()
+  }
+
+  const pricedProduct = await getProductByHandle(params.handle, region.id, selectedCountry.iso_2)
   if (!pricedProduct) {
     notFound()
   }
 
-
+  console.log("AAAAAAAAAAAAAAAAA", selectedCountry.iso_2)
   console.log("pricedProduct", pricedProduct)
 
   return (
