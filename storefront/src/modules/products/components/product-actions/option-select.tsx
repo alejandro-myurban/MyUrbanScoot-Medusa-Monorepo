@@ -1,6 +1,8 @@
 import { HttpTypes } from "@medusajs/types"
 import { clx } from "@medusajs/ui"
+import { t } from "i18next"
 import React from "react"
+import { useTranslation } from "react-i18next"
 
 type OptionSelectProps = {
   option: HttpTypes.StoreProductOption
@@ -20,10 +22,11 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
   disabled,
 }) => {
   const filteredOptions = option.values?.map((v) => v.value)
+  const {t} = useTranslation()
 
   return (
     <div className="flex flex-col gap-y-3">
-      <span className="text-sm">Select {title}</span>
+      <span className="text-sm">{t("actions.select")} {title}</span>
       <div
         className="flex flex-wrap justify-between gap-2"
         data-testid={dataTestId}

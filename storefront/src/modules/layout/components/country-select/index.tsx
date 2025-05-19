@@ -8,6 +8,7 @@ import { StateType } from "@lib/hooks/use-toggle-state"
 import { useParams, usePathname } from "next/navigation"
 import { updateRegion } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"
+import i18next from "i18next"
 
 type CountryOption = {
   country: string
@@ -53,6 +54,8 @@ const CountrySelect = ({ toggleState, regions }: CountrySelectProps) => {
 
   const handleChange = (option: CountryOption) => {
     updateRegion(option.country, currentPath)
+    const langGB = option.country === "gb" ? "en" : option.country
+    i18next.changeLanguage(langGB)
     close()
   }
 

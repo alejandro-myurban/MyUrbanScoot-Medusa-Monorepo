@@ -69,10 +69,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = product.translations?.description || product.description || product.title
 
   return {
-    title: `${title} | Medusa Store`,
+    title: `${title} | MyUrbanScoot`,
     description: `${description}`,
     openGraph: {
-      title: `${title} | Medusa Store`,
+      title: `${title} | MyUrbanScoot`,
       description: `${description}`,
       images: product.thumbnail ? [product.thumbnail] : [],
     },
@@ -103,16 +103,12 @@ export default async function ProductPage({ params }: Props) {
     notFound()
   }
 
-  // Use translations if available
   const translatedProduct = {
     ...pricedProduct,
     title: pricedProduct.translations?.title || pricedProduct.title,
     description: pricedProduct.translations?.description || pricedProduct.description,
     subtitle: pricedProduct.translations?.subtitle || pricedProduct.subtitle,
   }
-
-  console.log("Country Code:", params.countryCode)
-  console.log("Translated Product:", translatedProduct)
 
   return (
     <>

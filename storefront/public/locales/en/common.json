@@ -1,0 +1,21 @@
+{
+  "store": {
+    "title": "Medusa Store",
+    "tagline": "Your One-Stop Shop"
+  },
+  "navigation": {
+    "home": "Home",
+    "products": "Products",
+    "categories": "Categories",
+    "account": "Account",
+    "cart": "Cart"
+  },
+  "actions": {
+    "add_to_cart": "Add to Cart",
+    "select_variant": "Select Variant",
+    "buy_now": "Buy Now",
+    "checkout": "Checkout",
+    "view_details": "View Details",
+    "select" : "Select"
+  }
+}
