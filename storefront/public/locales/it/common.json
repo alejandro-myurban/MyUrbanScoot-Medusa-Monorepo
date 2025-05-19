@@ -1,0 +1,21 @@
+{
+  "store": {
+    "title": "Negozio Medusa",
+    "tagline": "Il tuo negozio preferito"
+  },
+  "navigation": {
+    "home": "Inizio",
+    "products": "Prodotti",
+    "categories": "Categorie",
+    "account": "Account",
+    "cart": "Carrello"
+  },
+  "actions": {
+    "add_to_cart": "Aggiungi al carrello",
+    "select_variant": "Seleziona variante",
+    "buy_now": "Compra ora",
+    "checkout": "Completa l'acquisto",
+    "view_details": "Vedi dettagli",
+    "select": "Selezionare"
+  }
+}
