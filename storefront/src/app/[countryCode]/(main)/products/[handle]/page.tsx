@@ -81,6 +81,7 @@ export default async function ProductPage({ params }: Props) {
   }
 
 
+  console.log("pricedProduct", pricedProduct)
 
   return (
     <>
