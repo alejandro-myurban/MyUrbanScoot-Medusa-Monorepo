@@ -6,6 +6,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation"
 type ColorContextType = {
   selectedColor: string
   setSelectedColor: (color: string) => void
+  optionTitle: string
 }
 
 const ColorContext = createContext<ColorContextType | undefined>(undefined)
@@ -23,9 +24,11 @@ export const useColorContext = () => {
 export const ColorContextProvider = ({
   children,
   initialColor = "",
+  optionTitle = "",
 }: {
   children: React.ReactNode
   initialColor?: string
+  optionTitle?: string
 }) => {
   const [selectedColor, setSelectedColor] = useState(initialColor)
   const router = useRouter()
@@ -55,6 +58,7 @@ export const ColorContextProvider = ({
       value={{
         selectedColor,
         setSelectedColor: updateColor,
+        optionTitle,
       }}
     >
       {children}

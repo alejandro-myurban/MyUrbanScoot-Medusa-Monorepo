@@ -35,9 +35,18 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   }
   // Get color or base option from product
   const variantOption = product.options?.find(
-    (opt) => opt.title === "Color" || opt.title === "Base"
+    (opt) =>
+      opt.title === "Color" ||
+      opt.title === "Base" ||
+      opt.title === "Pedana" ||
+      opt.title === "Deck"
   )
   const optionValues = variantOption?.values || []
+
+  // Get the translated title if available
+  const optionTitle =
+  //@ts-ignore
+    variantOption?.translations?.title || variantOption?.title || ""
 
   // Validate option value from parameters
   const selectedParam = searchParams?.option?.toString() || ""
@@ -57,7 +66,10 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           </div>
         }
       >
-        <ColorContextProvider initialColor={initialValue}>
+        <ColorContextProvider
+          initialColor={initialValue}
+          optionTitle={optionTitle}
+        >
           <div
             className="content-container flex flex-col small:flex-row small:items-start py-6 relative"
             data-testid="product-container"
@@ -82,7 +94,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                   }
                 >
                   <CustomNameNumberForm product={product} />
-                  <ProductActionsWrapper id={product.id} region={region} />
+                  <ProductActionsWrapper id={product.id} region={region} countryCode={countryCode} />
                   <BoughtTogether product={product} region={region} />
                 </Suspense>
               </CombinedCartProvider>

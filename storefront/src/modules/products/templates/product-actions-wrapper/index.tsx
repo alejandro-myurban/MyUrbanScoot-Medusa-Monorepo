@@ -5,25 +5,32 @@ import ProductActions from "@modules/products/components/product-actions"
 /**
  * Fetches real time pricing for a product and renders the product actions component.
  */
+
+
 export default async function ProductActionsWrapper({
   id,
   region,
+  countryCode
 }: {
-  id: string
-  region: HttpTypes.StoreRegion
+  id: string  
+  region: HttpTypes.StoreRegion,
+  countryCode: string
 }) {
   const [product] = await getProductsById({
     ids: [id],
     regionId: region.id,
+    countryCode
   })
 
   if (!product) {
     return null
   }
+
+  console.log("PRODUCT WRAPPER", product)
   
   return (
     <ProductActions
-      product={product}
+      product={{ ...product, options: product.options || null }}
       region={region}
     />
   )

@@ -1,3 +1,4 @@
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
 import { loadEnv, Modules, defineConfig } from "@medusajs/utils";
 import {
   ADMIN_CORS,
@@ -45,6 +46,49 @@ const medusaConfig = {
     disable: SHOULD_DISABLE_ADMIN,
   },
   modules: [
+    {
+      resolve: "@medusajs/medusa/fulfillment",
+      options: {
+        providers: [
+          // otros providers...
+          {
+            resolve: "./src/modules/calculated-fulfillment",
+            id: "calculated-fulfillment",
+            options: {
+              // opciones si necesitas
+            },
+          },
+          {
+            resolve: "@medusajs/medusa/fulfillment-manual",
+            id: "manual",
+          },
+        ],
+      },
+    },
+    {
+      resolve: "@medusajs/medusa/auth",
+      dependencies: [Modules.CACHE, ContainerRegistrationKeys.LOGGER],
+      options: {
+        providers: [
+          {
+            resolve: "@medusajs/medusa/auth-emailpass",
+            id: "emailpass",
+            options: {
+              // opciones...
+            },
+          },
+          {
+            resolve: "@medusajs/medusa/auth-google",
+            id: "google",
+            options: {
+              clientId: process.env.GOOGLE_CLIENT_ID,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+              callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+            },
+          },
+        ],
+      },
+    },
     {
       resolve: "./src/modules/loyalty",
     },
@@ -170,7 +214,13 @@ const medusaConfig = {
         projectId: "17702",
         keys: {
           // Optional
-          product: ["title", "subtitle", "description"],
+          product: [
+            "title",
+            "subtitle",
+            "description",
+            "options.title",
+            "options.value",
+          ],
         },
       },
     },

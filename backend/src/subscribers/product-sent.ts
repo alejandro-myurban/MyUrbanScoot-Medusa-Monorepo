@@ -15,10 +15,17 @@ export default async function orderPlacedHandler({
   const orderModuleService: IOrderModuleService = container.resolve(
     Modules.ORDER
   );
+  const eventBusService = container.resolve(Modules.EVENT_BUS);
 
   const order = await orderModuleService.retrieveOrder(data.id, {
     relations: ["items", "summary", "shipping_address"],
   });
+
+  await eventBusService.emit({
+    name: "meilisearch.sync",
+    data: "",
+  });
+  console.log("MeiliSearch sync event triggered");
 
   try {
     await notificationModuleService.createNotifications({
