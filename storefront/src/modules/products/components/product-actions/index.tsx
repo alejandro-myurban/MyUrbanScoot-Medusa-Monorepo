@@ -42,7 +42,7 @@ export default function ProductActions({
   region,
   disabled,
 }: ProductActionsProps) {
-  const { setSelectedColor } = useColorContext()
+  const { setSelectedColor, optionTitle } = useColorContext()
   const [options, setOptions] = useState<Record<string, string | undefined>>({})
   const [isAdding, setIsAdding] = useState(false)
   const countryCode = useParams().countryCode as string
@@ -51,10 +51,28 @@ export default function ProductActions({
     useCombinedCart()
   const { t } = useTranslation()
 
+  // State to track if initial setup has happened
+  const initialSetupDone = useRef(false)
+  // Guardar los nombres reales de las opciones
+  const realOptionNames = useRef(new Set<string>())
+
+  // Collect real option names when component mounts
+  useEffect(() => {
+    if (product.options) {
+      product.options.forEach((option) => {
+        if (option.title) {
+          realOptionNames.current.add(option.title)
+        }
+      })
+    }
+  }, [product.options])
+
   const initialColor = useMemo(() => {
     const urlColor = searchParams?.get("color")
+    // Buscar la opción de color usando los nombres reales
     const colorOption = product.options?.find(
-      (opt) => opt.title === "Color" || opt.title === "Base"
+      (opt) =>
+        opt.title === "Color" || opt.title === "Base" || opt.title === "Pedana"
     )
     const validColors = colorOption?.values?.map((v) => v.value) || []
 
@@ -67,19 +85,54 @@ export default function ProductActions({
     return validColors[0] || ""
   }, [searchParams, product.options])
 
+  // Handle single variant products only once
   useEffect(() => {
-    if (product.variants?.length === 1) {
+    if (product.variants?.length === 1 && !initialSetupDone.current) {
       const variantOptions = optionsAsKeymap(product.variants[0].options)
       setOptions(variantOptions ?? {})
 
-      // Actualiza el contexto si hay una opción "Base" o "Color"
-      if (variantOptions?.Base) {
-        setSelectedColor(variantOptions.Base)
-      } else if (variantOptions?.Color) {
-        setSelectedColor(variantOptions.Color)
+      // Update color context using the REAL option names
+      const colorValue =
+        variantOptions?.[optionTitle] ||
+        variantOptions?.Base ||
+        variantOptions?.Color
+      if (colorValue) {
+        setSelectedColor(colorValue)
+      }
+
+      initialSetupDone.current = true
+    }
+  }, [product.variants, setSelectedColor, optionTitle])
+
+  // Set initial color option only once, preserving original option names
+  useEffect(() => {
+    if (initialSetupDone.current) return
+
+    // Get all color-related options with their REAL names
+    const colorOptions = product.options?.filter(
+      (opt) =>
+        opt.title === "Pedana" || opt.title === "Base" || opt.title === "Color"
+    )
+
+    if (colorOptions?.length && initialColor) {
+      const newOptions = { ...options }
+      let updated = false
+
+      // Set the color value using the REAL option name
+      colorOptions.forEach((option) => {
+        if (option.title && option.values?.length && !options[option.title]) {
+          newOptions[option.title] = initialColor
+          updated = true
+        }
+      })
+
+      if (updated) {
+        setOptions(newOptions)
+        setSelectedColor(initialColor)
+        initialSetupDone.current = true
       }
     }
-  }, [product.variants, setSelectedColor])
+  }, [product.options, initialColor, options, optionTitle])
 
   const selectedVariant = useMemo(() => {
     if (!product.variants || product.variants.length === 0) {
@@ -91,42 +144,23 @@ export default function ProductActions({
     })
   }, [product.variants, options])
 
-  // update the options when a variant is selected
+  // Update options when a variant is selected, preserving original option names
   const setOptionValue = (title: string, value: string) => {
     try {
+      // Usar el título real de la opción
       setOptions((prev) => ({
         ...prev,
         [title]: value,
       }))
 
-      // Update context if it's a relevant option
-      if (title === "Base" || title === "Color") {
-        console.log(`Setting ${title} option to:`, value)
+      // Update color context if it's a color-related option
+      if (title === "Pedana" || title === "Base" || title === "Color") {
         setSelectedColor(value)
       }
     } catch (error) {
       console.error("Error setting option value:", error)
     }
   }
-
-  useEffect(() => {
-    const baseOption = product.options?.find((opt) => opt.title === "Base")
-    const colorOption = product.options?.find((opt) => opt.title === "Color")
-
-    if (baseOption?.values?.length && !options.Base) {
-      setOptions((prev) => ({
-        ...prev,
-        Base: initialColor,
-      }))
-      setSelectedColor(initialColor)
-    } else if (colorOption?.values?.length && !options.Color) {
-      setOptions((prev) => ({
-        ...prev,
-        Color: initialColor,
-      }))
-      setSelectedColor(initialColor)
-    }
-  }, [product.options, initialColor])
 
   // check if the selected variant is in stock
   const inStock = useMemo(() => {
@@ -205,9 +239,10 @@ export default function ProductActions({
                 <div key={option.id}>
                   <OptionSelect
                     option={option}
-                    current={options[option.title ?? ""]}
+                    current={options[option.title]}
                     updateOption={setOptionValue}
-                    title={option.title ?? ""}
+                    //@ts-ignore
+                    title={option.translations.title}
                     data-testid="product-options"
                     disabled={!!disabled || isAdding}
                   />

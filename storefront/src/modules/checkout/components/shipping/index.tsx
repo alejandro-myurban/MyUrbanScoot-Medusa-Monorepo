@@ -8,10 +8,11 @@ import Divider from "@modules/common/components/divider"
 import Radio from "@modules/common/components/radio"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { setShippingMethod } from "@lib/data/cart"
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
+import { sdk } from "@lib/config"
 
 type ShippingProps = {
   cart: HttpTypes.StoreCart
@@ -24,6 +25,9 @@ const Shipping: React.FC<ShippingProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [calculatedPrices, setCalculatedPrices] = useState<
+    Record<string, number>
+  >({})
 
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -32,7 +36,6 @@ const Shipping: React.FC<ShippingProps> = ({
   const isOpen = searchParams.get("step") === "delivery"
 
   const selectedShippingMethod = availableShippingMethods?.find(
-    // To do: remove the previously selected shipping method instead of using the last one
     (method) => method.id === cart.shipping_methods?.at(-1)?.shipping_option_id
   )
 
@@ -58,6 +61,59 @@ const Shipping: React.FC<ShippingProps> = ({
   useEffect(() => {
     setError(null)
   }, [isOpen])
+
+  // --- Lógica para calcular precios de métodos "calculated" ---
+  useEffect(() => {
+    if (!cart || !availableShippingMethods?.length) return
+
+    const calculatedOptions = availableShippingMethods.filter(
+      (option) => option.price_type === "calculated"
+    )
+
+    // Solo hacemos cálculos para opciones de tipo calculated
+    if (calculatedOptions.length) {
+      const promises = calculatedOptions.map((option) =>
+        sdk.store.fulfillment.calculate(option.id, {
+          cart_id: cart.id,
+          data: {}, // Puedes pasar datos adicionales si tu provider los necesita
+        })
+      )
+
+      Promise.allSettled(promises).then((res) => {
+        const pricesMap: Record<string, number> = {}
+        res
+          .filter((r) => r.status === "fulfilled")
+          .forEach((p: any) => {
+            pricesMap[p.value?.shipping_option.id || ""] =
+              p.value?.shipping_option.amount
+          })
+        setCalculatedPrices(pricesMap)
+      })
+    }
+  }, [availableShippingMethods, cart])
+
+  // Función para mostrar el precio correctamente
+  const getShippingOptionPrice = useCallback(
+    (option: HttpTypes.StoreCartShippingOption): string => {
+      // Para opciones de tipo calculated, usamos el precio calculado
+      if (option.price_type === "calculated") {
+        if (!calculatedPrices[option.id]) {
+          return "Calculando..."
+        }
+        return convertToLocale({
+          amount: calculatedPrices[option.id],
+          currency_code: cart?.currency_code || "EUR",
+        })
+      }
+      
+      // Para opciones de tipo flat, usamos el precio fijo
+      return convertToLocale({
+        amount: option.amount || 0,
+        currency_code: cart?.currency_code || "EUR",
+      })
+    },
+    [calculatedPrices, cart?.currency_code]
+  )
 
   return (
     <div className="bg-white">
@@ -114,13 +170,10 @@ const Shipping: React.FC<ShippingProps> = ({
                       <Radio
                         checked={option.id === selectedShippingMethod?.id}
                       />
-                      <span className="text-base-regular">{option.name}</span>
+                      <span className="text-base-regular">{option.name} </span>
                     </div>
                     <span className="justify-self-end text-ui-fg-base">
-                      {convertToLocale({
-                        amount: option.amount!,
-                        currency_code: cart?.currency_code,
-                      })}
+                      {getShippingOptionPrice(option)}
                     </span>
                   </RadioGroup.Option>
                 )
@@ -154,10 +207,7 @@ const Shipping: React.FC<ShippingProps> = ({
                 </Text>
                 <Text className="txt-medium text-ui-fg-subtle">
                   {selectedShippingMethod?.name}{" "}
-                  {convertToLocale({
-                    amount: selectedShippingMethod?.amount!,
-                    currency_code: cart?.currency_code,
-                  })}
+                  {getShippingOptionPrice(selectedShippingMethod!)}
                 </Text>
               </div>
             )}

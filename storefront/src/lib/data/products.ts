@@ -4,7 +4,24 @@ import { cache } from "react"
 import { getRegion } from "./regions"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 import { sortProducts } from "@lib/util/sort-products"
+import { StoreProductListResponse } from "@medusajs/types"
 
+export const getProductsByTagName = cache(async function ({
+  tagName,
+}: {
+  tagName: string
+}): Promise<StoreProductListResponse> {
+  const res = await sdk.client.fetch(
+    `/store/product-tags-custom?value=${encodeURIComponent(tagName)}`
+  )
+  if (!res) {
+    // quizá lanzar un error o devolver { products: [], count: 0 }
+    throw new Error("No se recibió respuesta del endpoint")
+  }
+  // casteamos al tipo oficial
+  return res as StoreProductListResponse
+})
+  
 export const getProductsById = cache(async function ({
   ids,
   regionId,
@@ -14,21 +31,43 @@ export const getProductsById = cache(async function ({
   regionId: string
   countryCode?: string
 }) {
-  const translationsField = countryCode ? `,+translations.${countryCode}` : ""
-  
+  const translationsField = countryCode
+    ? `,+translations.${countryCode},+options.translations.${countryCode},+options.values.translations.${countryCode}`
+    : ""
+
   return sdk.store.product
     .list(
       {
         id: ids,
         region_id: regionId,
-        fields: `*variants.calculated_price,+variants.inventory_quantity,+metadata${translationsField}`,
+        fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata${translationsField}`,
       },
       { next: { tags: ["products"] } }
     )
-    .then(({ products }) => products.map(product => ({
-      ...product,
-      translations: countryCode ? product.translations?.[countryCode] : undefined,
-    })))
+    .then(({ products }) =>
+      products.map((product) => ({
+        ...product,
+        // assign the translations for the desired language directly to the product
+        // so that the country code is not needed anymore
+        options: product.options?.map((option) => ({
+          ...option,
+          translations: countryCode
+            ? //@ts-ignore
+              option.translations?.[countryCode]
+            : undefined,
+          values: option.values?.map((value) => ({
+            ...value,
+            translations: countryCode
+              ? //@ts-ignore
+                value.translations?.[countryCode]
+              : undefined,
+          })),
+        })),
+        translations: countryCode
+          ? product.translations?.[countryCode]
+          : undefined,
+      }))
+    )
 })
 
 export const getProductByHandle = cache(async function (
@@ -36,14 +75,16 @@ export const getProductByHandle = cache(async function (
   regionId: string,
   countryCode?: string
 ) {
-  const translationsField = countryCode ? `,+translations.${countryCode}` : ""
-  
+  const translationsField = countryCode
+    ? `,+translations.${countryCode},+options.translations.${countryCode},+options.values.translations.${countryCode}`
+    : ""
+
   return sdk.store.product
     .list(
       {
         handle,
         region_id: regionId,
-        fields: `*variants.calculated_price,+variants.inventory_quantity,+metadata${translationsField}`
+        fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata${translationsField}`,
       },
       { next: { tags: ["products"] } }
     )
@@ -52,7 +93,25 @@ export const getProductByHandle = cache(async function (
       if (product && countryCode) {
         return {
           ...product,
-          translations: countryCode ? product.translations?.[countryCode] : undefined,
+          // assign the translations for the desired language directly to the product
+          // so that the country code is not needed anymore
+          options: product.options?.map((option) => ({
+            ...option,
+            translations: countryCode
+              ? //@ts-ignore
+                option.translations?.[countryCode]
+              : undefined,
+            values: option.values?.map((value) => ({
+              ...value,
+              translations: countryCode
+                ? //@ts-ignore
+                  value.translations?.[countryCode]
+                : undefined,
+            })),
+          })),
+          translations: countryCode
+            ? product.translations?.[countryCode]
+            : undefined,
         }
       }
       return product
@@ -73,12 +132,10 @@ export const getProductsList = cache(async function ({
   queryParams?: HttpTypes.FindParams & HttpTypes.StoreProductParams
 }> {
   const limit = queryParams?.limit || 12
-  const validPageParam = Math.max(pageParam, 1);
+  const validPageParam = Math.max(pageParam, 1)
   const offset = (validPageParam - 1) * limit
   const region = await getRegion(countryCode)
-  const { tags, ...cleanQueryParams } = queryParams || {} as any;
-
-
+  const { tags, ...cleanQueryParams } = queryParams || ({} as any)
 
   if (!region) {
     return {
