@@ -21,7 +21,7 @@ export const getProductsByTagName = cache(async function ({
   // casteamos al tipo oficial
   return res as StoreProductListResponse
 })
-  
+
 export const getProductsById = cache(async function ({
   ids,
   regionId,
@@ -40,7 +40,7 @@ export const getProductsById = cache(async function ({
       {
         id: ids,
         region_id: regionId,
-        fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata${translationsField}`,
+        fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata`,
       },
       { next: { tags: ["products"] } }
     )
@@ -84,7 +84,7 @@ export const getProductByHandle = cache(async function (
       {
         handle,
         region_id: regionId,
-        fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata${translationsField}`,
+        fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata`,
       },
       { next: { tags: ["products"] } }
     )
