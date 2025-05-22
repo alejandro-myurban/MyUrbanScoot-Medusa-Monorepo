@@ -6,25 +6,61 @@ import { SortOptions } from "@modules/store/components/refinement-list/sort-prod
 import { sortProducts } from "@lib/util/sort-products"
 import { StoreProductListResponse } from "@medusajs/types"
 
-async function fetchWithRetry(
-  fetchFn: () => Promise<any>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000
-): Promise<any> {
+async function getProductTranslations(
+  productId: string,
+  regionId: string,
+  countryCode: string,
+  maxRetries: number = 2
+) {
+  const translationsField = `,+translations.${countryCode},+options.translations.${countryCode},+options.values.translations.${countryCode}`
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await fetchFn()
-    } catch (error: any) {
-      // Si es error 429 y no es el último intento
-      if (error.response?.status === 429 && attempt < maxRetries) {
-        const delay = baseDelay * Math.pow(2, attempt - 1) // Exponential backoff
-        console.warn(
-          `Rate limit hit, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`
-        )
+      // Delay progresivo
+      if (attempt > 1) {
+        const delay = Math.random() * 2000 + attempt * 1000 // Random delay + progressive
         await new Promise((resolve) => setTimeout(resolve, delay))
-        continue
       }
-      throw error
+
+      const { products } = await sdk.store.product.list(
+        {
+          id: [productId],
+          region_id: regionId,
+          fields: `id${translationsField}`,
+        },
+        { next: { tags: ["translations"] } }
+      )
+
+      const translatedProduct = products[0]
+      if (!translatedProduct) {
+        throw new Error(`Product ${productId} not found for translations`)
+      }
+
+      return {
+        options: translatedProduct.options?.map((option) => ({
+          ...option,
+          translations: option.translations?.[countryCode],
+          values: option.values?.map((value) => ({
+            ...value,
+            translations: value.translations?.[countryCode],
+          })),
+        })),
+        translations: translatedProduct.translations?.[countryCode],
+      }
+    } catch (error: any) {
+      const isRateLimit =
+        error.response?.status === 429 ||
+        error.status === 429 ||
+        error.message?.includes("429")
+
+      if (isRateLimit && attempt < maxRetries) {
+        console.warn(
+          `Rate limit hit for ${productId}, attempt ${attempt}/${maxRetries}`
+        )
+        continue // Reintentar
+      }
+
+      throw error // Falló definitivamente
     }
   }
 }
@@ -58,8 +94,8 @@ export const getProductsById = cache(async function ({
     ? `,+translations.${countryCode},+options.translations.${countryCode},+options.values.translations.${countryCode}`
     : ""
 
-  return fetchWithRetry(() =>
-    sdk.store.product.list(
+  return sdk.store.product
+    .list(
       {
         id: ids,
         region_id: regionId,
@@ -67,26 +103,30 @@ export const getProductsById = cache(async function ({
       },
       { next: { tags: ["products"] } }
     )
-  ).then(({ products }) =>
-    products.map((product: { options: any[]; translations: { [x: string]: any } }) => ({
-      ...product,
-      options: product.options?.map((option: { translations: { [x: string]: any }; values: any[] }) => ({
-        ...option,
-        translations: countryCode
-          ? option.translations?.[countryCode]
-          : undefined,
-        values: option.values?.map((value: { translations: { [x: string]: any } }) => ({
-          ...value,
+    .then(({ products }) =>
+      products.map((product) => ({
+        ...product,
+        // assign the translations for the desired language directly to the product
+        // so that the country code is not needed anymore
+        options: product.options?.map((option) => ({
+          ...option,
           translations: countryCode
-            ? value.translations?.[countryCode]
+            ? //@ts-ignore
+              option.translations?.[countryCode]
             : undefined,
+          values: option.values?.map((value) => ({
+            ...value,
+            translations: countryCode
+              ? //@ts-ignore
+                value.translations?.[countryCode]
+              : undefined,
+          })),
         })),
-      })),
-      translations: countryCode
-        ? product.translations?.[countryCode]
-        : undefined,
-    }))
-  )
+        translations: countryCode
+          ? product.translations?.[countryCode]
+          : undefined,
+      }))
+    )
 })
 
 export const getProductByHandle = cache(async function (
@@ -94,43 +134,41 @@ export const getProductByHandle = cache(async function (
   regionId: string,
   countryCode?: string
 ) {
-  const translationsField = countryCode
-    ? `,+translations.${countryCode},+options.translations.${countryCode},+options.values.translations.${countryCode}`
-    : ""
+  // Siempre obtener el producto básico primero
+  const { products } = await sdk.store.product.list(
+    {
+      handle,
+      region_id: regionId,
+      fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata`,
+    },
+    { next: { tags: ["products"] } }
+  )
 
-  return fetchWithRetry(() =>
-    sdk.store.product.list(
-      {
-        handle,
-        region_id: regionId,
-        fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata${translationsField}`,
-      },
-      { next: { tags: ["products"] } }
+  const product = products[0]
+  if (!product) return undefined
+
+  // Si no se necesitan traducciones, retornar inmediatamente
+  if (!countryCode) return product
+
+  // Intentar obtener traducciones, pero con manejo de errores robusto
+  try {
+    const translatedProduct = await getProductTranslations(
+      product.id,
+      regionId,
+      countryCode
     )
-  ).then(({ products }) => {
-    const product = products[0]
-    if (product && countryCode) {
-      return {
-        ...product,
-        options: product.options?.map((option: { translations: { [x: string]: any }; values: any[] }) => ({
-          ...option,
-          translations: countryCode
-            ? option.translations?.[countryCode]
-            : undefined,
-          values: option.values?.map((value: { translations: { [x: string]: any } }) => ({
-            ...value,
-            translations: countryCode
-              ? value.translations?.[countryCode]
-              : undefined,
-          })),
-        })),
-        translations: countryCode
-          ? product.translations?.[countryCode]
-          : undefined,
-      }
+
+    return {
+      ...product,
+      ...translatedProduct,
     }
-    return product
-  })
+  } catch (error) {
+    console.warn(
+      `Translations failed for ${handle}, serving without translations:`,
+      error.message
+    )
+    return product // Retornar sin traducciones
+  }
 })
 
 export const getProductsList = cache(async function ({
