@@ -11,6 +11,7 @@ import { PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js"
 import { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useContext, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 const Payment = ({
   cart,
@@ -27,7 +28,7 @@ const Payment = ({
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
-
+  const {t} = useTranslation();
   const isOpen = searchParams.get("step") === "payment"
 
   const stripeReady = useContext(StripeContext)
@@ -135,7 +136,7 @@ const Payment = ({
             }
           )}
         >
-          Payment
+          {t("checkout.payment")}
           {!isOpen && paymentReady && <CheckCircleSolid />}
         </Heading>
         {!isOpen && paymentReady && (

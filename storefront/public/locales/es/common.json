@@ -17,5 +17,11 @@
     "checkout": "Finalizar Compra",
     "view_details": "Ver Detalles",
     "select": "Seleccionar"
+  },
+  "checkout": {
+    "shipping_address": "Dirección de envío",
+    "delivery": "Tipo de envío",
+    "payment": "Pago",
+    "review":"Revisión"
   }
 }

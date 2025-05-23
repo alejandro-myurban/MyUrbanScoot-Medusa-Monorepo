@@ -16,6 +16,7 @@ import ErrorMessage from "../error-message"
 import ShippingAddress from "../shipping-address"
 import { SubmitButton } from "../submit-button"
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 const Addresses = ({
   cart,
@@ -31,6 +32,7 @@ const Addresses = ({
   const [submitCount, setSubmitCount] = useState(0)
   const isOpen = searchParams.get("step") === "address" || "delivery"
   const [showButton, setShowButton] = useState<boolean>(false)
+  const {t} = useTranslation()
 
   const { state: sameAsBilling, toggle: toggleSameAsBilling } = useToggleState(
     cart?.shipping_address && cart?.billing_address
@@ -84,7 +86,7 @@ const Addresses = ({
           level="h2"
           className="flex flex-row text-3xl-regular gap-x-2 items-baseline"
         >
-          Shipping Address
+          {t("checkout.shipping_address")}
           {!isOpen && <CheckCircleSolid />}
         </Heading>
         {!isOpen && cart?.shipping_address && (

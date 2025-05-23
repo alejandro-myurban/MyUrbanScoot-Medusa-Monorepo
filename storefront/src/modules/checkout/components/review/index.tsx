@@ -4,9 +4,11 @@ import { Heading, Text, clx } from "@medusajs/ui"
 
 import PaymentButton from "../payment-button"
 import { useSearchParams } from "next/navigation"
+import { useTranslation } from "react-i18next"
 
 const Review = ({ cart }: { cart: any }) => {
   const searchParams = useSearchParams()
+  const { t } = useTranslation()
 
   const isOpen = searchParams.get("step") === "review"
 
@@ -30,7 +32,7 @@ const Review = ({ cart }: { cart: any }) => {
             }
           )}
         >
-          Review
+          {t("checkout.review")}
         </Heading>
       </div>
       {isOpen && previousStepsCompleted && (

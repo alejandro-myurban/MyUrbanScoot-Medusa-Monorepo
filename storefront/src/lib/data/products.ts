@@ -6,64 +6,7 @@ import { SortOptions } from "@modules/store/components/refinement-list/sort-prod
 import { sortProducts } from "@lib/util/sort-products"
 import { StoreProductListResponse } from "@medusajs/types"
 
-async function getProductTranslations(
-  productId: string,
-  regionId: string,
-  countryCode: string,
-  maxRetries: number = 2
-) {
-  const translationsField = `,+translations.${countryCode},+options.translations.${countryCode},+options.values.translations.${countryCode}`
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      // Delay progresivo
-      if (attempt > 1) {
-        const delay = Math.random() * 2000 + attempt * 1000 // Random delay + progressive
-        await new Promise((resolve) => setTimeout(resolve, delay))
-      }
-
-      const { products } = await sdk.store.product.list(
-        {
-          id: [productId],
-          region_id: regionId,
-          fields: `id${translationsField}`,
-        },
-        { next: { tags: ["translations"] } }
-      )
-
-      const translatedProduct = products[0]
-      if (!translatedProduct) {
-        throw new Error(`Product ${productId} not found for translations`)
-      }
-
-      return {
-        options: translatedProduct.options?.map((option) => ({
-          ...option,
-          translations: option.translations?.[countryCode],
-          values: option.values?.map((value) => ({
-            ...value,
-            translations: value.translations?.[countryCode],
-          })),
-        })),
-        translations: translatedProduct.translations?.[countryCode],
-      }
-    } catch (error: any) {
-      const isRateLimit =
-        error.response?.status === 429 ||
-        error.status === 429 ||
-        error.message?.includes("429")
-
-      if (isRateLimit && attempt < maxRetries) {
-        console.warn(
-          `Rate limit hit for ${productId}, attempt ${attempt}/${maxRetries}`
-        )
-        continue // Reintentar
-      }
-
-      throw error // Falló definitivamente
-    }
-  }
-}
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export const getProductsByTagName = cache(async function ({
   tagName,
@@ -94,6 +37,9 @@ export const getProductsById = cache(async function ({
     ? `,+translations.${countryCode},+options.translations.${countryCode},+options.values.translations.${countryCode}`
     : ""
 
+  // Agregar delay antes de la request
+  await delay(100) // 100ms de delay
+  
   return sdk.store.product
     .list(
       {
@@ -134,41 +80,50 @@ export const getProductByHandle = cache(async function (
   regionId: string,
   countryCode?: string
 ) {
-  // Siempre obtener el producto básico primero
-  const { products } = await sdk.store.product.list(
-    {
-      handle,
-      region_id: regionId,
-      fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata`,
-    },
-    { next: { tags: ["products"] } }
-  )
+  const translationsField = countryCode
+    ? `,+translations.${countryCode},+options.translations.${countryCode},+options.values.translations.${countryCode}`
+    : ""
 
-  const product = products[0]
-  if (!product) return undefined
+  // Agregar delay antes de la request
+  await delay(100) // 100ms de delay
 
-  // Si no se necesitan traducciones, retornar inmediatamente
-  if (!countryCode) return product
-
-  // Intentar obtener traducciones, pero con manejo de errores robusto
-  try {
-    const translatedProduct = await getProductTranslations(
-      product.id,
-      regionId,
-      countryCode
+  return sdk.store.product
+    .list(
+      {
+        handle,
+        region_id: regionId,
+        fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata${translationsField}`,
+      },
+      { next: { tags: ["products"] } }
     )
-
-    return {
-      ...product,
-      ...translatedProduct,
-    }
-  } catch (error) {
-    console.warn(
-      `Translations failed for ${handle}, serving without translations:`,
-      error.message
-    )
-    return product // Retornar sin traducciones
-  }
+    .then(({ products }) => {
+      const product = products[0]
+      if (product && countryCode) {
+        return {
+          ...product,
+          // assign the translations for the desired language directly to the product
+          // so that the country code is not needed anymore
+          options: product.options?.map((option) => ({
+            ...option,
+            translations: countryCode
+              ? //@ts-ignore
+                option.translations?.[countryCode]
+              : undefined,
+            values: option.values?.map((value) => ({
+              ...value,
+              translations: countryCode
+                ? //@ts-ignore
+                  value.translations?.[countryCode]
+                : undefined,
+            })),
+          })),
+          translations: countryCode
+            ? product.translations?.[countryCode]
+            : undefined,
+        }
+      }
+      return product
+    })
 })
 
 export const getProductsList = cache(async function ({
