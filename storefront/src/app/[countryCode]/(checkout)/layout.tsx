@@ -1,5 +1,6 @@
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import ChevronDown from "@modules/common/icons/chevron-down"
+import LanguageSwitcher from "@modules/layout/components/language-switcher"
 import MedusaCTA from "@modules/layout/components/medusa-cta"
 
 export default function CheckoutLayout({
@@ -29,9 +30,10 @@ export default function CheckoutLayout({
             className="txt-compact-xlarge-plus text-ui-fg-subtle hover:text-ui-fg-base uppercase"
             data-testid="store-link"
           >
-            Medusa Store
+            MyUrbanScoot
           </LocalizedClientLink>
           <div className="flex-1 basis-0" />
+          <LanguageSwitcher />
         </nav>
       </div>
       <div className="relative" data-testid="checkout-container">{children}</div>

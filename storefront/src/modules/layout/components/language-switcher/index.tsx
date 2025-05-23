@@ -15,10 +15,15 @@ export default function LanguageSwitcher() {
   ]
 
   // Track current language and corresponding country code
-  const [currentLang, setCurrentLang] = useState(i18n.language)
-  const [currentCountry, setCurrentCountry] = useState(
-    () => languages.find(l => l.code === i18n.language)?.country || "GB"
-  )
+  const [currentLang, setCurrentLang] = useState(() => {
+    // Usar el idioma actual de i18n que viene de la cookie
+    return i18n.language.substring(0, 2) // Tomamos solo los primeros 2 caracteres por si viene 'es-ES'
+  })
+  
+  const [currentCountry, setCurrentCountry] = useState(() => {
+    const langCode = i18n.language.substring(0, 2)
+    return languages.find(l => l.code === langCode)?.country || "GB"
+  })
 
   useEffect(() => {
     // On mount or if user changes language elsewhere, sync state

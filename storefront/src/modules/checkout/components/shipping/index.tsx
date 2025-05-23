@@ -13,10 +13,31 @@ import { setShippingMethod } from "@lib/data/cart"
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
 import { sdk } from "@lib/config"
+import { useTranslation } from "react-i18next"
 
 type ShippingProps = {
   cart: HttpTypes.StoreCart
   availableShippingMethods: HttpTypes.StoreCartShippingOption[] | null
+}
+
+function addBusinessDays(start: Date, days: number): Date {
+  const date = new Date(start)
+  let added = 0
+  while (added < days) {
+    date.setDate(date.getDate() + 1)
+    const dow = date.getDay()
+    if (dow !== 0 && dow !== 6) {
+      added += 1
+    }
+  }
+  return date
+}
+
+interface ItemWithEstimate extends HttpTypes.StoreCartLineItem {
+  production: number
+  shipping: number
+  totalDays: number
+  estimatedDate: Date
 }
 
 const Shipping: React.FC<ShippingProps> = ({
@@ -28,10 +49,14 @@ const Shipping: React.FC<ShippingProps> = ({
   const [calculatedPrices, setCalculatedPrices] = useState<
     Record<string, number>
   >({})
+  const [itemsWithEstimate, setItemsWithEstimate] = useState<
+    ItemWithEstimate[]
+  >([])
 
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  const {t} = useTranslation();
 
   const isOpen = searchParams.get("step") === "delivery"
 
@@ -61,6 +86,46 @@ const Shipping: React.FC<ShippingProps> = ({
   useEffect(() => {
     setError(null)
   }, [isOpen])
+
+  useEffect(() => {
+    const ids = (cart.items?.map((i) => i.product_id) || []).filter(
+      (id): id is string => id !== undefined
+    )
+    if (!ids.length) return
+
+    sdk.store.product
+      .list(
+        { id: ids, fields: "id,+metadata" },
+        { next: { tags: ["products"] } }
+      )
+      .then(({ products }) => {
+        // Mapeamos products por ID para acceso rápido
+        const metaMap = products.reduce<Record<string, any>>((acc, p) => {
+          acc[p.id] = p.metadata || {}
+          return acc
+        }, {})
+
+        // Construimos el array enriquecido
+        const enriched: ItemWithEstimate[] = (cart.items || []).map((item) => {
+          const meta = item.product_id ? metaMap[item.product_id] || {} : {}
+          const production = parseInt(meta.estimated_production_time ?? "0", 10)
+          const shipping = parseInt(meta.shipping_time ?? "0", 10)
+          const totalDays = production + shipping
+          const estimatedDate = addBusinessDays(new Date(), totalDays)
+          return {
+            ...item,
+            production,
+            shipping,
+            totalDays,
+            estimatedDate,
+          }
+        })
+        setItemsWithEstimate(enriched)
+      })
+      .catch((err) => {
+        console.error("Error cargando metadata:", err)
+      })
+  }, [cart.items])
 
   // --- Lógica para calcular precios de métodos "calculated" ---
   useEffect(() => {
@@ -105,7 +170,7 @@ const Shipping: React.FC<ShippingProps> = ({
           currency_code: cart?.currency_code || "EUR",
         })
       }
-      
+
       // Para opciones de tipo flat, usamos el precio fijo
       return convertToLocale({
         amount: option.amount || 0,
@@ -115,6 +180,7 @@ const Shipping: React.FC<ShippingProps> = ({
     [calculatedPrices, cart?.currency_code]
   )
 
+  console.log("CARRITO", cart)
   return (
     <div className="bg-white">
       <div className="flex flex-row items-center justify-between mb-6">
@@ -128,7 +194,7 @@ const Shipping: React.FC<ShippingProps> = ({
             }
           )}
         >
-          Delivery
+          {t("checkout.delivery")}
           {!isOpen && (cart.shipping_methods?.length ?? 0) > 0 && (
             <CheckCircleSolid />
           )}
@@ -179,6 +245,27 @@ const Shipping: React.FC<ShippingProps> = ({
                 )
               })}
             </RadioGroup>
+          </div>
+          <div>
+            {itemsWithEstimate.map((item) => (
+              <div key={item.id} className="mb-4 border p-4">
+                <p>
+                  <strong>{item.title}</strong>
+                </p>
+                <p>Producción: {item.production} días</p>
+                <p>Envío: {item.shipping} días</p>
+                <p>Total (hábiles): {item.totalDays} días</p>
+                <p>
+                  Fecha estimada de entrega:{" "}
+                  {item.estimatedDate.toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
+            ))}
           </div>
 
           <ErrorMessage

@@ -17,5 +17,11 @@
     "checkout": "Checkout",
     "view_details": "View Details",
     "select" : "Select"
+  },
+  "checkout": {
+    "shipping_address" : "Shipping Address",
+    "delivery" : "Delivery",
+    "payment": "Payment",
+    "review": "Review"
   }
 }
