@@ -9,7 +9,6 @@
   ],
   "scripts": {
     "wait": "await-backend",
-    "prebuild": "ts-node scripts/download-translations.ts",
     "launcher": "launch-storefront",
     "dev": "npm run wait && npm run launcher dev",
     "build": "npm run wait && npm run launcher build",
