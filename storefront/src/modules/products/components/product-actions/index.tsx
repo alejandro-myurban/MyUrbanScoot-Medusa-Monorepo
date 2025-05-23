@@ -242,7 +242,7 @@ export default function ProductActions({
                     current={options[option.title]}
                     updateOption={setOptionValue}
                     //@ts-ignore
-                    title={option.translations.title || option.title}
+                    title={option.translations?.title || option.title}
                     data-testid="product-options"
                     disabled={!!disabled || isAdding}
                   />
