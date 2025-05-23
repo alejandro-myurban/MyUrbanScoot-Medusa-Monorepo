@@ -6,7 +6,6 @@ import { SortOptions } from "@modules/store/components/refinement-list/sort-prod
 import { sortProducts } from "@lib/util/sort-products"
 import { StoreProductListResponse } from "@medusajs/types"
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export const getProductsByTagName = cache(async function ({
   tagName,
@@ -24,6 +23,8 @@ export const getProductsByTagName = cache(async function ({
   return res as StoreProductListResponse
 })
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 export const getProductsById = cache(async function ({
   ids,
   regionId,
@@ -39,7 +40,7 @@ export const getProductsById = cache(async function ({
 
   // Agregar delay antes de la request
   await delay(100) // 100ms de delay
-  
+
   return sdk.store.product
     .list(
       {

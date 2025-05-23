@@ -10,6 +10,8 @@ import {
   hasTranslations
 } from "../../../../../types/medusa-extend"
 
+
+
 type Props = {
   params: { countryCode: string; handle: string }
 }
