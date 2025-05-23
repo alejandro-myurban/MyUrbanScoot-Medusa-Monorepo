@@ -43,7 +43,7 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
         {option.values?.map((v) => {
           // Usa label si está disponible, si no usa value
           //@ts-ignore
-          const displayValue = v.translations.value || v.value
+          const displayValue = v.translations?.value || v.value
 
           return (
             <button
