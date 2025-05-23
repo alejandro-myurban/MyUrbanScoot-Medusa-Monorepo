@@ -22,7 +22,7 @@ export default async function Nav() {
             href="/"
             className="uppercase txt-compact-xlarge-plus hover:text-ui-fg-base"
           >
-            MyUrbanScoot
+            <img className="w-40" style={{width: "150px"}} src="https://myurbanscoot.com/wp-content/uploads/2025/05/cropped-logo-myurbanscoot-vertical-2025-05-382x101.png" />
           </LocalizedClientLink>
 
           <div className="flex-1 flex items-center justify-end gap-x-6">
