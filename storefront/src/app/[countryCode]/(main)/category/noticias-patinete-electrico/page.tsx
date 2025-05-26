@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
   Search,
   Calendar,
@@ -8,30 +8,102 @@ import {
   Filter,
   Grid,
   List,
+  Clock,
 } from "lucide-react"
-import { blogPosts } from "@modules/blog/data/blog-entries"
+import { getPosts, StorePost } from "@lib/data/posts"
+import { useParams, useRouter } from "next/navigation"
+import Newsletter from "@modules/posts/components/newsletter"
 
 const BlogPage = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [viewMode, setViewMode] = useState("grid")
+  const [blogPosts, setBlogPosts] = useState<StorePost[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+  const { countryCode } = useParams()
 
-  // Datos de ejemplo para el blog
+  useEffect(() => {
+    async function loadPosts() {
+      try {
+        const posts = await getPosts()
+        setBlogPosts(posts)
+        console.log("fetched blogPosts:", posts)
+      } catch (err: any) {
+        console.error(err)
+        setError(err.message)
+      }
+    }
+    loadPosts()
+  }, [])
 
+  const navigateToPost = (post: StorePost) => {
+    const postDate = new Date(post.published_at)
+    const year = postDate.getFullYear()
+    const month = String(postDate.getMonth() + 1).padStart(2, "0")
+    const day = String(postDate.getDate()).padStart(2, "0")
+    const slug = post.slug
 
-  const categories = ["all", "Tutoriales", "Reviews", "Accesorios", "Noticias"]
+    console.log("Navigating to post:", post)
+    const url = `/${countryCode}/${year}/${month}/${day}/${slug}`
+    router.push(url)
+  }
+
+  // Helper function to extract text from HTML content for excerpt
+  const getExcerpt = (htmlContent: string, maxLength: number = 150): string => {
+    const div = document.createElement("div")
+    div.innerHTML = htmlContent
+    const text = div.textContent || div.innerText || ""
+    return text.length > maxLength ? text.substring(0, maxLength) + "..." : text
+  }
+
+  // Helper function to get category name
+  const getCategoryName = (post: StorePost): string => {
+    if (
+      post.category &&
+      typeof post.category === "object" &&
+      "name" in post.category
+    ) {
+      return post.category.name as string
+    }
+    return (post.category as string) || "Sin categoría"
+  }
+
+  // Helper function to calculate read time
+  const calculateReadTime = (htmlContent: string): string => {
+    const div = document.createElement("div")
+    div.innerHTML = htmlContent
+    const text = div.textContent || div.innerText || ""
+    const wordsPerMinute = 200
+    const wordCount = text.split(/\s+/).length
+    const readTime = Math.ceil(wordCount / wordsPerMinute)
+    return `${readTime} min`
+  }
+
+  // Get unique categories from posts
+  const categories = [
+    "all",
+    ...Array.from(new Set(blogPosts.map((post) => getCategoryName(post)))),
+  ]
 
   const filteredPosts = blogPosts.filter((post) => {
+    const excerpt = getExcerpt(post.content || "")
     const matchesSearch =
       post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.excerpt.toLowerCase().includes(searchTerm.toLowerCase())
+      excerpt.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory =
-      selectedCategory === "all" || post.category === selectedCategory
+      selectedCategory === "all" || getCategoryName(post) === selectedCategory
     return matchesSearch && matchesCategory
   })
 
-  const featuredPosts = filteredPosts.filter((post) => post.featured)
-  const regularPosts = filteredPosts.filter((post) => !post.featured)
+  // For now, we'll consider all posts as regular posts since we don't have a featured field
+  // You can modify this logic based on your business rules
+  const featuredPosts: StorePost[] = [] // filteredPosts.slice(0, 2) if you want to show first 2 as featured
+  const regularPosts = filteredPosts
+
+  // Default image for posts without images
+  const defaultImage =
+    "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -120,26 +192,47 @@ const BlogPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {featuredPosts.map((post) => (
                 <article
+                  onClick={() => navigateToPost(post)}
                   key={post.id}
                   className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
                 >
                   <div className="relative h-64 overflow-hidden">
                     <img
-                      src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      src={defaultImage}
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     <div className="absolute top-4 left-4">
-                      <span className="bg-mysGreen-100 text-white px-3 py-1 rounded-full text-sm font-medium">{post.category}</span>
+                      <span className="bg-mysGreen-100 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        {getCategoryName(post)}
+                      </span>
                     </div>
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-mysGreen-100 transition-colors">{post.title}</h3>
-                    <p className="text-gray-600 mb-4 line-clamp-2">{post.excerpt}</p>
-                    <div className="flex items-center justify-between text-sm	text-gray-500 mb-4">
+                    <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-mysGreen-100 transition-colors">
+                      {post.title}
+                    </h3>
+                    <p className="text-gray-600 mb-4 line-clamp-2">
+                      {getExcerpt(post.content || "")}
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                       <div className="flex items-center gap-4">
-                        <div className="flex items-center"><User className="w-4 h-4 mr-1" />{post.author}</div>
-                        <div className="flex items-center"><Calendar className="w-4 h-4 mr-1" />{new Date(post.date).toLocaleDateString("es-ES")}</div>
+                        <div className="flex items-center">
+                          <User className="w-4 h-4 mr-1" />
+                          {post.author_name || "MyUrbanScoot"}
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="w-4 h-4 mr-1" />
+                          {new Date(post.published_at).toLocaleDateString(
+                            "es-ES"
+                          )}
+                        </div>
                       </div>
-                      <span className="bg-gray-100 px-2 py-1 rounded">{post.readTime}</span>
+                      <span className="bg-gray-100 px-2 py-1 rounded">
+                        <Clock className="w-4 h-4 mr-2" />{" "}
+                        {calculateReadTime(post.content || "")}
+                      </span>
                     </div>
                     <button className="flex items-center text-mysGreen-100 font-medium hover:text-mysGreen-100 transition-colors">
                       Leer más
@@ -154,22 +247,51 @@ const BlogPage = () => {
 
         {/* Regular Posts */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Todos los artículos ({regularPosts.length})</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            Todos los artículos ({regularPosts.length})
+          </h2>
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {regularPosts.map((post) => (
-                <article key={post.id} className="group bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <article
+                  onClick={() => navigateToPost(post)}
+                  key={post.id}
+                  className="group cursor-pointer bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+                >
                   <div className="relative h-48 overflow-hidden">
-                    <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                    <div className="absolute top-3 left-3"><span className="bg-mysGreen-100 text-white px-2 py-1 rounded-full text-xs font-medium">{post.category}</span></div>
+                    <img
+                      src={post.image || defaultImage}
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <span className="bg-mysGreen-100 text-white px-2 py-1 rounded-full text-xs font-medium">
+                        {getCategoryName(post)}
+                      </span>
+                    </div>
                   </div>
                   <div className="p-5">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-mysGreen-100 transition-colors">{post.title}</h3>
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{post.excerpt}</p>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-mysGreen-100 transition-colors">
+                      {post.title}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                      {post.extract}
+                    </p>
                     <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                      <div className="flex items-center"><User className="w-3 h-3 mr-1" />{post.author}</div>
-                      <div className="flex items-center"><Calendar className="w-3 h-3 mr-1" />{new Date(post.date).toLocaleDateString("es-ES")}</div>
-                      <span className="bg-gray-100 px-2 py-1 rounded">{post.readTime}</span>
+                      <div className="flex items-center">
+                        <User className="w-3 h-3 mr-1" />
+                        {post.author_name || "MyUrbanScoot"}
+                      </div>
+                      <div className="flex items-center">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        {new Date(post.published_at).toLocaleDateString(
+                          "es-ES"
+                        )}
+                      </div>
+                      <span className="bg-gray-100 px-2 py-1 rounded flex items-center ">
+                        <Clock className="w-4 h-4 mr-2" />
+                        {calculateReadTime(post.content || "")}
+                      </span>
                     </div>
                     <button className="flex items-center text-mysGreen-100 font-medium text-sm hover:text-mysGreen-100 transition-colors">
                       Leer más
@@ -182,22 +304,48 @@ const BlogPage = () => {
           ) : (
             <div className="space-y-4">
               {regularPosts.map((post) => (
-                <article key={post.id} className="group bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300">
+                <article
+                  key={post.id}
+                  className="group cursor-pointer bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300"
+                >
                   <div className="flex flex-col md:flex-row">
-                    <div className="md:w-1/3 h-48 md:h-32 overflow-hidden"><img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /></div>
+                    <div className="md:w-1/3 h-48 md:h-32 overflow-hidden">
+                      <img
+                        src={defaultImage}
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
                     <div className="md:w-2/3 p-5 flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="bg-mysGreen-100 text-white px-2 py-1 rounded-full text-xs font-medium">{post.category}</span>
-                          <span className="bg-gray-100 px-2 py-1 rounded text-xs">{post.readTime}</span>
+                          <span className="bg-mysGreen-100 text-white px-2 py-1 rounded-full text-xs font-medium">
+                            {getCategoryName(post)}
+                          </span>
+                          <span className="bg-gray-100 flex items-center px-2 py-1 rounded text-xs">
+                            <Clock className="w-4 h-4 mr-2" />
+                            {calculateReadTime(post.content || "")}
+                          </span>
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-mysGreen-100 transition-colors">{post.title}</h3>
-                        <p className="text-gray-600 text-sm mb-3">{post.excerpt}</p>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-mysGreen-100 transition-colors">
+                          {post.title}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-3">
+                          {getExcerpt(post.content || "")}
+                        </p>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <div className="flex items-center"><User className="w-3 h-3 mr-1" />{post.author}</div>
-                          <div className="flex items-center"><Calendar className="w-3 h-3 mr-1" />{new Date(post.date).toLocaleDateString("es-ES")}</div>
+                          <div className="flex items-center">
+                            <User className="w-3 h-3 mr-1" />
+                            {post.author_name || "MyUrbanScoot"}
+                          </div>
+                          <div className="flex items-center">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {new Date(post.published_at).toLocaleDateString(
+                              "es-ES"
+                            )}
+                          </div>
                         </div>
                         <button className="flex items-center text-mysGreen-100 font-medium text-sm hover:text-mysGreen-100 transition-colors">
                           Leer más
@@ -217,29 +365,17 @@ const BlogPage = () => {
             <div className="text-gray-400 mb-4">
               <Search className="w-16 h-16 mx-auto" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No se encontraron artículos</h3>
-            <p className="text-gray-600">Intenta ajustar tu búsqueda o filtros</p>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              No se encontraron artículos
+            </h3>
+            <p className="text-gray-600">
+              Intenta ajustar tu búsqueda o filtros
+            </p>
           </div>
         )}
 
         {/* Newsletter Section */}
-        <section className="mt-16 bg-gradient-to-r from-mysGreen-100 to-gray-900 rounded-2xl p-8 text-white text-center">
-          <h3 className="text-2xl font-bold mb-4">¡Mantente actualizado!</h3>
-          <p className="text-mysGreen-100-100 mb-6 max-w-2xl mx-auto">
-            Suscríbete a nuestro newsletter y recibe los últimos artículos,
-            tutoriales y novedades del mundo de los patinetes eléctricos.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="Tu email"
-              className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
-            />
-            <button className="bg-white text-mysGreen-100 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-              Suscribirse
-            </button>
-          </div>
-        </section>
+        <Newsletter />
       </main>
     </div>
   )
