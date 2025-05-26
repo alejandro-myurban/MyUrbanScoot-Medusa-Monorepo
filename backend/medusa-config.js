@@ -93,6 +93,9 @@ const medusaConfig = {
       resolve: "./src/modules/loyalty",
     },
     {
+      resolve: "./src/modules/blog"
+    },
+    {
       key: Modules.FILE,
       resolve: "@medusajs/file",
       options: {
