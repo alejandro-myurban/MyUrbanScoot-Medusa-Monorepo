@@ -12,8 +12,8 @@ const Post = model.define("post", {
   status: model.enum(["draft", "private", "published"]),
   category: model.belongsTo(() => BlogCategory, { mappedBy: "posts" }),
   comments: model.hasMany(() => Comment),
-  image: model.text().nullable(), // URL de la imagen del post
-  extract: model.text().nullable(), // Extracto del post
+  image: model.text().nullable(), 
+  extract: model.text().nullable(), 
   // created_at, updated_at se agregan automáticamente
 });
 
