@@ -2,15 +2,41 @@
 import React, { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Calendar, User, ArrowLeft, Clock } from "lucide-react"
-import { getPostsBySlug, StorePost } from "@lib/data/posts"
+import {
+  createPostComment,
+  getPostComments,
+  getPostsBySlug,
+  StorePost,
+  StorePostComment,
+} from "@lib/data/posts"
 import Newsletter from "@modules/posts/components/newsletter"
+import { sdk } from "@lib/config"
+import { StoreCustomer } from "@medusajs/types"
 
 const PostPage = () => {
   const router = useRouter()
   const { year, month, day, slug } = useParams()
   const [post, setPost] = useState<StorePost | null>(null)
   const [loading, setLoading] = useState(true)
+  const [commentsLoading, setCommentsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [comments, setComments] = useState<StorePostComment[]>([])
+  const [customer, setCustomer] = useState<StoreCustomer | null>(null)
+
+  useEffect(() => {
+    async function fetchCustomer() {
+      try {
+        const { customer } = await sdk.store.customer.retrieve()
+        console.log("customer", customer)
+        setCustomer(customer)
+      } catch (err) {
+        console.error("Error retrieving customer:", err)
+        setCustomer(null)
+      }
+    }
+
+    fetchCustomer()
+  }, [])
 
   useEffect(() => {
     async function loadPost() {
@@ -19,7 +45,17 @@ const PostPage = () => {
       try {
         setLoading(true)
         const postData = await getPostsBySlug(slug as string)
-        setPost(postData[0])
+        console.log("AAAAAA", postData)
+
+        if (postData && postData.length > 0) {
+          const postItem = postData[0]
+          setPost(postItem)
+
+          // Cargar comentarios inmediatamente después de obtener el post
+          if (postItem.id) {
+            await loadComments(postItem.id)
+          }
+        }
       } catch (err: any) {
         console.error("Error loading post:", err)
         setError(err.message)
@@ -30,6 +66,59 @@ const PostPage = () => {
 
     loadPost()
   }, [slug])
+
+  const loadComments = async (postId: string) => {
+    try {
+      setCommentsLoading(true)
+      console.log("Loading comments for postID:", postId)
+      const commentsData = await getPostComments(postId)
+      console.log("commentsData", commentsData)
+
+      const commentsArray = commentsData || []
+      setComments(commentsArray)
+    } catch (err: any) {
+      console.error("Error loading comments:", err)
+    } finally {
+      setCommentsLoading(false)
+    }
+  }
+
+  const handleAddComment = async (formData: FormData) => {
+    console.log("Form data:", formData)
+    if (!post?.id) return
+
+    const author_name = formData.get("name") as string
+    const content = formData.get("comment") as string
+
+    if (!author_name.trim() || !content.trim()) {
+      return
+    }
+
+    try {
+      setCommentsLoading(true)
+      const newComment: StorePostComment = {
+        //@ts-ignore
+        post: post.id,
+        author_name,
+        content,
+      }
+
+      // Llamar a la API para crear el comentario
+      const createdComment = await createPostComment(post.id, newComment)
+
+      // Recargar comentarios para obtener la lista actualizada
+      await loadComments(post.id)
+
+      // Limpiar el formulario
+      const form = document.querySelector("form") as HTMLFormElement
+      if (form) form.reset()
+    } catch (err: any) {
+      console.error("Error adding comment:", err)
+      alert("Error al publicar el comentario. Inténtalo de nuevo.")
+    } finally {
+      setCommentsLoading(false)
+    }
+  }
 
   // Helper function to get category name
   const getCategoryName = (post: StorePost): string => {
@@ -311,6 +400,138 @@ const PostPage = () => {
             dangerouslySetInnerHTML={{ __html: post.content || "" }}
           />
         </article>
+
+        {/* Comments Section */}
+        <section className="mt-12 bg-white rounded-2xl shadow-lg p-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+            Comentarios ({comments.length})
+          </h2>
+
+          {/* Comment Form */}
+          <div className="mb-8 p-6 bg-gray-50 rounded-xl">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Deja tu comentario
+            </h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                const fd = new FormData(e.currentTarget)
+                handleAddComment(fd)
+              }}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {customer ? (
+                  <span className="text-sm font-medium text-gray-900">
+                    {customer.first_name}
+                  </span>
+                ) : (
+                  <div className="col-span-2">
+                    <label
+                      htmlFor="name"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Nombre *
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mysGreen-100 focus:border-transparent outline-none transition-all"
+                      placeholder="Tu nombre"
+                    />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label
+                  htmlFor="comment"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Comentario *
+                </label>
+                <textarea
+                  name="comment"
+                  id="comment"
+                  rows={4}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mysGreen-100 focus:border-transparent outline-none transition-all resize-none"
+                  placeholder="Escribe tu comentario aquí..."
+                ></textarea>
+              </div>
+              <div className="flex items-center justify-between">
+                <button
+                  type="submit"
+                  disabled={commentsLoading}
+                  className="bg-mysGreen-100 text-white px-6 py-3 rounded-lg hover:bg-mysGreen-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {commentsLoading ? "Publicando..." : "Publicar comentario"}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Comments List */}
+          {commentsLoading && comments.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mysGreen-100 mx-auto mb-2"></div>
+              <p className="text-gray-600">Cargando comentarios...</p>
+            </div>
+          ) : comments.length > 0 ? (
+            <div className="space-y-6">
+              {comments.map((comment, index) => (
+                <div
+                  key={comment.id || index}
+                  className="p-6 bg-gray-50 rounded-xl shadow-sm"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-mysGreen-100 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">
+                        {comment.author_name || "Anónimo"}
+                      </span>
+                      {comment.created_at && (
+                        <p className="text-xs text-gray-500">
+                          {new Date(comment.created_at).toLocaleDateString(
+                            "es-ES",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-gray-700 leading-relaxed">
+                    {comment.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="border-t border-gray-200 pt-6">
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <User className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Sé el primero en comentar
+                </h3>
+                <p className="text-gray-600 max-w-md mx-auto">
+                  Comparte tu opinión sobre este artículo. Tu comentario ayudará
+                  a otros lectores a conocer más sobre el tema.
+                </p>
+              </div>
+            </div>
+          )}
+        </section>
 
         {/* Social Share & Actions */}
         <div className="mt-8 bg-white rounded-2xl shadow-lg p-6">

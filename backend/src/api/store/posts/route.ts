@@ -16,3 +16,7 @@ export const GET = async (
   );
   res.json({ posts });
 };
+
+
+
+
