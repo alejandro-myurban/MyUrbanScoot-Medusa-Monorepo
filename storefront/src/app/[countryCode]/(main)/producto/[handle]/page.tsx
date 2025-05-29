@@ -155,10 +155,11 @@ export default async function ProductPage({ params }: Props) {
     options: translatedOptions || null,
   }
 
-  console.log("AAAAA", pricedProduct.options)
-  console.log("AAAAA", pricedProduct)
-  console.log(pricedProduct.options?.[0]?.values ?? [])
-  console.log("TRANSLATED", translatedProduct)
+  // console.log("AAAAA", pricedProduct.options)
+  // console.log("AAAAA", pricedProduct)
+  // console.log(pricedProduct.options?.[0]?.values ?? [])
+  // console.log("TRANSLATED", translatedProduct)
+  console.log("PRODUCTO", translatedProduct.variants)
 
   return (
     <>
