@@ -22,7 +22,7 @@ module.exports = {
       },
       colors: {
         mysGreen: {
-          100: "#B2FE00"
+          100: "#B2FE00",
         },
         grey: {
           0: "#FFFFFF",
@@ -62,7 +62,9 @@ module.exports = {
         "3xl": "2rem",
       },
       fontFamily: {
+        poppins: ["var(--font-poppins)", "sans-serif"],
         sans: [
+          "Poppins",
           "Inter",
           "-apple-system",
           "BlinkMacSystemFont",

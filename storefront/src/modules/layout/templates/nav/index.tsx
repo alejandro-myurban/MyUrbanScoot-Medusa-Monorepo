@@ -25,6 +25,9 @@ export default async function Nav() {
               Blog
             </LocalizedClientLink>
             <VinylNavDropdown categories={product_categories} />
+            <LocalizedClientLink href="/spare-parts" className="hover:text-ui-fg-base">
+              Recambios
+            </LocalizedClientLink>
           </div>
 
           <LocalizedClientLink

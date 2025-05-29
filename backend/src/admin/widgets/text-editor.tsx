@@ -34,11 +34,12 @@ export default function TextEditorTinyMCE({
   };
 
   return (
-    <div>
+    <div className="-z-10">
       <Editor
         onEditorChange={handleEditorChange}
         apiKey={TINYMCE_API_KEY}
         init={{
+          zIndex: -1000,
           plugins: [
             // Core editing features
             "anchor",
