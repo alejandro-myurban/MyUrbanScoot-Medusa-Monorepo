@@ -420,40 +420,38 @@ export default function SparePartsTemplate({
                     <div key={brand.id} className="space-y-1">
                       {/* Marca principal */}
                       <div className="flex items-center justify-between">
-                        <label className="flex items-center space-x-2 cursor-pointer flex-1">
-                          <Checkbox
-                            checked={selectedBrands.includes(brand.id)}
-                            onCheckedChange={(checked) =>
-                              handleBrandChange(brand.id, !!checked)
-                            }
-                          />
-                          <span className="text-sm font-medium">
-                            {brand.name}
-                          </span>
-                        </label>
-
                         {/* Botón expandir/contraer si hay modelos */}
                         {models.length > 0 && (
-                          <button
-                            onClick={() => toggleBrandExpansion(brand.id)}
-                            className="p-1 hover:bg-gray-100 rounded"
-                          >
-                            <svg
-                              className={`w-4 h-4 transition-transform ${
-                                isExpanded ? "rotate-180" : ""
-                              }`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
+                          <>
+                            <label
+                              onClick={() => toggleBrandExpansion(brand.id)}
+                              className="flex items-center space-x-2 cursor-pointer flex-1"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </button>
+                              <span className="text-sm font-medium">
+                                {brand.name}
+                              </span>
+                            </label>
+                            <button
+                              onClick={() => toggleBrandExpansion(brand.id)}
+                              className="p-1 hover:bg-gray-100 rounded"
+                            >
+                              <svg
+                                className={`w-4 h-4 transition-transform ${
+                                  isExpanded ? "rotate-180" : ""
+                                }`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 9l-7 7-7-7"
+                                />
+                              </svg>
+                            </button>
+                          </>
                         )}
                       </div>
 

@@ -75,6 +75,8 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     params.category
   )
 
+  console.log("holaaa", product_categories)
+
   if (!product_categories) {
     notFound()
   }

@@ -9,6 +9,17 @@ import PaginatedProducts from "@modules/store/templates/paginated-products"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { HttpTypes } from "@medusajs/types"
 
+// Importar componentes de breadcrumb de shadcn
+import {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "../../../src/components/ui/breadcrumb"
+
 export default function CategoryTemplate({
   categories,
   sortBy,
@@ -24,7 +35,22 @@ export default function CategoryTemplate({
   const sort = sortBy || "created_at"
 
   const category = categories[categories.length - 1]
-  const parents = categories.slice(0, categories.length - 1)
+
+  // Construir la jerarquía completa usando parent_category
+  const buildHierarchy = (cat: any): any[] => {
+    const hierarchy: any[] = []
+    let current = cat.parent_category
+
+    // Recorrer hacia arriba hasta encontrar todas las categorías padre
+    while (current) {
+      hierarchy.unshift(current)
+      current = current.parent_category
+    }
+
+    return hierarchy
+  }
+
+  const parents = buildHierarchy(category)
 
   if (!category || !countryCode) notFound()
 
@@ -33,29 +59,55 @@ export default function CategoryTemplate({
       className="flex flex-col small:flex-row small:items-start py-6 content-container"
       data-testid="category-container"
     >
-      <RefinementList sortBy={sort} data-testid="sort-by-container" />
       <div className="w-full">
-        <div className="flex flex-row mb-8 text-2xl-semi gap-4">
-          {parents &&
-            parents.map((parent) => (
-              <span key={parent.id} className="text-ui-fg-subtle">
-                <LocalizedClientLink
-                  className="mr-4 hover:text-black"
-                  href={`/categories/${parent.handle}`}
-                  data-testid="sort-by-link"
-                >
-                  {parent.name}
-                </LocalizedClientLink>
-                /
-              </span>
-            ))}
-          <h1 data-testid="category-page-title">{category.name}</h1>
+        {/* Breadcrumb */}
+        <div className="mb-6">
+          <Breadcrumb>
+            <BreadcrumbList>
+              {/* Home link */}
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <LocalizedClientLink href="/">Inicio</LocalizedClientLink>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+
+              {/* Categorías padre */}
+              {parents.map((parent) => (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem key={parent.id}>
+                    <BreadcrumbLink asChild>
+                      <LocalizedClientLink
+                        href={`/categories/${parent.handle}`}
+                        className="hover:text-black"
+                      >
+                        {parent.name}
+                      </LocalizedClientLink>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                </>
+              ))}
+
+              {/* Categoría actual */}
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{category.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
+
+        <div className="flex flex-col mb-8 text-2xl-semi gap-4">
+          <h1 data-testid="category-page-title">{category.name}</h1>
+          <RefinementList sortBy={sort} data-testid="sort-by-container" />
+        </div>
+
         {category.description && (
           <div className="mb-8 text-base-regular">
             <p>{category.description}</p>
           </div>
         )}
+
         {category.category_children && (
           <div className="mb-8 text-base-large">
             <ul className="grid grid-cols-1 gap-2">
@@ -69,6 +121,7 @@ export default function CategoryTemplate({
             </ul>
           </div>
         )}
+
         <Suspense fallback={<SkeletonProductGrid />}>
           <PaginatedProducts
             sortBy={sort}

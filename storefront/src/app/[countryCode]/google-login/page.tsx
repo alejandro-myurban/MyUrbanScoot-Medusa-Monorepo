@@ -2,7 +2,7 @@
 
 import { sdk } from "@lib/config"
 import { HttpTypes } from "@medusajs/types"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { decodeToken } from "react-jwt"
 
@@ -11,11 +11,12 @@ export default function GoogleCallback() {
   const [loading, setLoading] = useState(true)
   const [customer, setCustomer] = useState<HttpTypes.StoreCustomer>()
 
-  // for other than Next.js
+  const searchParams = useSearchParams()
+
   const queryParams = useMemo(() => {
-    const searchParams = new URLSearchParams(window.location.search)
-    return Object.fromEntries(searchParams.entries())
-  }, [])
+    const entries = Array.from(searchParams.entries())
+    return Object.fromEntries(entries)
+  }, [searchParams])
 
   const sendCallback = async () => {
     let token = ""
@@ -28,20 +29,23 @@ export default function GoogleCallback() {
         // third party provider
         queryParams
       )
-    } catch (error) {
-    }
+    } catch (error) {}
 
     return token
   }
 
   const fetchUserMetadata = async (authIdentityId: string, token: string) => {
     // Fetch user metadata from your custom endpoint using the token we just received
-    const response = await fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/auth`, {
-      headers: {
-        "x-publishable-api-key": process.env.NEXT_PUBLIC_PUBLISHEABLE_KEY || "",
-        Authorization: `Bearer ${token}`
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/auth`,
+      {
+        headers: {
+          "x-publishable-api-key":
+            process.env.NEXT_PUBLIC_PUBLISHEABLE_KEY || "",
+          Authorization: `Bearer ${token}`,
+        },
       }
-    })
+    )
     return await response.json()
   }
 
@@ -50,26 +54,26 @@ export default function GoogleCallback() {
     await sdk.store.customer.create({
       email: userMetadata.email,
       first_name: userMetadata.given_name || "",
-      last_name: userMetadata.family_name || ""
+      last_name: userMetadata.family_name || "",
     })
   }
 
   const setTokenInCookie = async (token: string) => {
     // Set token in cookie via a server action
     try {
-      const response = await fetch('/api/auth/set-token', {
-        method: 'POST',
+      const response = await fetch("/api/auth/set-token", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ token }),
-      });
-      
+      })
+
       if (!response.ok) {
-        throw new Error('Failed to set auth token');
+        throw new Error("Failed to set auth token")
       }
     } catch (error) {
-      console.error('Error setting auth token:', error);
+      console.error("Error setting auth token:", error)
     }
   }
 
@@ -82,14 +86,20 @@ export default function GoogleCallback() {
 
   const validateCallback = async () => {
     const token = await sendCallback()
-    const decodedToken = decodeToken(token) as { actor_id: string, auth_identity_id: string }
-    
+    const decodedToken = decodeToken(token) as {
+      actor_id: string
+      auth_identity_id: string
+    }
+
     const shouldCreateCustomer = decodedToken.actor_id === ""
-    
+
     if (shouldCreateCustomer) {
       // Fetch user metadata from Google auth identity using the token
-      const userMetadata = await fetchUserMetadata(decodedToken.auth_identity_id, token)
-      
+      const userMetadata = await fetchUserMetadata(
+        decodedToken.auth_identity_id,
+        token
+      )
+
       if (userMetadata && userMetadata.email) {
         await createCustomer(userMetadata)
         await refreshToken(token)
@@ -115,7 +125,7 @@ export default function GoogleCallback() {
       return
     }
 
-    validateCallback().catch(error => {
+    validateCallback().catch((error) => {
       console.error("Error during validation:", error)
       setLoading(false)
     })
@@ -131,7 +141,11 @@ export default function GoogleCallback() {
   return (
     <div>
       {loading && <span>Loading...</span>}
-      {customer && <span>Created customer {customer.email} with Google. Redirecting...</span>}
+      {customer && (
+        <span>
+          Created customer {customer.email} with Google. Redirecting...
+        </span>
+      )}
     </div>
   )
 }

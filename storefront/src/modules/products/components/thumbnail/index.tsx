@@ -30,12 +30,14 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
         "relative w-full overflow-hidden p-4 bg-ui-bg-subtle shadow-elevation-card-rest rounded-large group-hover:shadow-elevation-card-hover transition-shadow ease-in-out duration-150",
         className,
         {
-          "aspect-[11/14]": isFeatured,
-          "aspect-[9/16]": !isFeatured && size !== "square",
+          // Aspect ratios ajustados para más altura
+          "aspect-[4/4]": isFeatured, // Más alto que 3:2
+          "aspect-[3/3]": !isFeatured && size !== "square", // Más alto que 5:3
           "aspect-[1/1]": size === "square",
-          "w-[180px]": size === "small",
-          "w-[290px]": size === "medium",
-          "w-[440px]": size === "large",
+          // Anchos mucho más grandes para evitar cortes
+          "w-[320px]": size === "small", // Aumenté de 240px a 320px
+          "w-[450px]": size === "medium", // Aumenté de 360px a 450px
+          "w-[600px]": size === "large", // Aumenté de 520px a 600px
           "w-full": size === "full",
         }
       )}
@@ -56,13 +58,13 @@ const ImageOrPlaceholder = ({
       alt="Thumbnail"
       className="absolute inset-0 object-cover object-center"
       draggable={false}
-      quality={50}
-      sizes="(max-width: 576px) 280px, (max-width: 768px) 360px, (max-width: 992px) 480px, 800px"
+      quality={75} // Aumenté la calidad de 50 a 75
+      sizes="(max-width: 576px) 380px, (max-width: 768px) 500px, (max-width: 992px) 650px, 1000px" // Ajusté para los nuevos tamaños más grandes
       fill
     />
   ) : (
     <div className="w-full h-full absolute inset-0 flex items-center justify-center">
-      <PlaceholderImage size={size === "small" ? 16 : 24} />
+      <PlaceholderImage size={size === "small" ? 20 : 28} />
     </div>
   )
 }

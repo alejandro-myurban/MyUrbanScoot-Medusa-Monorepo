@@ -1,70 +1,54 @@
-import React from "react"
+// @lib/constants.ts
+
 import { CreditCard } from "@medusajs/icons"
+import { Mailbox } from "lucide-react"
 
-import Ideal from "@modules/common/icons/ideal"
-import Bancontact from "@modules/common/icons/bancontact"
-import PayPal from "@modules/common/icons/paypal"
-
-/* Map of payment provider_id to their title and icon. Add in any payment providers you want to use. */
-export const paymentInfoMap: Record<
-  string,
-  { title: string; icon: React.JSX.Element }
-> = {
-  pp_stripe_stripe: {
-    title: "Credit card",
-    icon: <CreditCard />,
-  },
-  "pp_stripe-ideal_stripe": {
-    title: "iDeal",
-    icon: <Ideal />,
-  },
-  "pp_stripe-bancontact_stripe": {
-    title: "Bancontact",
-    icon: <Bancontact />,
-  },
-  "paypal": {
-    title: "PayPal",
-    icon: <PayPal />,
-  },
-  pp_system_default: {
-    title: "Contrareembolso",
-    icon: <CreditCard />,
-  },
-  // Add more payment providers here
+// Función existente para Stripe
+export const isStripe = (providerId?: string): boolean => {
+  return providerId?.includes("stripe") ?? false
 }
 
-// This only checks if it is native stripe for card payments, it ignores the other stripe-based providers
-export const isStripe = (providerId?: string) => {
-  return providerId?.startsWith("pp_stripe_")
-}
-
-export const isPaypal = (providerId?: string) => {
-  return providerId?.includes("paypal")
-}
-
-export const isManual = (providerId?: string) => {
+// Nueva función para verificar contrareembolso
+export const isCashOnDelivery = (providerId?: string): boolean => {
   return providerId === "pp_system_default"
 }
 
-// Add currencies that don't need to be divided by 100
-export const noDivisionCurrencies = [
-  "krw",
-  "jpy",
-  "vnd",
-  "clp",
-  "pyg",
-  "xaf",
-  "xof",
-  "bif",
-  "djf",
-  "gnf",
-  "kmf",
-  "mga",
-  "rwf",
-  "xpf",
-  "htg",
-  "vuv",
-  "xag",
-  "xdr",
-  "xau",
-]
+// Mapa de información de métodos de pago
+export const paymentInfoMap: Record<string, { title: string; icon: any }> = {
+  // Stripe payment methods
+  card: { title: "Tarjeta", icon: CreditCard },
+  ideal: { title: "iDEAL", icon: CreditCard },
+  bancontact: { title: "Bancontact", icon: CreditCard },
+  giropay: { title: "Giropay", icon: CreditCard },
+  
+  // Sistema por defecto (contrareembolso)
+  pp_system_default: { title: "Contrareembolso", icon: <Mailbox /> },
+  
+  // Puedes agregar más métodos aquí según necesites
+}
+
+// Providers disponibles
+export const PAYMENT_PROVIDERS = {
+  STRIPE: "pp_stripe_stripe",
+  CASH_ON_DELIVERY: "pp_system_default",
+} as const
+
+// Información detallada de métodos de pago
+export const PAYMENT_METHODS = {
+  stripe: {
+    id: "stripe",
+    provider_id: PAYMENT_PROVIDERS.STRIPE,
+    title: "Tarjeta de Crédito/Débito",
+    description: "Paga con tarjeta de forma segura",
+    icon: CreditCard,
+    requiresPaymentElement: true,
+  },
+  cod: {
+    id: "cod", 
+    provider_id: PAYMENT_PROVIDERS.CASH_ON_DELIVERY,
+    title: "Contrareembolso",
+    description: "Paga al recibir tu pedido",
+    icon: <Mailbox />,
+    requiresPaymentElement: false,
+  },
+} as const

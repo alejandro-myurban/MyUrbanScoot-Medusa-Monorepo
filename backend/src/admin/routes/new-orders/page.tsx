@@ -175,7 +175,7 @@ const OrdersPage = () => {
             {items.map((item, index) => (
               <div key={item.id ?? index} className="flex flex-col">
                 {/* Primera línea: título + cantidad */}
-                <span>
+                <span className="w-72 text-wrap">
                   {item.title} <strong>({item.quantity})</strong>
                 </span>
 
