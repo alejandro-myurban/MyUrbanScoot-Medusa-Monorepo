@@ -7,34 +7,118 @@ import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { addToCart } from "@lib/data/cart"
+import { PriceRangeFilter } from "../components/price-filter"
 
 interface SparePartsTemplateProps {
   products: HttpTypes.StoreProduct[]
-  collections: HttpTypes.StoreCollection[]
-  categories: HttpTypes.StoreProductCategory[]
+  sparePartsTypes: HttpTypes.StoreCollection[] // Tipos de repuestos (ruedas, frenos, etc.)
+  brands: HttpTypes.StoreProductCategory[] // Marcas (hijos de "Modelos Recambios")
   countryCode: string
+  parentCategory?: HttpTypes.StoreProductCategory // La categoría padre "Modelos Recambios"
 }
 
 export default function SparePartsTemplate({
   products,
-  collections,
-  categories,
+  sparePartsTypes,
+  brands,
   countryCode,
+  parentCategory,
 }: SparePartsTemplateProps) {
   const [filteredProducts, setFilteredProducts] =
     useState<HttpTypes.StoreProduct[]>(products)
-  const [selectedCategory, setSelectedCategory] = useState<string>("")
   const [selectedBrands, setSelectedBrands] = useState<string[]>([])
+  const [selectedModels, setSelectedModels] = useState<string[]>([])
+  const [selectedInches, setSelectedInches] = useState<string[]>([]) // NUEVO: filtro de pulgadas
+  const [expandedBrands, setExpandedBrands] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const [priceRange, setPriceRange] = useState([0, 500])
   const router = useRouter()
   const params = useSearchParams()
 
   console.log("PRODUCTOS ", products)
+  console.log("TIPOS DE REPUESTOS (collections)", sparePartsTypes)
+  console.log("MARCAS (hijos de Modelos Recambios)", brands)
+  console.log("CATEGORIA PADRE", parentCategory)
+
+  // NUEVO: Función para extraer pulgadas del título del producto
+  const extractInchesFromTitle = (title: string): string[] => {
+    // Sólo números (con coma o punto) justo antes de ''  ″ o ”
+    const inchRegex = /(\d+(?:[.,]\d+)?)(?=\s*(?:''|″|”))/g
+
+    const matches = Array.from(title.matchAll(inchRegex), (m) =>
+      // Normalizar coma decimal y quedarnos sólo con el número
+      m[1].replace(",", ".")
+    )
+
+    // Filtrar rango lógico y eliminar duplicados
+    return Array.from(
+      new Set(
+        matches
+          .map((n) => parseFloat(n))
+          .filter((n) => n >= 4 && n <= 20)
+          .map((n) => n.toString())
+      )
+    )
+  }
+
+  // NUEVO: Obtener todas las pulgadas disponibles en productos de ruedas
+  const getAvailableInches = (): string[] => {
+    const currentCollection = params.get("collection")
+    const wheelCollection = sparePartsTypes.find(
+      (col) =>
+        col.title.toLowerCase().includes("rueda") ||
+        col.title.toLowerCase().includes("wheel") ||
+        col.handle?.toLowerCase().includes("rueda")
+    )
+
+    if (!wheelCollection || currentCollection !== wheelCollection.id) {
+      return []
+    }
+
+    const inches = new Set<string>()
+
+    products.forEach((product) => {
+      // Solo productos que pertenezcan a la colección de ruedas
+      if (
+        product.collection_id === wheelCollection.id ||
+        product.collection?.id === wheelCollection.id
+      ) {
+        const productInches = extractInchesFromTitle(product.title || "")
+        productInches.forEach((inch) => inches.add(inch))
+      }
+    })
+
+    return Array.from(inches).sort((a, b) => parseFloat(a) - parseFloat(b))
+  }
+
+  // NUEVO: Verificar si se debe mostrar el filtro de pulgadas
+  const shouldShowInchesFilter = (): boolean => {
+    const currentCollection = params.get("collection")
+    const wheelCollection = sparePartsTypes.find(
+      (col) =>
+        col.title.toLowerCase().includes("rueda") ||
+        col.title.toLowerCase().includes("wheel") ||
+        col.handle?.toLowerCase().includes("rueda")
+    )
+
+    return !!(wheelCollection && currentCollection === wheelCollection.id)
+  }
+
+  // Obtener modelos por marca (subcategorías de cada marca)
+  const getModelsByBrand = (brandId: string) => {
+    // Buscar la marca en el array de brands y obtener sus hijos
+    const brand = brands.find((b) => b.id === brandId)
+    return brand?.category_children || []
+  }
+
+  useEffect(() => {
+    filterProducts()
+  }, [selectedBrands, selectedModels, selectedInches, products, priceRange]) // ACTUALIZADO: añadir selectedInches
 
   // Filtrar productos cuando cambien los filtros
   useEffect(() => {
     filterProducts()
-  }, [selectedCategory, selectedBrands, products])
+  }, [selectedBrands, selectedModels, selectedInches, products]) // ACTUALIZADO: añadir selectedInches
 
   const getFirstAvailableVariant = (
     product: HttpTypes.StoreProduct
@@ -50,6 +134,10 @@ export default function SparePartsTemplate({
     )
 
     return availableVariant?.id || product.variants[0]?.id || null
+  }
+
+  const handlePriceChange = (newRange: any) => {
+    setPriceRange(newRange)
   }
 
   const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
@@ -72,31 +160,31 @@ export default function SparePartsTemplate({
     }
   }
 
-  const onCategoryChange = (categoryId: string) => {
+  const onCollectionChange = (collectionId: string) => {
     const next = new URLSearchParams(params.toString())
-    if (categoryId) next.set("category", categoryId)
-    else next.delete("category")
+    if (collectionId) next.set("collection", collectionId)
+    else next.delete("collection")
 
-    // Usar replace con scroll: false para evitar scroll automático
+    // Limpiar filtros de marca y modelo al cambiar tipo de repuesto
+    next.delete("brand")
+    next.delete("model")
+
     router.replace(`/${countryCode}/spare-parts?${next.toString()}`, {
       scroll: false,
     })
   }
 
   const getProductPrice = (product: HttpTypes.StoreProduct): number | null => {
-    // Verificar que existan variants
     if (!product.variants || product.variants.length === 0) {
       return null
     }
 
     const variant = product.variants[0]
 
-    // Verificar que exista calculated_price y calculated_amount
     if (!variant.calculated_price?.calculated_amount) {
       return null
     }
 
-    // Verificar que calculated_amount sea un número
     const amount = variant.calculated_price.calculated_amount
     if (typeof amount !== "number") {
       return null
@@ -105,62 +193,41 @@ export default function SparePartsTemplate({
     return amount
   }
 
+  // ACTUALIZADO: función de filtrado con pulgadas
   const filterProducts = () => {
     let filtered = products
 
-    // ——— Filtro por categoría ———
-    if (selectedCategory) {
-      filtered = filtered.filter((product) =>
-        product.categories?.some((cat) => cat.id === selectedCategory)
-      )
-    }
+    filtered = filtered.filter((product) => {
+      const price = getProductPrice(product)
+      if (price === null) return true
+      return price >= priceRange[0] && price <= priceRange[1]
+    })
 
-    // ——— Filtro por marcas/colecciones ———
-    if (selectedBrands.length > 0) {
+    // Si hay marcas o modelos seleccionados, filtramos:
+    if (selectedBrands.length > 0 || selectedModels.length > 0) {
       filtered = filtered.filter((product) => {
-        // 1) Si es universal, siempre lo incluimos
-        if (product.metadata?.is_universal) {
-          return true
-        }
+        const catIds = product.categories?.map((c) => c.id) || []
 
-        // 2) Si pertenece directamente a la colección
-        const inCollection = selectedBrands.includes(
-          product.collection_id || ""
+        // 1) Sólo productos **directamente** en la categoría padre
+        const matchesBrand = selectedBrands.some((brandId) =>
+          catIds.includes(brandId)
         )
 
-        // 3) Si es compatible según metadata.compatible_brands
-        // Primero aseguramos que compatible_brands sea un array:
-        let compatArr: string[] = []
-        const raw = product.metadata?.compatible_brands
-        if (Array.isArray(raw)) {
-          compatArr = raw
-        } else if (typeof raw === "string") {
-          try {
-            const parsed = JSON.parse(raw)
-            if (Array.isArray(parsed)) {
-              compatArr = parsed
-            }
-          } catch {
-            // si falló JSON.parse, podrías splitear raw.split(",")
-            compatArr = raw
-              .replace(/[\[\]\s"]/g, "")
-              .split(",")
-              .filter(Boolean)
-          }
-        }
+        // 2) Sólo productos **directamente** en la categoría hijo
+        const matchesModel = selectedModels.some((modelId) =>
+          catIds.includes(modelId)
+        )
 
-        // Como compatArr contiene handles (p.ej. "dualtron"), mapeamos
-        // selectedBrands (que son IDs) a sus handles vía collections:
-        const selectedHandles = selectedBrands
-          .map((id) => {
-            const col = collections.find((c) => c.id === id)
-            return col?.handle
-          })
-          .filter((h): h is string => Boolean(h))
+        // Devolvemos sólo los que cumplan alguna de las dos
+        return matchesBrand || matchesModel
+      })
+    }
 
-        const isCompatible = selectedHandles.some((h) => compatArr.includes(h))
-
-        return inCollection || isCompatible
+    // NUEVO: Filtrar por pulgadas si hay alguna seleccionada
+    if (selectedInches.length > 0) {
+      filtered = filtered.filter((product) => {
+        const productInches = extractInchesFromTitle(product.title || "")
+        return selectedInches.some((inch) => productInches.includes(inch))
       })
     }
 
@@ -170,15 +237,50 @@ export default function SparePartsTemplate({
   const handleBrandChange = (brandId: string, checked: boolean) => {
     if (checked) {
       setSelectedBrands((prev) => [...prev, brandId])
+      setExpandedBrands((prev) => [...prev, brandId])
     } else {
       setSelectedBrands((prev) => prev.filter((id) => id !== brandId))
+      // deselect todos los modelos de esa marca
+      const childIds = getModelsByBrand(brandId).map((m) => m.id)
+      setSelectedModels((prev) => prev.filter((id) => !childIds.includes(id)))
+      setExpandedBrands((prev) => prev.filter((id) => id !== brandId))
     }
   }
 
-  const resetFilters = () => {
-    setSelectedCategory("")
-    setSelectedBrands([])
+  const handleModelChange = (modelId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedModels((prev) => [...prev, modelId])
+    } else {
+      setSelectedModels((prev) => prev.filter((id) => id !== modelId))
+    }
   }
+
+  // NUEVO: Manejar cambios en el filtro de pulgadas
+  const handleInchChange = (inch: string, checked: boolean) => {
+    if (checked) {
+      setSelectedInches((prev) => [...prev, inch])
+    } else {
+      setSelectedInches((prev) => prev.filter((i) => i !== inch))
+    }
+  }
+
+  const toggleBrandExpansion = (brandId: string) => {
+    setExpandedBrands((prev) =>
+      prev.includes(brandId)
+        ? prev.filter((id) => id !== brandId)
+        : [...prev, brandId]
+    )
+  }
+
+  const resetFilters = () => {
+    setSelectedBrands([])
+    setSelectedModels([])
+    setSelectedInches([]) // NUEVO: limpiar filtro de pulgadas
+    setExpandedBrands([])
+  }
+
+  // NUEVO: Obtener pulgadas disponibles
+  const availableInches = getAvailableInches()
 
   return (
     <div className="content-container py-6">
@@ -188,33 +290,35 @@ export default function SparePartsTemplate({
         </h1>
         <p className="text-ui-fg-subtle max-w-2xl mx-auto">
           Encuentra los mejores repuestos para tu patinete eléctrico. Filtra por
-          categoría y marca para encontrar exactamente lo que necesitas.
+          tipo de repuesto, marca y modelo para encontrar exactamente lo que
+          necesitas.
         </p>
       </div>
-      {/* Filtro por categoría */}
+
+      {/* Filtro por tipo de repuesto (collections) */}
       <div className="mb-6">
-        <h4 className="font-medium mb-3">Categoría</h4>
+        <h4 className="font-medium mb-3">Tipo de Recambio</h4>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {/* Opción "Todas" */}
           <label
             className={`
           cursor-pointer bg-white border rounded-lg p-4 flex flex-col items-center transition-shadow
           ${
-            !params.get("category")
+            !params.get("collection")
               ? "shadow-lg ring-2 ring-mysGreen-100 border-transparent"
               : "hover:shadow-md border-gray-200"
           }
         `}
-            htmlFor="cat_all"
+            htmlFor="col_all"
           >
             <input
-              id="cat_all"
+              id="col_all"
               type="radio"
-              name="category"
+              name="collection"
               value=""
               className="sr-only peer"
-              checked={!params.get("category")}
-              onChange={() => onCategoryChange("")}
+              checked={!params.get("collection")}
+              onChange={() => onCollectionChange("")}
             />
 
             <img
@@ -224,12 +328,12 @@ export default function SparePartsTemplate({
             <span className="text-sm">Todas</span>
           </label>
 
-          {categories.map((cat) => {
-            const isSelected = params.get("category") === cat.id
+          {sparePartsTypes.map((collection) => {
+            const isSelected = params.get("collection") === collection.id
             return (
               <label
-                key={cat.id}
-                onClick={() => onCategoryChange(cat.id)}
+                key={collection.id}
+                onClick={() => onCollectionChange(collection.id)}
                 className={`
               cursor-pointer bg-white border rounded-lg p-4 flex flex-col items-center transition-shadow
               ${
@@ -241,18 +345,18 @@ export default function SparePartsTemplate({
               >
                 <input
                   type="radio"
-                  name="category"
-                  value={cat.id}
+                  name="collection"
+                  value={collection.id}
                   className="sr-only"
                   checked={isSelected}
                   onChange={() => {}}
                 />
                 <img
-                  src={cat.metadata?.image as string}
-                  alt={cat.name}
+                  src={collection.metadata?.image as string}
+                  alt={collection.title}
                   className="w-full h-40 object-cover mb-2"
                 />
-                <span className="text-sm text-center">{cat.name}</span>
+                <span className="text-sm text-center">{collection.title}</span>
               </label>
             )
           })}
@@ -273,40 +377,128 @@ export default function SparePartsTemplate({
               </button>
             </div>
 
-            {/* Filtro por marcas */}
+            {/* Filtro de precio */}
             <div className="mb-6">
-              <h4 className="font-medium mb-3">Marcas</h4>
+              <PriceRangeFilter
+                products={products}
+                onPriceChange={handlePriceChange}
+              />
+            </div>
+
+            {/* NUEVO: Filtro por pulgadas (solo si es colección de ruedas) */}
+            {shouldShowInchesFilter() && availableInches.length > 0 && (
+              <div className="mb-6">
+                <h4 className="font-medium mb-3">Tamaño (Pulgadas)</h4>
+                <div className="space-y-2">
+                  {availableInches.map((inch) => (
+                    <label
+                      key={inch}
+                      className="flex items-center space-x-2 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={selectedInches.includes(inch)}
+                        onCheckedChange={(checked) =>
+                          handleInchChange(inch, !!checked)
+                        }
+                      />
+                      <span className="text-sm">{inch}"</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Filtro por marcas y modelos */}
+            <div className="mb-6">
+              <h4 className="font-medium mb-3">Modelos compatibles</h4>
               <div className="space-y-2">
-                {collections.map((collection) => (
-                  <label
-                    key={collection.id}
-                    className="flex items-center space-x-2 cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={selectedBrands.includes(collection.id)}
-                      onCheckedChange={(checked) =>
-                        handleBrandChange(collection.id, !!checked)
-                      }
-                    />
-                    <span className="text-sm">{collection.title}</span>
-                  </label>
-                ))}
+                {brands.map((brand) => {
+                  const models = getModelsByBrand(brand.id)
+                  const isExpanded = expandedBrands.includes(brand.id)
+
+                  return (
+                    <div key={brand.id} className="space-y-1">
+                      {/* Marca principal */}
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center space-x-2 cursor-pointer flex-1">
+                          <Checkbox
+                            checked={selectedBrands.includes(brand.id)}
+                            onCheckedChange={(checked) =>
+                              handleBrandChange(brand.id, !!checked)
+                            }
+                          />
+                          <span className="text-sm font-medium">
+                            {brand.name}
+                          </span>
+                        </label>
+
+                        {/* Botón expandir/contraer si hay modelos */}
+                        {models.length > 0 && (
+                          <button
+                            onClick={() => toggleBrandExpansion(brand.id)}
+                            className="p-1 hover:bg-gray-100 rounded"
+                          >
+                            <svg
+                              className={`w-4 h-4 transition-transform ${
+                                isExpanded ? "rotate-180" : ""
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Modelos (subcategorías) */}
+                      {isExpanded && models.length > 0 && (
+                        <div className="ml-6 space-y-1">
+                          {models.map((model) => (
+                            <label
+                              key={model.id}
+                              className="flex items-center space-x-2 cursor-pointer"
+                            >
+                              <Checkbox
+                                checked={selectedModels.includes(model.id)}
+                                onCheckedChange={(checked) =>
+                                  handleModelChange(model.id, !!checked)
+                                }
+                              />
+                              <span className="text-xs text-ui-fg-subtle">
+                                {model.name}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
             {/* Mostrar filtros activos */}
-            {(selectedCategory || selectedBrands.length > 0) && (
+            {(selectedBrands.length > 0 ||
+              selectedModels.length > 0 ||
+              selectedInches.length > 0) && (
               <div className="pt-4 border-t">
                 <h5 className="text-sm font-medium mb-2">Filtros activos:</h5>
                 <div className="space-y-1 text-xs text-ui-fg-subtle">
-                  {selectedCategory && (
-                    <div>
-                      Categoría:{" "}
-                      {categories.find((c) => c.id === selectedCategory)?.name}
-                    </div>
-                  )}
                   {selectedBrands.length > 0 && (
                     <div>Marcas: {selectedBrands.length}</div>
+                  )}
+                  {selectedModels.length > 0 && (
+                    <div>Modelos: {selectedModels.length}</div>
+                  )}
+                  {selectedInches.length > 0 && (
+                    <div>Pulgadas: {selectedInches.join(", ")}"</div>
                   )}
                 </div>
               </div>
@@ -362,15 +554,12 @@ export default function SparePartsTemplate({
                       {product.title}
                     </h3>
 
-                    {/* Precio con manejo seguro */}
-
-                    {/* @ts-ignore */}
                     {(() => {
                       const price = getProductPrice(product)
                       if (price !== null) {
                         return (
                           <div className="text-lg font-semibold text-ui-fg-base mb-2">
-                            {price}€
+                            {`${price.toFixed(2)}€`}
                           </div>
                         )
                       }
@@ -378,49 +567,20 @@ export default function SparePartsTemplate({
                     })()}
 
                     {/* Metadata de compatibilidad */}
-                    {product.metadata?.compatible_brands && (
+                    {typeof product.metadata?.compatible_models !==
+                      "undefined" && (
                       <div className="text-xs text-ui-fg-subtle mb-3">
-                        Compatible:{" "}
-                        {(() => {
-                          const raw = product.metadata.compatible_brands
-                          let brands: string[] = []
-
-                          if (Array.isArray(raw)) {
-                            brands = raw
-                          } else if (typeof raw === "string") {
-                            try {
-                              // parseamos JSON
-                              const parsed = JSON.parse(raw)
-                              if (Array.isArray(parsed)) {
-                                brands = parsed
-                              } else {
-                                // si no es array tras parsear, lo separamos por comas
-                                brands = parsed
-                                  .toString()
-                                  .split(",")
-                                  .map((s: any) => s.trim())
-                              }
-                            } catch {
-                              // fallback: separa por comas
-                              brands = raw
-                                .split(",")
-                                .map((s) => s.replace(/[\[\]\s"]/g, "").trim())
-                                .filter(Boolean)
-                            }
-                          } else {
-                            // otro tipo (número, objeto…), convertimos a string
-                            brands = String(raw)
-                              .split(",")
-                              .map((s) => s.trim())
-                          }
-
-                          return brands.join(", ")
-                        })()}
+                        Compatible con:{" "}
+                        {Array.isArray(product.metadata.compatible_models)
+                          ? (
+                              product.metadata.compatible_models as string[]
+                            ).join(", ")
+                          : String(product.metadata.compatible_models)}
                       </div>
                     )}
 
-                    {/* Categoría y colección */}
-                    <div className="flex flex-wrap gap-1 mb-3">
+                    {/* Marca y tipo de repuesto */}
+                    {/* <div className="flex flex-wrap gap-1 mb-3">
                       {product.categories?.map((cat) => (
                         <span
                           key={cat.id}
@@ -434,18 +594,18 @@ export default function SparePartsTemplate({
                           {product.collection.title}
                         </span>
                       )}
-                    </div>
+                    </div> */}
 
                     {/* Botón de acción */}
                     <div className="flex flex-col gap-2">
                       <button
                         onClick={() => handleAddToCart(product)}
-                        className="w-full bg-ui-bg-interactive text-ui-fg-on-color py-2 rounded hover:bg-ui-bg-interactive-hover transition-colors"
+                        className="w-full border-2 text-black border-mysGreen-100 py-2 rounded-lg hover:bg-ui-bg-interactive-hover transition-colors"
                       >
-                        Add to Cart
+                        Añadir al carrito
                       </button>
                       <LocalizedClientLink href={`/producto/${product.handle}`}>
-                        <button className="w-full bg-ui-bg-interactive text-ui-fg-on-color py-2 rounded hover:bg-ui-bg-interactive-hover transition-colors">
+                        <button className="w-full py-2 rounded-lg border-2 text-black border-mysGreen-100 hover:bg-ui-bg-interactive-hover transition-colors">
                           Ver detalles
                         </button>
                       </LocalizedClientLink>
