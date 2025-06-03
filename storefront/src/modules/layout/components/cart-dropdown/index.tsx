@@ -4,6 +4,7 @@ import { Popover, Transition } from "@headlessui/react"
 import { Button } from "@medusajs/ui"
 import { usePathname } from "next/navigation"
 import { Fragment, useEffect, useRef, useState } from "react"
+import {ShoppingCart} from "lucide-react"
 
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
@@ -15,8 +16,10 @@ import Thumbnail from "@modules/products/components/thumbnail"
 
 const CartDropdown = ({
   cart: cartState,
+  dark,
 }: {
   cart?: HttpTypes.StoreCart | null
+  dark?: boolean
 }) => {
   const [activeTimer, setActiveTimer] = useState<NodeJS.Timer | undefined>(
     undefined
@@ -103,13 +106,15 @@ const CartDropdown = ({
       onMouseEnter={openAndCancel}
       onMouseLeave={close}
     >
-      <Popover className="relative h-full">
+      <Popover className="relative h-full flex justify-center items-center">
         <Popover.Button className="h-full">
           <LocalizedClientLink
-            className="hover:text-ui-fg-base"
+            className={`hover:text-ui-fg-base flex gap-2 ${
+              dark ? "text-white/80 hover:text-white" : "text-black"
+            }`}
             href="/cart"
             data-testid="nav-cart-link"
-          >{`Cart (${totalItems})`}</LocalizedClientLink>
+          >{<><ShoppingCart />({totalItems})</>}</LocalizedClientLink>
         </Popover.Button>
         <Transition
           show={cartDropdownOpen}

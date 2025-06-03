@@ -5,8 +5,10 @@ import { useTranslation } from "react-i18next"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import LanguageSwitcher from "@modules/layout/components/language-switcher"
 import Login from "./google-login"
+import { CircleUserRound, Search } from "lucide-react"
+import { MagnifyingGlass } from "@medusajs/icons"
 
-export default function NavClient() {
+export default function NavClient({ dark = false }: { dark?: boolean }) {
   const { t } = useTranslation()
 
   return (
@@ -18,18 +20,26 @@ export default function NavClient() {
           scroll={false}
           data-testid="nav-search-link"
         >
-          Search
+          <Search
+            className={`hover:text-ui-fg-base ${
+              dark ? "text-white/80 hover:text-white" : "text-black"
+            }`}
+          />
         </LocalizedClientLink>
       )}
       <LocalizedClientLink
-        className="hover:text-ui-fg-base"
+        className={`hover:text-ui-fg-base ${
+          dark ? "text-white/80 hover:text-white" : "text-black"
+        }`}
         href="/account"
         data-testid="nav-account-link"
       >
-        {t("navigation.account")}
+        <CircleUserRound
+          className={`hover:text-ui-fg-base ${
+            dark ? "text-white/80 hover:text-white" : "text-black"
+          }`}
+        />
       </LocalizedClientLink>
-      <LanguageSwitcher />
-      <Login />
     </div>
   )
 }

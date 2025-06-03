@@ -5,6 +5,7 @@ import Input from "@modules/common/components/input"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import { SubmitButton } from "@modules/checkout/components/submit-button"
 import { login } from "@lib/data/customer"
+import GoogleLogin from "@modules/layout/templates/nav/google-login"
 
 type Props = {
   setCurrentView: (view: LOGIN_VIEW) => void
@@ -58,6 +59,7 @@ const Login = ({ setCurrentView }: Props) => {
         </button>
         .
       </span>
+      <GoogleLogin />
     </div>
   )
 }

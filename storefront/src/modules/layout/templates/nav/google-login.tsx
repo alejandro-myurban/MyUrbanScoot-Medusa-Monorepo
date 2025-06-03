@@ -3,7 +3,7 @@
 import { sdk } from "@lib/config"
 import { Google } from "@medusajs/icons"
 
-export default function Login() {
+export default function GoogleLogin() {
   const loginWithGoogle = async () => {
     const result = await sdk.auth.login("customer", "google", {})
 
