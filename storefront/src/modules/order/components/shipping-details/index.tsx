@@ -9,6 +9,7 @@ type ShippingDetailsProps = {
 }
 
 const ShippingDetails = ({ order }: ShippingDetailsProps) => {
+  console.log("ShippingDetails", order)
   return (
     <div>
       <Heading level="h2" className="flex flex-row text-3xl-regular my-6">
@@ -60,9 +61,7 @@ const ShippingDetails = ({ order }: ShippingDetailsProps) => {
             {convertToLocale({
               amount: order.shipping_methods?.[0].total ?? 0,
               currency_code: order.currency_code,
-            })
-              .replace(/,/g, "")
-              .replace(/\./g, ",")}
+            })}{" "}
             )
           </Text>
         </div>

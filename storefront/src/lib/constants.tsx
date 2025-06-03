@@ -16,7 +16,7 @@ export const isCashOnDelivery = (providerId?: string): boolean => {
 // Mapa de información de métodos de pago
 export const paymentInfoMap: Record<string, { title: string; icon: any }> = {
   // Stripe payment methods
-  card: { title: "Tarjeta", icon: CreditCard },
+  pp_stripe_stripe: { title: "Stripe", icon: <CreditCard /> },
   ideal: { title: "iDEAL", icon: CreditCard },
   bancontact: { title: "Bancontact", icon: CreditCard },
   giropay: { title: "Giropay", icon: CreditCard },

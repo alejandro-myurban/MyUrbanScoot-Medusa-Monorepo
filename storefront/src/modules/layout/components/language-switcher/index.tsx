@@ -48,11 +48,12 @@ export default function LanguageSwitcher() {
 
   return (
     <div className="relative">
-      <button onClick={toggle} className="flex items-center gap-1 p-2 border rounded hover:bg-gray-100">
+      <button onClick={toggle} className="flex items-center gap-1 p-2 rounded active:none ">
         {/* Show flag of current language */}
         <ReactCountryFlag
           svg
-          style={{ width: '16px', height: '16px' }}
+          className="hover:scale-110 transition-transform"
+          style={{ width: '24px', height: '24px' }}
           countryCode={currentCountry}
           aria-label={currentLang}
         />

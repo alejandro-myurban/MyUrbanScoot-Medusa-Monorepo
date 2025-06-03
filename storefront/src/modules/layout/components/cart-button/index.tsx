@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import CartDropdown from "../cart-dropdown"
 import { enrichLineItems, retrieveCart } from "@lib/data/cart"
+import LanguageSwitcher from "../language-switcher"
 
 const fetchCart = async () => {
   const cart = await retrieveCart()
@@ -17,8 +18,13 @@ const fetchCart = async () => {
   return cart
 }
 
-export default async function CartButton() {
+export default async function CartButton({ dark = false }: { dark?: boolean }) {
   const cart = await fetchCart()
 
-  return <CartDropdown cart={cart} />
+  return (
+    <>
+      <CartDropdown dark={dark} cart={cart} />
+      <LanguageSwitcher />
+    </>
+  )
 }

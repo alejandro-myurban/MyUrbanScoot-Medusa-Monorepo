@@ -11,6 +11,12 @@ type ItemsProps = {
 }
 
 const Items = ({ items }: ItemsProps) => {
+
+
+  items?.forEach((item) => {
+    console.log("Metadata del variant:", item.variant?.metadata)
+  })
+
   return (
     <div className="flex flex-col">
       <Divider className="!mb-0" />
