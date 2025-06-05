@@ -5,17 +5,20 @@ import Thumbnail from "../thumbnail"
 import PreviewPrice from "./price"
 import { getProductsById } from "@lib/data/products"
 import { HttpTypes } from "@medusajs/types"
+import { ProductAverageReview } from "@modules/product-reviews/components/ProductAverageReview"
+
+
 
 export default async function ProductPreview({
   product,
   isFeatured,
   region,
-  discount, 
+  discount,
 }: {
   product: HttpTypes.StoreProduct
   isFeatured?: boolean
   region: HttpTypes.StoreRegion
-  discount?: string | number 
+  discount?: string | number
 }) {
   const [pricedProduct] = await getProductsById({
     ids: [product.id!],
@@ -27,6 +30,7 @@ export default async function ProductPreview({
   }
 
   const { cheapestPrice } = getProductPrice({
+    //@ts-ignore
     product: pricedProduct,
   })
 
@@ -82,25 +86,79 @@ export default async function ProductPreview({
     }
   }
 
+  // Si tanto original_price_number como calculated_price_number existen, calculamos el % de descuento
+  let discountPercent: number | null = null
+  if (
+    typeof cheapestPrice?.original_price_number === "number" &&
+    typeof cheapestPrice.calculated_price_number === "number" &&
+    cheapestPrice.original_price_number > cheapestPrice.calculated_price_number
+  ) {
+    const orig = cheapestPrice.original_price_number
+    const calc = cheapestPrice.calculated_price_number
+    // Porcentaje de descuento redondeado
+    discountPercent = Math.round((1 - calc / orig) * 100)
+  }
+
   return (
     <LocalizedClientLink href={`/producto/${product.handle}`} className="group">
-      <div data-testid="product-wrapper">
-        <Thumbnail
-          thumbnail={product.thumbnail}
-          images={product.images}
-          size="full"
-          isFeatured={isFeatured}
-        />
-        <div className="flex txt-compact-medium mt-4 justify-between">
-          <Text className="text-ui-fg-subtle" data-testid="product-title">
-            {product.title}
-          </Text>
-          <div className="flex items-center gap-x-2">
-            {discountedPrice ? (
-              <PreviewPrice price={discountedPrice} />
-            ) : (
-              cheapestPrice && <PreviewPrice price={cheapestPrice} />
-            )}
+      <div
+        data-testid="product-wrapper"
+        className={`font-dmSans bg-white overflow-hidden rounded-b-lg rounded-t-lg border-gray-300 border shadow-sm hover:shadow-md transition-shadow duration-200`}
+      >
+        {/* Imagen del producto */}
+        <div className="relative overflow-hidden">
+          <Thumbnail
+            thumbnail={product.thumbnail}
+            images={product.images}
+            size="full"
+            isFeatured={isFeatured}
+            className="!p-0 !bg-gray-50 !rounded-none" // Removemos el padding, cambiamos el fondo y quitamos border radius
+          />
+
+          {/* Contenido de la tarjeta */}
+          <div className="p-4 space-y-3 ">
+            {/* Título del producto */}
+            <Text
+              className="text-gray-900 font-dmSans font-medium text-base leading-tight"
+              data-testid="product-title"
+            >
+              {product.title}
+            </Text>
+
+            {/* Rating de estrellas */}
+            <div className="flex items-center">
+              <ProductAverageReview productId={product.id} />
+            </div>
+
+            {/* Precios */}
+            <div className="flex items-center gap-x-3 flex-wrap">
+              {discountedPrice ? (
+                <>
+                  {/* Precio con descuento */}
+                  <div className="text-xl font-dmSans font-bold text-gray-900">
+                    <PreviewPrice price={discountedPrice} />
+                  </div>
+                  {/* Precio original tachado */}
+                  {cheapestPrice && (
+                    <div className="text-sm text-gray-500 line-through">
+                      <PreviewPrice price={cheapestPrice} />
+                    </div>
+                  )}
+                </>
+              ) : (
+                cheapestPrice && (
+                  <div className="text-2xl flex gap-2 font-bold text-gray-900">
+                    <PreviewPrice price={cheapestPrice} />
+                  </div>
+                )
+              )}
+              {/* Badge de descuento (si aplica) */}
+              {discountPercent !== null && (
+                <div className="font-dmSans bg-mysRed-100 text-white text-xs font-semibold px-2 py-1 rounded">
+                  -{discountPercent}%
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

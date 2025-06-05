@@ -32,7 +32,6 @@ export default function VinylNavDropdown({
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  console.log("CATEGORIES", categories)
 
   // Obtenemos solo la categoría "Vinilos" (primer elemento) y sus hijos (marcas)
   const vinylsCategory = categories[0] // Vinilos es el primer elemento

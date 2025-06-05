@@ -12,6 +12,10 @@ type Props = {
   searchParams: {
     sortBy?: SortOptions
     page?: string
+    // Agregar los nuevos parámetros de filtro de precio
+    minPrice?: string
+    maxPrice?: string
+    [key: string]: string | string[] | undefined
   }
 }
 
@@ -57,7 +61,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       `${title} category.`
 
     return {
-      title: `${title} | Medusa Store`,
+      title: `${title} | MyUrbanScoot`,
       description,
       alternates: {
         canonical: `${params.category.join("/")}`,
@@ -75,7 +79,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     params.category
   )
 
-  console.log("holaaa", product_categories)
+
 
   if (!product_categories) {
     notFound()
@@ -87,6 +91,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       sortBy={sortBy}
       page={page}
       countryCode={params.countryCode}
+      searchParams={searchParams}
     />
   )
 }

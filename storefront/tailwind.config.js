@@ -24,6 +24,9 @@ module.exports = {
         mysGreen: {
           100: "#B2FE00",
         },
+        mysRed: {
+          100: "#ff2c46"
+        },
         grey: {
           0: "#FFFFFF",
           5: "#F9FAFB",
@@ -52,6 +55,7 @@ module.exports = {
       screens: {
         "2xsmall": "320px",
         xsmall: "512px",
+        msmall: "750px",
         small: "1024px",
         medium: "1280px",
         large: "1440px",
@@ -63,6 +67,7 @@ module.exports = {
       },
       fontFamily: {
         poppins: ["var(--font-poppins)", "sans-serif"],
+        dmSans: ["var(--font-dmSans)", "sans-serif"],
         sans: [
           "Poppins",
           "Inter",
