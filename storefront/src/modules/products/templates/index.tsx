@@ -71,7 +71,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           optionTitle={optionTitle}
         >
           <div
-            className="content-container flex flex-col small:flex-row small:items-start py-6 relative"
+            className="content-container flex flex-col small:flex-row small:items-start py-6 pt-20 relative"
             data-testid="product-container"
           >
             <div className="flex flex-col small:sticky small:top-48 small:py-0 small:max-w-[300px] w-full py-8 gap-y-6">
@@ -93,8 +93,8 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                     />
                   }
                 >
-                  <CustomNameNumberForm product={product} />
                   <ProductActionsWrapper id={product.id} region={region} countryCode={countryCode} />
+                  <CustomNameNumberForm product={product} />
                   <BoughtTogether product={product} region={region} />
                 </Suspense>
               </CombinedCartProvider>

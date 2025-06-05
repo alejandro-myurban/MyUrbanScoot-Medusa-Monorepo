@@ -43,41 +43,45 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
   }
 
   return (
-    <div className="space-y-4 mb-4 p-4 border rounded-md bg-white">
-      {product.metadata?.custom_name === "true" && (
-        <div>
-          <label
-            htmlFor="custom-name"
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
-            Nombre Personalizado
-          </label>
-          <Input
-            id="custom-name"
-            placeholder="Nombre personalizado"
-            value={customName}
-            onChange={handleNameChange}
-          />
-        </div>
-      )}
+    <>
+      <div className="space-y-4 mb-4 p-4 border rounded-md bg-white">
+        {product.metadata?.custom_name === "true" && (
+          <>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Personalización</h3>
+              <p className="text-sm text-gray-600">
+                Personaliza tu producto con un nombre y número únicos.
+              </p>
+            </div>
+            <div>
+              <Input
+                id="custom-name"
+                placeholder="Nombre personalizado"
+                value={customName}
+                onChange={handleNameChange}
+              />
+            </div>
+          </>
+        )}
 
-      {product.metadata?.custom_number === "true" && (
-        <div>
-          <label
-            htmlFor="custom-number"
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
-            Número Personalizado
-          </label>
-          <Input
-            id="custom-number"
-            placeholder="Número personalizado"
-            value={customNumber}
-            onChange={handleNumberChange}
-            type="number"
-          />
-        </div>
-      )}
-    </div>
+        {product.metadata?.custom_number === "true" && (
+          <div>
+            <label
+              htmlFor="custom-number"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Número Personalizado
+            </label>
+            <Input
+              id="custom-number"
+              placeholder="Número personalizado"
+              value={customNumber}
+              onChange={handleNumberChange}
+              type="number"
+            />
+          </div>
+        )}
+      </div>
+    </>
   )
 }

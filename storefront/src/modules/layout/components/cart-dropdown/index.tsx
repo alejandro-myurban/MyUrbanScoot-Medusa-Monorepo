@@ -4,7 +4,7 @@ import { Popover, Transition } from "@headlessui/react"
 import { Button } from "@medusajs/ui"
 import { usePathname } from "next/navigation"
 import { Fragment, useEffect, useRef, useState } from "react"
-import {ShoppingCart} from "lucide-react"
+import {ShoppingBag, ShoppingCart} from "lucide-react"
 
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
@@ -114,7 +114,7 @@ const CartDropdown = ({
             }`}
             href="/cart"
             data-testid="nav-cart-link"
-          >{<><ShoppingCart />({totalItems})</>}</LocalizedClientLink>
+          >{<><ShoppingBag /> <div className="absolute flex items-center justify-center left-4 bg-mysRed-100 rounded-full w-4 h-4 text-sm text-white">{totalItems}</div></>}</LocalizedClientLink>
         </Popover.Button>
         <Transition
           show={cartDropdownOpen}

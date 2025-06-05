@@ -5,18 +5,22 @@ import { useState, useEffect, useRef } from "react"
 import NumberFlow from '@number-flow/react'
 import { StoreProduct } from "@medusajs/types"
 
-
 export const PriceRangeFilter = ({
   products,
   onPriceChange,
+  initialMin,
+  initialMax,
 }: {
   products: StoreProduct[]
   onPriceChange: (range: number[]) => void
+  initialMin?: number
+  initialMax?: number
 }) => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100])
   const [minPrice, setMinPrice] = useState(0)
   const [maxPrice, setMaxPrice] = useState(100)
   const [isDragging, setIsDragging] = useState<number | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
   const sliderRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -33,21 +37,28 @@ export const PriceRangeFilter = ({
         setMinPrice(calculatedMin)
         setMaxPrice(calculatedMax)
         
-        // SIEMPRE reiniciar el rango cuando cambien los productos
-        setPriceRange([calculatedMin, calculatedMax])
+        // Usar valores iniciales de la URL si están disponibles, sino usar el rango completo
+        const rangeMin = initialMin !== undefined ? Math.max(initialMin, calculatedMin) : calculatedMin
+        const rangeMax = initialMax !== undefined ? Math.min(initialMax, calculatedMax) : calculatedMax
+        
+        setPriceRange([rangeMin, rangeMax])
+        setIsInitialized(true)
       }
     } else {
       // Si no hay productos, resetear todo
       setMinPrice(0)
       setMaxPrice(100)
       setPriceRange([0, 100])
+      setIsInitialized(true)
     }
-  }, [products])
+  }, [products, initialMin, initialMax])
 
   // Efecto separado para notificar cambios cuando se resetea el rango
   useEffect(() => {
-    onPriceChange(priceRange)
-  }, [minPrice, maxPrice]) // Solo cuando cambien los límites, no el rango actual
+    if (isInitialized) {
+      onPriceChange(priceRange)
+    }
+  }, [minPrice, maxPrice, isInitialized]) // Solo cuando cambien los límites y esté inicializado
 
   const getPercentage = (value: number) => {
     if (maxPrice === minPrice) return 0
@@ -128,7 +139,7 @@ export const PriceRangeFilter = ({
 
   return (
     <div className="mb-6">
-      <h4 className="font-medium mb-3">Precio</h4>
+      <h4 className="font-medium text-base mb-3">Rango de Precio</h4>
 
       <div className="flex justify-between items-center mb-4 text-sm text-gray-600">
         <span><NumberFlow value={priceRange[0]} />€</span>
