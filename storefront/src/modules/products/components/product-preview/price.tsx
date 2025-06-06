@@ -8,14 +8,6 @@ export default async function PreviewPrice({ price }: { price: VariantPrice }) {
 
   return (
     <>
-      {price.price_type === "sale" && (
-        <Text
-          className="line-through font-dmSans text-xl text-ui-fg-muted"
-          data-testid="original-price"
-        > 
-          {price.original_price}
-        </Text>
-      )}
       <Text
         className={clx("text-gray-900 font-dmSans text-2xl font-bold", {
           "text-gray-900 text-2xl font-dmSans ": price.price_type === "sale",
@@ -24,6 +16,14 @@ export default async function PreviewPrice({ price }: { price: VariantPrice }) {
       >
         {price.calculated_price}
       </Text>
+      {price.price_type === "sale" && (
+        <Text
+          className="line-through font-dmSans text-2xl text-ui-fg-muted"
+          data-testid="original-price"
+        >
+          {price.original_price}
+        </Text>
+      )}
     </>
   )
 }

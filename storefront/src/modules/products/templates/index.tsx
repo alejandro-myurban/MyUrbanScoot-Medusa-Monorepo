@@ -12,10 +12,18 @@ import { ColorContextProvider } from "../../../lib/context/color-content-provide
 import ClientImageGallery from "../../products/components/image-gallery/client-image-gallery"
 import Spinner from "@modules/common/icons/spinner"
 import { ProductReviewsSummary } from "@modules/product-reviews/components/ProductReviewSummary"
-// Importa solo el componente BoughtTogether correcto
 import BoughtTogether from "../components/bought-together"
 import { CombinedCartProvider } from "../components/bought-together/bt-context"
 import CustomNameNumberForm from "../components/custom-name-number"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "../../../src/components/ui/breadcrumb"
 
 type ProductTemplateProps = {
   product: HttpTypes.StoreProduct
@@ -33,6 +41,29 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   if (!product || !product.id) {
     return notFound()
   }
+
+  // Función para construir la jerarquía de categorías
+  const buildCategoryHierarchy = (product: HttpTypes.StoreProduct) => {
+    const categories: any[] = []
+
+    // Obtener la primera categoría del producto
+    const category = product.categories?.[0]
+    if (!category) return categories
+
+    // Función recursiva para obtener todos los padres
+    const getParents = (cat: any) => {
+      if (cat.parent_category) {
+        getParents(cat.parent_category)
+      }
+      categories.push(cat)
+    }
+
+    getParents(category)
+    return categories
+  }
+
+  const categoryHierarchy = buildCategoryHierarchy(product)
+
   // Get color or base option from product
   const variantOption = product.options?.find(
     (opt) =>
@@ -45,7 +76,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
 
   // Get the translated title if available
   const optionTitle =
-  //@ts-ignore
+    //@ts-ignore
     variantOption?.translations?.title || variantOption?.title || ""
 
   // Validate option value from parameters
@@ -70,34 +101,78 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           initialColor={initialValue}
           optionTitle={optionTitle}
         >
-          <div
-            className="content-container flex flex-col small:flex-row small:items-start py-6 pt-20 relative"
-            data-testid="product-container"
-          >
-            <div className="flex flex-col small:sticky small:top-48 small:py-0 small:max-w-[300px] w-full py-8 gap-y-6">
-              <ProductInfo product={product} />
-              <ProductTabs product={product} />
+          <div className="content-container flex flex-col py-6">
+            {/* Breadcrumbs */}
+            <div className="mb-6">
+              <Breadcrumb>
+                <BreadcrumbList>
+                  {/* Home link */}
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <LocalizedClientLink href="/">Inicio</LocalizedClientLink>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+
+                  {/* Categorías */}
+                  {categoryHierarchy.map((category, index) => (
+                    <React.Fragment key={category.id}>
+                      <BreadcrumbSeparator className="flex-none text-mysGreen-100 [&>svg]:w-4 [&>svg]:h-4" />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                          <LocalizedClientLink
+                            href={`/categories/${category.handle}`}
+                            className="hover:text-black"
+                          >
+                            {category.name}
+                          </LocalizedClientLink>
+                        </BreadcrumbLink>
+                      </BreadcrumbItem>
+                    </React.Fragment>
+                  ))}
+
+                  {/* Producto actual */}
+                  <BreadcrumbSeparator className="flex-none text-mysGreen-100 [&>svg]:w-4 [&>svg]:h-4" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{product.title}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
             </div>
-            <div className="block w-full relative">
-              <ClientImageGallery images={product.images || []} />
-            </div>
-            <div className="flex flex-col small:sticky small:top-48 small:py-0 small:max-w-[300px] w-full py-8 gap-y-12">
-              <ProductOnboardingCta />
-              <CombinedCartProvider>
-                <Suspense
-                  fallback={
-                    <ProductActions
-                      disabled={true}
-                      product={product}
+
+            {/* Contenido del producto */}
+            <div
+              className="flex flex-col small:flex-row small:items-start relative"
+              data-testid="product-container"
+            >
+              <div className="block w-full lg:w-1/2 relative">
+                <ClientImageGallery images={product.images || []} />
+              </div>
+              <div className="flex flex-col small:sticky small:top-48 small:py-0  lg:w-1/2 w-full py-8 gap-y-12">
+                <ProductOnboardingCta />
+                <CombinedCartProvider>
+                  <Suspense
+                    fallback={
+                      <ProductActions
+                        disabled={true}
+                        product={product}
+                        region={region}
+                      />
+                    }
+                  >
+                    <div className="flex flex-col small:top-48 small:py-0  w-full py-8 gap-y-6">
+                      <ProductInfo product={product} />
+                      <ProductTabs product={product} />
+                    </div>
+                    <ProductActionsWrapper
+                      id={product.id}
                       region={region}
+                      countryCode={countryCode}
                     />
-                  }
-                >
-                  <ProductActionsWrapper id={product.id} region={region} countryCode={countryCode} />
-                  <CustomNameNumberForm product={product} />
-                  <BoughtTogether product={product} region={region} />
-                </Suspense>
-              </CombinedCartProvider>
+                    <CustomNameNumberForm product={product} />
+                    <BoughtTogether product={product} region={region} />
+                  </Suspense>
+                </CombinedCartProvider>
+              </div>
             </div>
           </div>
           <div

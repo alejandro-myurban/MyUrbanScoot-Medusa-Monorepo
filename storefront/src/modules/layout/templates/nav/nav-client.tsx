@@ -28,6 +28,14 @@ export default function NavClient({ dark = false }: { dark?: boolean }) {
         </LocalizedClientLink>
       )}
       <LocalizedClientLink
+        className="text-white/80 hover:text-white"
+        href="/contact"
+        scroll={false}
+        data-testid="nav-search-link"
+      >
+        Contacto
+      </LocalizedClientLink>
+      <LocalizedClientLink
         className={`hover:text-ui-fg-base ${
           dark ? "text-white/80 hover:text-white" : "text-black"
         }`}

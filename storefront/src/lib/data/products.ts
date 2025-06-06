@@ -93,7 +93,7 @@ export const getProductByHandle = cache(async function (
       {
         handle,
         region_id: regionId,
-        fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata${translationsField}`,
+        fields: `*variants.calculated_price,+variants.inventory_quantity,+categories.*,+tags,+metadata${translationsField}`,
       },
       { next: { tags: ["products"] } }
     )

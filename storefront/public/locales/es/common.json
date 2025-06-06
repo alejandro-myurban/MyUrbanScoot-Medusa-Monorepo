@@ -11,7 +11,7 @@
     "cart": "Carrito"
   },
   "actions": {
-    "add_to_cart": "Añadir al Carrito",
+    "add_to_cart": "AÑADIR AL CARRO",
     "select_variant": "Seleccionar Variante",
     "buy_now": "Comprar Ahora",
     "checkout": "Finalizar Compra",
