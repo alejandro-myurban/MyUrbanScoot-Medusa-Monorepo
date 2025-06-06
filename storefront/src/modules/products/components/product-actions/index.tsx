@@ -255,20 +255,22 @@ export default function ProductActions({
 
         <ProductPrice product={product} variant={selectedVariant} />
         <Toaster />
-        <Button
-          onClick={handleAddToCart}
-          disabled={!inStock || !selectedVariant || !!disabled || isAdding}
-          variant="primary"
-          className="w-full h-10"
-          isLoading={isAdding}
-          data-testid="add-product-button"
-        >
-          {!selectedVariant
-            ? t("actions.select_variant")
-            : !inStock
-            ? "Out of stock"
-            : t("actions.add_to_cart")}
-        </Button>
+        <div className="w-64">
+          <Button
+            onClick={handleAddToCart}
+            disabled={!inStock || !selectedVariant || !!disabled || isAdding}
+            variant="primary"
+            className="w-full h-10 hover:bg-mysRed-100 rounded-3xl border-none"
+            isLoading={isAdding}
+            data-testid="add-product-button"
+          >
+            {!selectedVariant
+              ? t("actions.select_variant")
+              : !inStock
+              ? "Out of stock"
+              : t("actions.add_to_cart")}
+          </Button>
+        </div>
         <MobileActions
           product={product}
           variant={selectedVariant}

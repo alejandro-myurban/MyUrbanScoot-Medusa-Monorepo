@@ -21,7 +21,10 @@ import {
   BreadcrumbSeparator,
 } from "../../../src/components/ui/breadcrumb"
 import PriceFilterWrapper from "@modules/products/components/price-filter-wrapper"
-import { SubcategoryCard, SubcategoryCardLight } from "../components/subcategory-card"
+import {
+  SubcategoryCard,
+  SubcategoryCardLight,
+} from "../components/subcategory-card"
 
 // Componente para las cards de subcategorías
 
@@ -108,7 +111,6 @@ export default async function CategoryTemplate({
     const sortedOthers = otherCategories.sort((a, b) => {
       // Primero por rank si existe
       if (a.rank !== undefined && b.rank !== undefined) {
-       
         return a.rank! - b.rank!
       }
       // Luego alfabéticamente por nombre
@@ -147,7 +149,7 @@ export default async function CategoryTemplate({
           {/* Categorías padre */}
           {parents.map((parent) => (
             <React.Fragment key={parent.id}>
-              <BreadcrumbSeparator />
+              <BreadcrumbSeparator className="flex-none text-mysGreen-100 [&>svg]:w-4 [&>svg]:h-4" />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <LocalizedClientLink
@@ -162,7 +164,7 @@ export default async function CategoryTemplate({
           ))}
 
           {/* Categoría actual */}
-          <BreadcrumbSeparator />
+          <BreadcrumbSeparator className="flex-none text-mysGreen-100 [&>svg]:w-4 [&>svg]:h-4" />
           <BreadcrumbItem>
             <BreadcrumbPage>{category.name}</BreadcrumbPage>
           </BreadcrumbItem>
@@ -186,7 +188,10 @@ export default async function CategoryTemplate({
           // Mostrar cards de subcategorías para Vinilos
           <div className="grid grid-cols-1 xsmall:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {sortedSubcategories.map((subcategory) => (
-              <SubcategoryCardLight key={subcategory.id} category={subcategory} />
+              <SubcategoryCardLight
+                key={subcategory.id}
+                category={subcategory}
+              />
             ))}
           </div>
         ) : (

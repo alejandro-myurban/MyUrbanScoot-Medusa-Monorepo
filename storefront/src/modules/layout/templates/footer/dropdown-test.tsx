@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { usePathname } from "next/navigation"
 import { clx } from "@medusajs/ui"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
@@ -24,18 +25,61 @@ type Category = {
 // Componente cliente que maneja la interactividad
 export default function VinylNavDropdown({
   categories,
+  isDark = false, // Para manejar tema oscuro/claro
 }: {
   categories: Category[]
+  isDark?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [activeChild, setActiveChild] = useState<string | null>(null)
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const pathname = usePathname()
 
+  // Función para normalizar rutas quitando el locale
+  const normalizePathname = (path: string): string => {
+    const localePattern = /^\/[a-z]{2}(?:-[A-Z]{2})?(?=\/|$)/
+    return path.replace(localePattern, '') || '/'
+  }
+
+  // Función para verificar si el dropdown está activo
+  const isDropdownActive = (): boolean => {
+    const normalizedPathname = normalizePathname(pathname)
+    
+    // Verificar si estamos en la categoría principal de vinilos
+    if (normalizedPathname.includes('/categories/')) {
+      const vinylsCategory = categories[0]
+      const brands = vinylsCategory?.category_children || []
+      
+      // Verificar si estamos en la categoría principal
+      if (normalizedPathname.includes(`/categories/${vinylsCategory?.handle}`)) {
+        return true
+      }
+      
+      // Verificar si estamos en alguna marca (hijo)
+      const isInBrand = brands.some(brand => 
+        normalizedPathname.includes(`/categories/${brand.handle}`)
+      )
+      
+      if (isInBrand) return true
+      
+      // Verificar si estamos en algún modelo (nieto)
+      const isInModel = brands.some(brand => 
+        brand.category_children?.some(model => 
+          normalizedPathname.includes(`/categories/${model.handle}`)
+        )
+      )
+      
+      return isInModel
+    }
+    
+    return false
+  }
 
   // Obtenemos solo la categoría "Vinilos" (primer elemento) y sus hijos (marcas)
   const vinylsCategory = categories[0] // Vinilos es el primer elemento
   const brands = vinylsCategory?.category_children || [] // Las marcas (Kugoo, Dualtron, etc.)
+  const isActive = isDropdownActive()
 
   // Función para abrir el menú
   const handleOpenMenu = () => {
@@ -82,6 +126,16 @@ export default function VinylNavDropdown({
     }
   }, [])
 
+  // Estilos base según el tema
+  const baseTextClass = isDark 
+    ? "text-black/80 hover:text-white" 
+    : "text-black/80 hover:text-black"
+
+  // Estilos cuando está activo
+  const activeStyles = isActive 
+    ? 'font-bold after:content-[""] after:absolute after:top-7 after:-z-10 after:left-0 after:w-full after:h-1.5 after:bg-mysGreen-100 after:mt-1'
+    : ""
+
   return (
     <nav className="relative" ref={menuRef}>
       {/* Solo mostramos VINILOS en el navbar */}
@@ -93,7 +147,9 @@ export default function VinylNavDropdown({
         <LocalizedClientLink
           href={`/categories/${vinylsCategory?.handle || "vinilos"}`}
           className={clx(
-            "block py-4 px-2 text-ui-fg-base hover:text-ui-fg-subtle transition-colors",
+            "relative block py-4 px-2 transition-all duration-300 cursor-pointer",
+            baseTextClass,
+            activeStyles,
             isOpen && "font-medium"
           )}
         >

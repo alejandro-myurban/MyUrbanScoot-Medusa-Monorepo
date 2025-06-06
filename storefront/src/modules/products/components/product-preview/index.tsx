@@ -103,7 +103,7 @@ export default async function ProductPreview({
     <LocalizedClientLink href={`/producto/${product.handle}`} className="group">
       <div
         data-testid="product-wrapper"
-        className={`font-dmSans bg-white overflow-hidden rounded-b-lg rounded-t-lg border-gray-300 border shadow-sm hover:shadow-md transition-shadow duration-200`}
+        className={`font-dmSans bg-white overflow-hidden rounded-b-lg rounded-t-lg border-gray-300 border-[0.5px] shadow-sm hover:shadow-md transition-shadow duration-200`}
       >
         {/* Imagen del producto */}
         <div className="relative overflow-hidden">
@@ -112,7 +112,7 @@ export default async function ProductPreview({
             images={product.images}
             size="full"
             isFeatured={isFeatured}
-            className="!p-0 !bg-gray-50 !rounded-none" // Removemos el padding, cambiamos el fondo y quitamos border radius
+            className="!p-0 !bg-gray-50 !rounded-none" 
           />
 
           {/* Contenido de la tarjeta */}
@@ -131,7 +131,7 @@ export default async function ProductPreview({
             </div>
 
             {/* Precios */}
-            <div className="flex items-center gap-x-3 flex-wrap">
+            <div className="flex items-end gap-x-3 flex-wrap">
               {discountedPrice ? (
                 <>
                   {/* Precio con descuento */}
@@ -154,7 +154,7 @@ export default async function ProductPreview({
               )}
               {/* Badge de descuento (si aplica) */}
               {discountPercent !== null && (
-                <div className="font-dmSans bg-mysRed-100 text-white text-xs font-semibold px-2 py-1 rounded">
+                <div className="font-dmSans bg-mysRed-100 text-white text-base font-semibold px-2 py-1 rounded-3xl">
                   -{discountPercent}%
                 </div>
               )}

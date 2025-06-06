@@ -29,7 +29,7 @@ export default async function Nav() {
   // Navbar principal (claro)
   // --------------------------------------------------
   const mainNavbar = (
-    <header className="relative h-16 w-full border-b bg-white/95 backdrop-blur-md border-ui-border-base shadow-sm">
+    <header className="relative h-16 w-full bg-white/95 backdrop-blur-md shadow-sm">
       <nav className="content-container flex items-center justify-between h-full">
         {/* IZQUIERDA: Logo + Menu Móvil */}
         <div className="flex items-center gap-4">
@@ -63,20 +63,50 @@ export default async function Nav() {
             <NavigationMenuList className="flex gap-6">
               <NavigationMenuItem>
                 <LocalizedClientLink href="/category/noticias-patinete-electrico">
-                  <NavigationMenuLink className="text-black/80 hover:text-black">
-                    <ActiveNavItem href="/blog">Blog</ActiveNavItem>
+                  <NavigationMenuLink className="text-black/80 hover:text-black ">
+                    <ActiveNavItem
+                      href="/blog"
+                      matchPatterns={["/category/"]} // También activo en cualquier categoría
+                      className="text-black/80 hover:text-black"
+                    >
+                      Blog
+                    </ActiveNavItem>
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <VinylNavDropdown categories={product_categories} />
+                <VinylNavDropdown isDark={false} categories={product_categories} />
               </NavigationMenuItem>
 
               <NavigationMenuItem>
                 <LocalizedClientLink href="/spare-parts">
                   <NavigationMenuLink className="text-black/80 hover:text-black">
-                    Recambios
+                    <ActiveNavItem
+                      href="/spare-parts"
+                      exactMatch={true}
+                      className="text-black/80 hover:text-black"
+                    >
+                      Recambios
+                    </ActiveNavItem>
+                  </NavigationMenuLink>
+                </LocalizedClientLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <LocalizedClientLink href="/spare-parts">
+                  <NavigationMenuLink className="text-white/80 hover:text-white">
+                    <span className="text-black/80 hover:text-black">
+                      Patinetes Eléctricos
+                    </span>
+                  </NavigationMenuLink>
+                </LocalizedClientLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <LocalizedClientLink href="/spare-parts">
+                  <NavigationMenuLink className="text-white/80 hover:text-white">
+                    <span className="text-black/80 hover:text-black">
+                      Zona Circuito
+                    </span>
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
@@ -113,7 +143,7 @@ export default async function Nav() {
   // Navbar alternativo (oscuro)
   // --------------------------------------------------
   const darkNavbar = (
-    <header className="relative h-16 w-full border-b bg-black/90 backdrop-blur-md z-50 border-gray-800 shadow-lg">
+    <header className="relative h-16 w-full bg-black/90 backdrop-blur-md z-50 shadow-lg">
       <nav className="content-container px-4 small:px-6 flex items-center justify-between h-full">
         {/* IZQUIERDA: Logo + Menu Móvil */}
         <div className="flex items-center gap-4">
@@ -147,8 +177,10 @@ export default async function Nav() {
             <NavigationMenuList className="flex gap-6">
               <NavigationMenuItem>
                 <LocalizedClientLink href="/category/noticias-patinete-electrico">
-                  <NavigationMenuLink className="text-white/80 hover:text-white">
-                    <ActiveNavItem className="text-white" href="/blog">Blog</ActiveNavItem>
+                  <NavigationMenuLink className="text-white/80 hover:text-white ">
+                    <ActiveNavItem className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300" href="/blog">
+                      Blog
+                    </ActiveNavItem>
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
@@ -160,8 +192,26 @@ export default async function Nav() {
               <NavigationMenuItem>
                 <LocalizedClientLink href="/spare-parts">
                   <NavigationMenuLink className="text-white/80 hover:text-white">
-                    <span className="text-white/80 hover:text-white">
+                    <ActiveNavItem className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300" href="/blog">
                       Recambios
+                    </ActiveNavItem>
+                  </NavigationMenuLink>
+                </LocalizedClientLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <LocalizedClientLink href="/spare-parts">
+                  <NavigationMenuLink className="text-white/80 hover:text-white">
+                    <span className="text-white/80 hover:text-white">
+                      Patinetes Eléctricos
+                    </span>
+                  </NavigationMenuLink>
+                </LocalizedClientLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <LocalizedClientLink href="/spare-parts">
+                  <NavigationMenuLink className="text-white/80 hover:text-white">
+                    <span className="text-white/80 hover:text-white">
+                      Zona Circuito
                     </span>
                   </NavigationMenuLink>
                 </LocalizedClientLink>
