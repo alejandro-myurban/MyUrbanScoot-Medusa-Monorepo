@@ -10,7 +10,7 @@ export default defineMiddlewares({
       matcher: "/store/products/search",
       method: ["POST"],
       middlewares: [
-        validateAndTransformBody(SearchSchema),
+        validateAndTransformBody(SearchSchema as any),
       ],
     },
   ],
