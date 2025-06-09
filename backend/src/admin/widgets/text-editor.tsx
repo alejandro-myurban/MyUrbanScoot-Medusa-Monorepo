@@ -94,6 +94,6 @@ export default function TextEditorTinyMCE({
   );
 }
 
-export const config = defineWidgetConfig({
-  zone: "product.details.before",
-});
+// export const config = defineWidgetConfig({
+//   zone: "product.details.before",
+// });

@@ -47,6 +47,14 @@ const medusaConfig = {
   },
   modules: [
     {
+      resolve: "./src/modules/algolia",
+      options: {
+        appId: process.env.ALGOLIA_APP_ID,
+        apiKey: process.env.ALGOLIA_API_KEY,
+        productIndexName: process.env.ALGOLIA_PRODUCT_INDEX_NAME,
+      },
+    },
+    {
       resolve: "@medusajs/medusa/fulfillment",
       options: {
         providers: [
@@ -233,39 +241,6 @@ const medusaConfig = {
         defaultReviewStatus: "pending", // OPTIONAL, default is 'approved'
       },
     },
-    ...(MEILISEARCH_HOST && MEILISEARCH_ADMIN_KEY
-      ? [
-          {
-            resolve: "@rokmohar/medusa-plugin-meilisearch",
-            options: {
-              config: {
-                host: MEILISEARCH_HOST,
-                apiKey: MEILISEARCH_ADMIN_KEY,
-              },
-              settings: {
-                products: {
-                  indexSettings: {
-                    searchableAttributes: [
-                      "title",
-                      "description",
-                      "variant_sku",
-                    ],
-                    displayedAttributes: [
-                      "id",
-                      "title",
-                      "description",
-                      "variant_sku",
-                      "thumbnail",
-                      "handle",
-                    ],
-                  },
-                  primaryKey: "id",
-                },
-              },
-            },
-          },
-        ]
-      : []),
   ],
 };
 

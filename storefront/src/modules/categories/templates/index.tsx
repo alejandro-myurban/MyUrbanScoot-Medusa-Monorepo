@@ -149,7 +149,7 @@ export default async function CategoryTemplate({
           {/* Categorías padre */}
           {parents.map((parent) => (
             <React.Fragment key={parent.id}>
-              <BreadcrumbSeparator className="flex-none text-mysGreen-100 [&>svg]:w-4 [&>svg]:h-4" />
+              <BreadcrumbSeparator className="flex-none text-black [&>svg]:w-4 [&>svg]:h-4" />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <LocalizedClientLink
@@ -164,9 +164,11 @@ export default async function CategoryTemplate({
           ))}
 
           {/* Categoría actual */}
-          <BreadcrumbSeparator className="flex-none text-mysGreen-100 [&>svg]:w-4 [&>svg]:h-4" />
+          <BreadcrumbSeparator className="flex-none text-black [&>svg]:w-4 [&>svg]:h-4" />
           <BreadcrumbItem>
-            <BreadcrumbPage>{category.name}</BreadcrumbPage>
+            <BreadcrumbPage className="font-semibold">
+              {category.name}
+            </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
