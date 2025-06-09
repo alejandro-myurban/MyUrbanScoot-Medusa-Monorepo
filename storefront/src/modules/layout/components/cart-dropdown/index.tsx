@@ -114,7 +114,7 @@ const CartDropdown = ({
             }`}
             href="/cart"
             data-testid="nav-cart-link"
-          >{<><ShoppingBag /> <div className="absolute flex items-center justify-center left-4 bg-mysRed-100 rounded-full w-4 h-4 text-sm text-white">{totalItems}</div></>}</LocalizedClientLink>
+          >{<><ShoppingBag /> <div className="absolute flex items-center justify-center left-3 bg-mysRed-100 rounded-full w-4 h-4 text-sm text-white">{totalItems}</div></>}</LocalizedClientLink>
         </Popover.Button>
         <Transition
           show={cartDropdownOpen}

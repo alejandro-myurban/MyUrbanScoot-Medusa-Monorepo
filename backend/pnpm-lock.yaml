@@ -70,9 +70,6 @@ importers:
       '@react-email/components':
         specifier: ^0.0.26
         version: 0.0.26(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@rokmohar/medusa-plugin-meilisearch':
-        specifier: ^1.1.4
-        version: 1.1.4(jcrtyg7s45xp3lgp2rd664na4e)
       '@tanstack/react-query':
         specifier: 5.64.2
         version: 5.64.2(react@18.3.1)
@@ -85,6 +82,9 @@ importers:
       '@types/puppeteer':
         specifier: ^7.0.4
         version: 7.0.4(typescript@5.8.3)
+      algoliasearch:
+        specifier: ^5.27.0
+        version: 5.27.0
       awilix:
         specifier: ^8.0.1
         version: 8.0.1
@@ -193,6 +193,58 @@ importers:
         version: 5.4.18(@types/node@20.17.31)
 
 packages:
+
+  '@algolia/client-abtesting@5.27.0':
+    resolution: {integrity: sha512-SITU5umoknxETtw67TxJu9njyMkWiH8pM+Bvw4dzfuIrIAT6Y1rmwV4y0A0didWoT+6xVuammIykbtBMolBcmg==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/client-analytics@5.27.0':
+    resolution: {integrity: sha512-go1b9qIZK5vYEQ7jD2bsfhhhVsoh9cFxQ5xF8TzTsg2WOCZR3O92oXCkq15SOK0ngJfqDU6a/k0oZ4KuEnih1Q==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/client-common@5.27.0':
+    resolution: {integrity: sha512-tnFOzdNuMzsz93kOClj3fKfuYoF3oYaEB5bggULSj075GJ7HUNedBEm7a6ScrjtnOaOtipbnT7veUpHA4o4wEQ==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/client-insights@5.27.0':
+    resolution: {integrity: sha512-y1qgw39qZijjQBXrqZTiwK1cWgWGRiLpJNWBv9w36nVMKfl9kInrfsYmdBAfmlhVgF/+Woe0y1jQ7pa4HyShAw==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/client-personalization@5.27.0':
+    resolution: {integrity: sha512-XluG9qPZKEbiLoIfXTKbABsWDNOMPx0t6T2ImJTTeuX+U/zBdmfcqqgcgkqXp+vbXof/XX/4of9Eqo1JaqEmKw==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/client-query-suggestions@5.27.0':
+    resolution: {integrity: sha512-V8/To+SsAl2sdw2AAjeLJuCW1L+xpz+LAGerJK7HKqHzE5yQhWmIWZTzqYQcojkii4iBMYn0y3+uReWqT8XVSQ==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/client-search@5.27.0':
+    resolution: {integrity: sha512-EJJ7WmvmUXZdchueKFCK8UZFyLqy4Hz64snNp0cTc7c0MKaSeDGYEDxVsIJKp15r7ORaoGxSyS4y6BGZMXYuCg==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/ingestion@1.27.0':
+    resolution: {integrity: sha512-xNCyWeqpmEo4EdmpG57Fs1fJIQcPwt5NnJ6MBdXnUdMVXF4f5PHgza+HQWQQcYpCsune96jfmR0v7us6gRIlCw==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/monitoring@1.27.0':
+    resolution: {integrity: sha512-P0NDiEFyt9UYQLBI0IQocIT7xHpjMpoFN3UDeerbztlkH9HdqT0GGh1SHYmNWpbMWIGWhSJTtz6kSIWvFu4+pw==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/recommend@5.27.0':
+    resolution: {integrity: sha512-cqfTMF1d1cc7hg0vITNAFxJZas7MJ4Obc36WwkKpY23NOtGb+4tH9X7UKlQa2PmTgbXIANoJ/DAQTeiVlD2I4Q==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/requester-browser-xhr@5.27.0':
+    resolution: {integrity: sha512-ErenYTcXl16wYXtf0pxLl9KLVxIztuehqXHfW9nNsD8mz9OX42HbXuPzT7y6JcPiWJpc/UU/LY5wBTB65vsEUg==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/requester-fetch@5.27.0':
+    resolution: {integrity: sha512-CNOvmXsVi+IvT7z1d+6X7FveVkgEQwTNgipjQCHTIbF9KSMfZR7tUsJC+NpELrm10ALdOMauah84ybs9rw1cKQ==}
+    engines: {node: '>= 14.0.0'}
+
+  '@algolia/requester-node-http@5.27.0':
+    resolution: {integrity: sha512-Nx9EdLYZDsaYFTthqmc0XcVvsx6jqeEX8fNiYOB5i2HboQwl8pJPj1jFhGqoGd0KG7KFR+sdPO5/e0EDDAru2Q==}
+    engines: {node: '>= 14.0.0'}
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -3516,26 +3568,6 @@ packages:
     resolution: {integrity: sha512-so+DHzZKsoOcoXrILB4rqDkMDy7NLMErRdOxvzvOKb507YINKUP4Di+shbTZDhSE/pBZ+vr7XGIpcOO0VLSA+Q==}
     engines: {node: '>=14.0.0'}
 
-  '@rokmohar/medusa-plugin-meilisearch@1.1.4':
-    resolution: {integrity: sha512-2RMLTDBfhFESRZYbB5m3uQ5WrAr+Y4YeAl95tpEgiNfXusKQ1zt2JBM7AppFZXmLpACr4QgXE0+7yIJjBIVLwA==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      '@medusajs/admin-sdk': ^2.7.0
-      '@medusajs/cli': ^2.7.0
-      '@medusajs/framework': ^2.7.0
-      '@medusajs/icons': ^2.7.0
-      '@medusajs/medusa': ^2.7.0
-      '@medusajs/test-utils': ^2.7.0
-      '@medusajs/ui': ^4.0.3
-      '@mikro-orm/cli': 6.4.3
-      '@mikro-orm/core': 6.4.3
-      '@mikro-orm/knex': 6.4.3
-      '@mikro-orm/migrations': 6.4.3
-      '@mikro-orm/postgresql': 6.4.3
-      '@tanstack/react-query': ^5.74.4
-      awilix: ^8.0.1
-      pg: ^8.13.0
-
   '@rollup/rollup-android-arm-eabi@4.40.0':
     resolution: {integrity: sha512-+Fbls/diZ0RDerhE8kyC6hjADCXA1K4yVNlH0EYfd2XjyH0UGgzaQ8MlT0pCXAThfxv3QUAczHaL+qSv1E4/Cg==}
     cpu: [arm]
@@ -4253,6 +4285,10 @@ packages:
 
   ajv@8.13.0:
     resolution: {integrity: sha512-PRA911Blj99jR5RMeTunVbNXMF6Lp4vZXnk5GQjcnUWUTsrXtekg/pnmFFI2u/I36Y/2bITGS30GZCXei6uNkA==}
+
+  algoliasearch@5.27.0:
+    resolution: {integrity: sha512-2PvAgvxxJzA3+dB+ERfS2JPdvUsxNf89Cc2GF5iCcFupTULOwmbfinvqrC4Qj9nHJJDNf494NqEN/1f9177ZTQ==}
+    engines: {node: '>= 14.0.0'}
 
   ansi-align@3.0.1:
     resolution: {integrity: sha512-IOfwwBF5iczOjp/WeY4YxyjqAFMQoZufdQWDd19SEExbVLNXqvpzSJ/M7Za4/sCPmQ0+GRquoA7bGcINcxew6w==}
@@ -6377,9 +6413,6 @@ packages:
     resolution: {integrity: sha512-tLrAyvQLqu4KebiVeFbLSHRnIlAjJ+iI3ryr+gRudaAnHdEZOpSuWQe0SzZVYpJQlLDjoBq3zXztGh/fDOGVuQ==}
     hasBin: true
 
-  meilisearch@0.48.2:
-    resolution: {integrity: sha512-auDB6grs3f/+dVzzPiAOOFnrVN/L87/+SWZfy56TpimDinWjU4u6Jc2o6lgeLluotpbMOFY1WpTTbqtUdMduQw==}
-
   merge-descriptors@1.0.3:
     resolution: {integrity: sha512-gaNvAS7TZ897/rVaZ0nMtAyxNyi/pdbjbAwUpFQpN70GqnVfOiXpeUUMKRBmzXaSQ8DdTX4/0ms62r2K+hE6mQ==}
 
@@ -8163,6 +8196,83 @@ packages:
     resolution: {integrity: sha512-HhY1oqzWCQWuUqvBFnsyrtZRhyPeR7SUGv+C4+MsisMuVfSPx8HpwWqH8tRahSlt6M3PiFAcoeFhZAqIXTxoSg==}
 
 snapshots:
+
+  '@algolia/client-abtesting@5.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
+      '@algolia/requester-browser-xhr': 5.27.0
+      '@algolia/requester-fetch': 5.27.0
+      '@algolia/requester-node-http': 5.27.0
+
+  '@algolia/client-analytics@5.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
+      '@algolia/requester-browser-xhr': 5.27.0
+      '@algolia/requester-fetch': 5.27.0
+      '@algolia/requester-node-http': 5.27.0
+
+  '@algolia/client-common@5.27.0': {}
+
+  '@algolia/client-insights@5.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
+      '@algolia/requester-browser-xhr': 5.27.0
+      '@algolia/requester-fetch': 5.27.0
+      '@algolia/requester-node-http': 5.27.0
+
+  '@algolia/client-personalization@5.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
+      '@algolia/requester-browser-xhr': 5.27.0
+      '@algolia/requester-fetch': 5.27.0
+      '@algolia/requester-node-http': 5.27.0
+
+  '@algolia/client-query-suggestions@5.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
+      '@algolia/requester-browser-xhr': 5.27.0
+      '@algolia/requester-fetch': 5.27.0
+      '@algolia/requester-node-http': 5.27.0
+
+  '@algolia/client-search@5.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
+      '@algolia/requester-browser-xhr': 5.27.0
+      '@algolia/requester-fetch': 5.27.0
+      '@algolia/requester-node-http': 5.27.0
+
+  '@algolia/ingestion@1.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
+      '@algolia/requester-browser-xhr': 5.27.0
+      '@algolia/requester-fetch': 5.27.0
+      '@algolia/requester-node-http': 5.27.0
+
+  '@algolia/monitoring@1.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
+      '@algolia/requester-browser-xhr': 5.27.0
+      '@algolia/requester-fetch': 5.27.0
+      '@algolia/requester-node-http': 5.27.0
+
+  '@algolia/recommend@5.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
+      '@algolia/requester-browser-xhr': 5.27.0
+      '@algolia/requester-fetch': 5.27.0
+      '@algolia/requester-node-http': 5.27.0
+
+  '@algolia/requester-browser-xhr@5.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
+
+  '@algolia/requester-fetch@5.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
+
+  '@algolia/requester-node-http@5.27.0':
+    dependencies:
+      '@algolia/client-common': 5.27.0
 
   '@alloc/quick-lru@5.2.0': {}
 
@@ -12656,25 +12766,6 @@ snapshots:
 
   '@remix-run/router@1.13.1': {}
 
-  '@rokmohar/medusa-plugin-meilisearch@1.1.4(jcrtyg7s45xp3lgp2rd664na4e)':
-    dependencies:
-      '@medusajs/admin-sdk': 2.7.1
-      '@medusajs/cli': 2.7.1(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31))
-      '@medusajs/framework': 2.7.1(@medusajs/cli@2.7.1(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31)))(@mikro-orm/cli@6.4.3(pg@8.15.5))(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31))
-      '@medusajs/icons': 2.7.1(react@18.3.1)
-      '@medusajs/medusa': 2.7.1(74xa25f7jn47hmrsha7r7ork2y)
-      '@medusajs/test-utils': 2.7.1(@medusajs/framework@2.7.1(@medusajs/cli@2.7.1(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31)))(@mikro-orm/cli@6.4.3(pg@8.15.5))(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.15.5)(vite@5.4.18(@types/node@20.17.31)))(@medusajs/medusa@2.7.1(74xa25f7jn47hmrsha7r7ork2y))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)
-      '@medusajs/ui': 4.0.9(@types/react-dom@18.3.6(@types/react@18.3.20))(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)
-      '@mikro-orm/cli': 6.4.3(pg@8.15.5)
-      '@mikro-orm/core': 6.4.3
-      '@mikro-orm/knex': 6.4.3(@mikro-orm/core@6.4.3)(pg@8.15.5)
-      '@mikro-orm/migrations': 6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.17.31)(pg@8.15.5)
-      '@mikro-orm/postgresql': 6.4.3(@mikro-orm/core@6.4.3)
-      '@tanstack/react-query': 5.64.2(react@18.3.1)
-      awilix: 8.0.1
-      meilisearch: 0.48.2
-      pg: 8.15.5
-
   '@rollup/rollup-android-arm-eabi@4.40.0':
     optional: true
 
@@ -13491,6 +13582,22 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
       uri-js: 4.4.1
+
+  algoliasearch@5.27.0:
+    dependencies:
+      '@algolia/client-abtesting': 5.27.0
+      '@algolia/client-analytics': 5.27.0
+      '@algolia/client-common': 5.27.0
+      '@algolia/client-insights': 5.27.0
+      '@algolia/client-personalization': 5.27.0
+      '@algolia/client-query-suggestions': 5.27.0
+      '@algolia/client-search': 5.27.0
+      '@algolia/ingestion': 1.27.0
+      '@algolia/monitoring': 1.27.0
+      '@algolia/recommend': 5.27.0
+      '@algolia/requester-browser-xhr': 5.27.0
+      '@algolia/requester-fetch': 5.27.0
+      '@algolia/requester-node-http': 5.27.0
 
   ansi-align@3.0.1:
     dependencies:
@@ -16015,8 +16122,6 @@ snapshots:
     transitivePeerDependencies:
       - debug
       - pg-native
-
-  meilisearch@0.48.2: {}
 
   merge-descriptors@1.0.3: {}
 

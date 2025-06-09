@@ -2,6 +2,8 @@ import { notFound } from "next/navigation"
 import CartDropdown from "../cart-dropdown"
 import { enrichLineItems, retrieveCart } from "@lib/data/cart"
 import LanguageSwitcher from "../language-switcher"
+import { CircleUserIcon, UserRound } from "lucide-react"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 const fetchCart = async () => {
   const cart = await retrieveCart()
@@ -23,8 +25,13 @@ export default async function CartButton({ dark = false }: { dark?: boolean }) {
 
   return (
     <>
+      <LocalizedClientLink href="/account">
+        <UserRound className={dark ? "text-white/90 hover:text-white" : "text-black/90 hover:text-black "} />
+      </LocalizedClientLink>
       <CartDropdown dark={dark} cart={cart} />
-      <LanguageSwitcher />
+      <div className="hidden small:flex items-center gap-x-6 h-full">
+        <LanguageSwitcher />
+      </div>
     </>
   )
 }

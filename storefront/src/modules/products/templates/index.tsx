@@ -46,9 +46,32 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   const buildCategoryHierarchy = (product: HttpTypes.StoreProduct) => {
     const categories: any[] = []
 
-    // Obtener la primera categoría del producto
-    const category = product.categories?.[0]
-    if (!category) return categories
+    if (!product.categories || product.categories.length === 0) {
+      return categories
+    }
+
+    // Encontrar la categoría más específica (la que no tiene hijos en la lista de categorías del producto)
+    // o la de nivel más profundo
+    let mostSpecificCategory = product.categories[0]
+
+    // Si hay múltiples categorías, buscar la más específica
+    if (product.categories.length > 1) {
+      // Ordenar por profundidad (asumiendo que las categorías más específicas tienen más ancestros)
+      const categoriesWithDepth = product.categories.map((cat) => {
+        let depth = 0
+        let current = cat
+        while (current.parent_category) {
+          depth++
+          current = current.parent_category
+        }
+        return { category: cat, depth }
+      })
+
+      // Tomar la categoría con mayor profundidad
+      mostSpecificCategory = categoriesWithDepth.sort(
+        (a, b) => b.depth - a.depth
+      )[0].category
+    }
 
     // Función recursiva para obtener todos los padres
     const getParents = (cat: any) => {
@@ -58,7 +81,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
       categories.push(cat)
     }
 
-    getParents(category)
+    getParents(mostSpecificCategory)
     return categories
   }
 
@@ -116,7 +139,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                   {/* Categorías */}
                   {categoryHierarchy.map((category, index) => (
                     <React.Fragment key={category.id}>
-                      <BreadcrumbSeparator className="flex-none text-mysGreen-100 [&>svg]:w-4 [&>svg]:h-4" />
+                      <BreadcrumbSeparator className="flex-none text-black [&>svg]:w-4 [&>svg]:h-4" />
                       <BreadcrumbItem>
                         <BreadcrumbLink asChild>
                           <LocalizedClientLink
@@ -131,9 +154,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                   ))}
 
                   {/* Producto actual */}
-                  <BreadcrumbSeparator className="flex-none text-mysGreen-100 [&>svg]:w-4 [&>svg]:h-4" />
+                  <BreadcrumbSeparator className="flex-none text-black [&>svg]:w-4 [&>svg]:h-4" />
                   <BreadcrumbItem>
-                    <BreadcrumbPage>{product.title}</BreadcrumbPage>
+                    <BreadcrumbPage className="font-semibold">{product.title}</BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>

@@ -1,15 +1,13 @@
 // components/Nav.tsx (Server Component)
-import { Suspense, useState } from "react"
+import { Suspense } from "react"
 import { listRegions } from "@lib/data/regions"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import CartButton from "@modules/layout/components/cart-button"
-import SideMenu from "@modules/layout/components/side-menu"
 import NavClient from "./nav-client"
 import VinylNavDropdown from "../footer/dropdown-test"
 import { getCategoriesList } from "@lib/data/categories"
-import ScrollNavWrapper from "../../components/scroll-nav-wrapper"
+import NavConditional from "../../components/nav-conditional"
 import DarkVinylNavDropdown from "../footer/dropdown-test-dark"
-import DarkSideMenu from "@modules/layout/components/side-menu/dark-menu"
 import MobileMenu from "../../components/mobile-nav"
 
 import {
@@ -17,7 +15,6 @@ import {
   NavigationMenuList,
   NavigationMenuItem,
   NavigationMenuLink,
-  navigationMenuTriggerStyle,
 } from "../../../../src/components/ui/navigation-menu"
 import ActiveNavItem from "./active"
 
@@ -29,15 +26,15 @@ export default async function Nav() {
   // Navbar principal (claro)
   // --------------------------------------------------
   const mainNavbar = (
-    <header className="relative h-16 w-full bg-white/95 backdrop-blur-md shadow-sm">
-      <nav className="content-container flex items-center justify-between h-full">
-        {/* IZQUIERDA: Logo + Menu Móvil */}
-        <div className="flex items-center gap-4">
-          {/* Menú hamburguesa - solo visible en móvil */}
-          <div className="lg:hidden">
-            <MobileMenu categories={product_categories} isDark={false} />
-          </div>
+    <header className="relative h-16 w-full bg-white/95 backdrop-blur-md shadow-sm z-50">
+      <nav className="w-full max-w-screen-large mx-auto px-4 sm:px-6 flex items-center justify-between h-full lg:justify-between">
+        {/* En móvil: hamburguesa a la izquierda */}
+        <div className="lg:hidden">
+          <MobileMenu categories={product_categories} isDark={false} />
+        </div>
 
+        {/* Logo - centrado en móvil, normal en desktop */}
+        <div className="flex-1 flex justify-center lg:flex-none lg:justify-start lg:flex lg:items-center lg:gap-4">
           <LocalizedClientLink
             href="/"
             className="uppercase txt-compact-xlarge-plus text-white hover:text-white/90 transition-all duration-200"
@@ -49,7 +46,7 @@ export default async function Nav() {
               alt="MyUrbanScoot Logo"
             />
             <img
-              className="w-40 block sm:hidden transition-all duration-200 hover:scale-105 max-w-[200px] sm:max-w-[250px] lg:max-w-[300px]"
+              className="block sm:hidden transition-all duration-200 hover:scale-105"
               style={{ width: "150px" }}
               src="/logomyswide.png"
               alt="MyUrbanScoot Logo"
@@ -66,7 +63,7 @@ export default async function Nav() {
                   <NavigationMenuLink className="text-black/80 hover:text-black ">
                     <ActiveNavItem
                       href="/blog"
-                      matchPatterns={["/category/"]} // También activo en cualquier categoría
+                      matchPatterns={["/category/"]}
                       className="text-black/80 hover:text-black"
                     >
                       Blog
@@ -76,7 +73,7 @@ export default async function Nav() {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <VinylNavDropdown isDark={false} categories={product_categories} />
+                <VinylNavDropdown categories={product_categories} />
               </NavigationMenuItem>
 
               <NavigationMenuItem>
@@ -116,7 +113,6 @@ export default async function Nav() {
 
         {/* DERECHA: NavClient + CartButton */}
         <div className="flex items-center gap-x-3 sm:gap-x-6">
-          {/* NavClient - oculto en móvil muy pequeño si es necesario */}
           <div className="hidden sm:block">
             <NavClient />
           </div>
@@ -144,14 +140,14 @@ export default async function Nav() {
   // --------------------------------------------------
   const darkNavbar = (
     <header className="relative h-16 w-full bg-black/90 backdrop-blur-md z-50 shadow-lg">
-      <nav className="content-container px-4 small:px-6 flex items-center justify-between h-full">
-        {/* IZQUIERDA: Logo + Menu Móvil */}
-        <div className="flex items-center gap-4">
-          {/* Menú hamburguesa - solo visible en móvil */}
-          <div className="lg:hidden">
-            <MobileMenu categories={product_categories} isDark={true} />
-          </div>
+      <nav className="w-full max-w-screen-large mx-auto px-4 sm:px-6 flex items-center justify-between h-full lg:justify-between">
+        {/* En móvil: hamburguesa a la izquierda */}
+        <div className="lg:hidden">
+          <MobileMenu categories={product_categories} isDark={true} />
+        </div>
 
+        {/* Logo - centrado en móvil, normal en desktop */}
+        <div className="flex-1 flex justify-center lg:flex-none lg:justify-start lg:flex lg:items-center lg:gap-4">
           <LocalizedClientLink
             href="/"
             className="uppercase txt-compact-xlarge-plus text-white hover:text-white/90 transition-all duration-200"
@@ -163,7 +159,7 @@ export default async function Nav() {
               alt="MyUrbanScoot Logo"
             />
             <img
-              className="w-40 block sm:hidden transition-all duration-200 hover:scale-105 max-w-[200px] sm:max-w-[250px] lg:max-w-[300px]"
+              className="block sm:hidden transition-all duration-200 hover:scale-105"
               style={{ width: "150px" }}
               src="/logomyswide.png"
               alt="MyUrbanScoot Logo"
@@ -178,7 +174,10 @@ export default async function Nav() {
               <NavigationMenuItem>
                 <LocalizedClientLink href="/category/noticias-patinete-electrico">
                   <NavigationMenuLink className="text-white/80 hover:text-white ">
-                    <ActiveNavItem className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300" href="/blog">
+                    <ActiveNavItem
+                      className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
+                      href="/blog"
+                    >
                       Blog
                     </ActiveNavItem>
                   </NavigationMenuLink>
@@ -192,7 +191,10 @@ export default async function Nav() {
               <NavigationMenuItem>
                 <LocalizedClientLink href="/spare-parts">
                   <NavigationMenuLink className="text-white/80 hover:text-white">
-                    <ActiveNavItem className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300" href="/blog">
+                    <ActiveNavItem
+                      className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
+                      href="/spare-parts"
+                    >
                       Recambios
                     </ActiveNavItem>
                   </NavigationMenuLink>
@@ -222,7 +224,6 @@ export default async function Nav() {
 
         {/* DERECHA: NavClient + CartButton (dark) */}
         <div className="flex items-center gap-x-3 sm:gap-x-6">
-          {/* NavClient - oculto en móvil muy pequeño si es necesario */}
           <div className="hidden sm:block">
             <NavClient dark={true} />
           </div>
@@ -245,9 +246,6 @@ export default async function Nav() {
     </header>
   )
 
-  return (
-    <ScrollNavWrapper alternativeNavbar={darkNavbar}>
-      {mainNavbar}
-    </ScrollNavWrapper>
-  )
+  // Usar NavConditional para manejar la lógica de renderizado
+  return <NavConditional mainNavbar={mainNavbar} darkNavbar={darkNavbar} />
 }
