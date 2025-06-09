@@ -174,8 +174,8 @@ export default async function CategoryTemplate({
       </Breadcrumb>
 
       <div className="w-full">
-        <div className="mb-8">
-          <h1 className="text-2xl-semi mb-4" data-testid="category-page-title">
+        <div className="">
+          <h1 className="text-2xl-semi" data-testid="category-page-title">
             {category.name}
           </h1>
 
