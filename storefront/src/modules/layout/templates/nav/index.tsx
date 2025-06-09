@@ -73,7 +73,10 @@ export default async function Nav() {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <VinylNavDropdown categories={product_categories} />
+                <DarkVinylNavDropdown
+                  isDark={true}
+                  categories={product_categories}
+                />
               </NavigationMenuItem>
 
               <NavigationMenuItem>
@@ -90,20 +93,28 @@ export default async function Nav() {
                 </LocalizedClientLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <LocalizedClientLink href="/spare-parts">
+                <LocalizedClientLink href="/categories/patinetes-electricos">
                   <NavigationMenuLink className="text-white/80 hover:text-white">
-                    <span className="text-black/80 hover:text-black">
+                    <ActiveNavItem
+                      href="/categories/patinetes-electricos"
+                      exactMatch={true}
+                      className="text-black/80 hover:text-black"
+                    >
                       Patinetes Eléctricos
-                    </span>
+                    </ActiveNavItem>
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <LocalizedClientLink href="/spare-parts">
+                <LocalizedClientLink href="">
                   <NavigationMenuLink className="text-white/80 hover:text-white">
-                    <span className="text-black/80 hover:text-black">
+                    <ActiveNavItem
+                      href=""
+                      exactMatch={true}
+                      className="text-black/80 hover:text-black"
+                    >
                       Zona Circuito
-                    </span>
+                    </ActiveNavItem>
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
@@ -185,7 +196,10 @@ export default async function Nav() {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <DarkVinylNavDropdown categories={product_categories} />
+                <DarkVinylNavDropdown
+                  isDark={false}
+                  categories={product_categories}
+                />
               </NavigationMenuItem>
 
               <NavigationMenuItem>
@@ -203,18 +217,26 @@ export default async function Nav() {
               <NavigationMenuItem>
                 <LocalizedClientLink href="/spare-parts">
                   <NavigationMenuLink className="text-white/80 hover:text-white">
-                    <span className="text-white/80 hover:text-white">
+                    <ActiveNavItem
+                      href="/spare-parts"
+                      exactMatch={true}
+                      className="text-white/80 hover:text-white"
+                    >
                       Patinetes Eléctricos
-                    </span>
+                    </ActiveNavItem>
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <LocalizedClientLink href="/spare-parts">
                   <NavigationMenuLink className="text-white/80 hover:text-white">
-                    <span className="text-white/80 hover:text-white">
+                    <ActiveNavItem
+                      href="/spare-parts"
+                      exactMatch={true}
+                      className="text-white/80 hover:text-white"
+                    >
                       Zona Circuito
-                    </span>
+                    </ActiveNavItem>
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>

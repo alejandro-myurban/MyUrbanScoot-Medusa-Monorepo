@@ -50,17 +50,43 @@ export default function ActiveNavItem({
 
   const active = isActive()
   
-  // Estilos por defecto cuando está activo
-  const defaultActiveStyles = 'font-bold after:content-[""] after:absolute after:top-2.5 after:-z-10 after:left-0 after:w-full after:h-1.5 after:bg-mysGreen-100 after:mt-1'
-  
-  // Usar estilos personalizados o por defecto
-  const activeStyles = activeClassName || defaultActiveStyles
+  // Estilos CSS-in-JS para el underline hover
+  const hoverStyles = {
+    '--BORDER-WIDTH': '2px', // Define tu ancho de borde aquí
+  } as React.CSSProperties
 
   return (
     <span
-      className={`relative cursor-pointer transition-all duration-300 ${
-        active ? activeStyles : ""
-      } ${className}`}
+      className={`
+        relative 
+        cursor-pointer 
+        transition-all 
+        duration-300
+        // Efecto: línea que crece desde el centro con bounce
+        after:content-[''] 
+        after:absolute 
+        after:left-1/2 
+        after:bottom-[-0.1rem] 
+        after:w-0
+        after:h-[var(--BORDER-WIDTH)] 
+        after:block 
+        after:bg-mysGreen-100
+        after:transition-all
+        after:duration-500
+        after:ease-out
+        after:pointer-events-none
+        after:-translate-x-1/2
+        after:rounded-full
+        hover:after:w-full
+        hover:after:ease-[cubic-bezier(0.68,-0.55,0.265,1.55)]
+        // Efecto adicional: subtle glow en hover
+        // Pequeño lift en hover
+        hover:-translate-y-0.5
+        ${active ? 'font-bold after:w-full after:absolute after:top-3.5 after:-z-10 after:h-1 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]' : ''}
+        ${activeClassName && active ? activeClassName : ''}
+        ${className}
+      `}
+      style={hoverStyles}
     >
       {children}
     </span>

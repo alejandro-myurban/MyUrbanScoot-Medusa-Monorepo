@@ -4,7 +4,9 @@ import { NextRequest, NextResponse } from "next/server"
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
 const PUBLISHABLE_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
-const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || "us"
+const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || "es"
+// Nuevo: País por defecto específico
+const PREFERRED_DEFAULT_COUNTRY = "es" // España como país por defecto
 
 const regionMapCache = {
   regionMap: new Map<string, HttpTypes.StoreRegion>(),
@@ -28,6 +30,8 @@ async function getRegionMap() {
         tags: ["regions"],
       },
     }).then((res) => res.json())
+
+    console.log("Fetched regions from Medusa:", regions)
 
     if (!regions?.length) {
       notFound()
@@ -70,7 +74,11 @@ async function getCountryCode(
       countryCode = vercelCountryCode
     } else if (regionMap.has(DEFAULT_REGION)) {
       countryCode = DEFAULT_REGION
+    } else if (regionMap.has(PREFERRED_DEFAULT_COUNTRY)) {
+      // Nuevo: Priorizar España como país por defecto
+      countryCode = PREFERRED_DEFAULT_COUNTRY
     } else if (regionMap.keys().next().value) {
+      // Fallback: primer país disponible
       countryCode = regionMap.keys().next().value
     }
 
