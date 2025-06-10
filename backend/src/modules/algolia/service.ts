@@ -65,8 +65,8 @@ export default class AlgoliaModuleService {
     });
   }
 
-  async search(query: string, type: AlgoliaIndexType = "product") {
-    const indexName = await this.getIndexName(type);
+    async search(query: string, type: AlgoliaIndexType = "product") {
+    const indexName = await this.getIndexName(type)
     return await this.client.search({
       requests: [
         {
@@ -74,6 +74,6 @@ export default class AlgoliaModuleService {
           query,
         },
       ],
-    });
+    })
   }
 }

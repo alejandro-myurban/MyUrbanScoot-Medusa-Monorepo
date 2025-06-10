@@ -5,10 +5,22 @@
   },
   "navigation": {
     "home": "Home",
-    "products": "Products",
+    "vinyls": "Vinyl decals",
     "categories": "Categories",
     "account": "Account",
-    "cart": "Cart"
+    "cart": "Cart",
+    "lang": "Language",
+    "search": "Search",
+    "contact": "Contact",
+    "spare_parts": "Spare Parts",
+    "circuit_zone": "Circuit Zone",
+    "scoot": "Scoots",
+    "blog": "Blog",
+    "tooltip": {
+      "shippment": "🚚 Free shipping on orders over 20 €",
+      "gift": "🎁 Free gift on orders over 100 €",
+      "spare_parts": "🛠️ Exclusive spare parts for your scooter"
+    }
   },
   "actions": {
     "add_to_cart": "Add to Cart",
@@ -16,12 +28,22 @@
     "buy_now": "Buy Now",
     "checkout": "Checkout",
     "view_details": "View Details",
-    "select" : "Select"
+    "select": "Select"
   },
   "checkout": {
-    "shipping_address" : "Shipping Address",
-    "delivery" : "Delivery",
+    "shipping_address": "Shipping Address",
+    "delivery": "Delivery",
     "payment": "Payment",
     "review": "Review"
+  },
+  "login": {
+    "title": "Login",
+    "email": "Email",
+    "password": "Password",
+    "forgot_password": "Forgot Password?",
+    "login_button": "Continue",
+    "register_link": "Don't have an account?",
+    "register_button": "Register",
+    "google": "Sign in with Google"
   }
 }

@@ -4,7 +4,7 @@ import { Popover, Transition } from "@headlessui/react"
 import { Button } from "@medusajs/ui"
 import { usePathname } from "next/navigation"
 import { Fragment, useEffect, useRef, useState } from "react"
-import {ShoppingBag, ShoppingCart} from "lucide-react"
+import { ShoppingBag, ShoppingCart } from "lucide-react"
 
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
@@ -107,14 +107,19 @@ const CartDropdown = ({
       onMouseLeave={close}
     >
       <Popover className="relative h-full flex justify-center items-center">
-        <Popover.Button className="h-full">
+        <Popover.Button className="h-full relative z-10">
           <LocalizedClientLink
-            className={`hover:text-ui-fg-base flex gap-2 ${
+            className={`hover:text-ui-fg-base flex gap-2 relative ${
               dark ? "text-white/80 hover:text-white" : "text-black"
             }`}
             href="/cart"
             data-testid="nav-cart-link"
-          >{<><ShoppingBag /> <div className="absolute flex items-center justify-center left-3 bg-mysRed-100 rounded-full w-4 h-4 text-sm text-white">{totalItems}</div></>}</LocalizedClientLink>
+          >
+            <ShoppingBag />
+            <div className="absolute -top-1.5 -right-2 flex items-center justify-center bg-mysRed-100 rounded-full w-4 h-4 text-xs text-white">
+              {totalItems}
+            </div>
+          </LocalizedClientLink>
         </Popover.Button>
         <Transition
           show={cartDropdownOpen}

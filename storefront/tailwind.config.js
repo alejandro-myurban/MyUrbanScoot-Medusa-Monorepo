@@ -22,7 +22,7 @@ module.exports = {
       },
       colors: {
         mysGreen: {
-          100: "#B2FE00",
+          100: "#ceff00",
         },
         mysRed: {
           100: "#ff2c46"

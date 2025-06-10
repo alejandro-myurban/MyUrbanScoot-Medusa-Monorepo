@@ -22,7 +22,8 @@ export const sdk = new MedusaPluginsSDK({
 export const searchClient: SearchClient = {
   ...algoliasearch(
     process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || "",
-    process.env.NEXT_PUBLIC_ALGOLIA_API_KEY || ""
+    process.env.NEXT_PUBLIC_ALGOLIA_API_KEY || "",
+    
   ),
   search: async (params: any) => {
     const request = Array.isArray(params) ? params[0] : params

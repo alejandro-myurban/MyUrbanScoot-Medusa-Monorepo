@@ -1,14 +1,19 @@
 "use client"
 
 import { usePathname } from "next/navigation"
+import { useTranslation } from "react-i18next"
 
 interface ActiveNavItemProps {
   href: string
-  children: React.ReactNode
+  children?: React.ReactNode
   className?: string
-  exactMatch?: boolean // Para match exacto vs includes
-  activeClassName?: string // Personalizar estilos cuando está activo
-  matchPatterns?: string[] // Patrones adicionales para considerar activo
+  exactMatch?: boolean
+  activeClassName?: string
+  matchPatterns?: string[]
+  // 🔥 Nueva prop para la clave de traducción
+  translationKey?: string
+  // 🔥 Namespace para las traducciones (opcional)
+  translationNamespace?: string
 }
 
 export default function ActiveNavItem({
@@ -18,12 +23,13 @@ export default function ActiveNavItem({
   exactMatch = false,
   activeClassName,
   matchPatterns = [],
+  translationKey,
 }: ActiveNavItemProps) {
   const pathname = usePathname()
+  const { t } = useTranslation()
   
   // Función para normalizar rutas quitando el locale
   const normalizePathname = (path: string): string => {
-    // Patrón para detectar locales comunes (es, en, fr, etc.)
     const localePattern = /^\/[a-z]{2}(?:-[A-Z]{2})?(?=\/|$)/
     return path.replace(localePattern, '') || '/'
   }
@@ -37,10 +43,7 @@ export default function ActiveNavItem({
       return normalizedPathname === normalizedHref
     }
     
-    // Check si la ruta actual incluye el href
     const includesHref = normalizedPathname.includes(normalizedHref) && normalizedHref !== '/'
-    
-    // Check patrones adicionales
     const matchesPattern = matchPatterns.some(pattern => 
       normalizedPathname.includes(pattern)
     )
@@ -50,10 +53,12 @@ export default function ActiveNavItem({
 
   const active = isActive()
   
-  // Estilos CSS-in-JS para el underline hover
   const hoverStyles = {
-    '--BORDER-WIDTH': '2px', // Define tu ancho de borde aquí
+    '--BORDER-WIDTH': '2px',
   } as React.CSSProperties
+
+  // 🔥 Decidir qué mostrar: traducción o children
+  const displayText = translationKey ? t(translationKey) : children
 
   return (
     <span
@@ -62,7 +67,6 @@ export default function ActiveNavItem({
         cursor-pointer 
         transition-all 
         duration-300
-        // Efecto: línea que crece desde el centro con bounce
         after:content-[''] 
         after:absolute 
         after:left-1/2 
@@ -79,8 +83,6 @@ export default function ActiveNavItem({
         after:rounded-full
         hover:after:w-full
         hover:after:ease-[cubic-bezier(0.68,-0.55,0.265,1.55)]
-        // Efecto adicional: subtle glow en hover
-        // Pequeño lift en hover
         hover:-translate-y-0.5
         ${active ? 'font-bold after:w-full after:absolute after:top-3.5 after:-z-10 after:h-1 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]' : ''}
         ${activeClassName && active ? activeClassName : ''}
@@ -88,7 +90,7 @@ export default function ActiveNavItem({
       `}
       style={hoverStyles}
     >
-      {children}
+      {displayText}
     </span>
   )
 }

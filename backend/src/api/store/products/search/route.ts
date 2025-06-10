@@ -4,7 +4,7 @@ import AlgoliaModuleService from "../../../../modules/algolia/service"
 import { z } from "zod"
 
 export const SearchSchema = z.object({
-  query: z.any(),
+  query: z.string(),
 })
 
 type SearchRequest = z.infer<typeof SearchSchema>
