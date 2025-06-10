@@ -5,10 +5,21 @@
   },
   "navigation": {
     "home": "Inizio",
-    "products": "Prodotti",
+    "vinyls": "Adesivi",
     "categories": "Categorie",
     "account": "Account",
-    "cart": "Carrello"
+    "cart": "Carrello",
+    "lang": "Lingua",
+    "search": "Cerca",
+    "contact": "Contatto",
+    "spare_parts": "Ricambi",
+    "circuit_zone": "Zona Circuito",
+    "scoot": "Monopattino elettrico",
+    "tooltip": {
+      "shippment": "🚚 Spedizione gratuita per ordini superiori a 20 €",
+      "gift": "🎁 Regalo gratuito per ordini superiori a 100 €",
+      "spare_parts": "🛠️ Ricambi esclusivi per il tuo monopattino"
+    }
   },
   "actions": {
     "add_to_cart": "Aggiungi al carrello",
@@ -23,5 +34,15 @@
     "delivery": "Consegna",
     "payment": "Pagamento",
     "review": "Revisione"
+  },
+  "login": {
+    "title": "Accesso",
+    "email": "Email",
+    "password": "Contrassegno",
+    "forgot_password": "Hai dimenticato la password?",
+    "login_button": "Accedi",
+    "register_link": "Non hai un account?",
+    "register_button": "Registrati",
+    "google": "Accedi con Google"
   }
 }

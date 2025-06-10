@@ -6,6 +6,7 @@ import { clx } from "@medusajs/ui"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
+import { useTranslation } from "react-i18next"
 
 // Los tipos ayudan a entender la estructura de datos
 type CategoryChild = {
@@ -121,6 +122,7 @@ export default function DarkVinylNavDropdown({
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
+  const {t} = useTranslation()
 
   // Obtenemos solo la categoría "Vinilos" (primer elemento) y sus hijos (marcas)
   const vinylsCategory = categories[0] // Vinilos es el primer elemento
@@ -242,7 +244,7 @@ export default function DarkVinylNavDropdown({
           )}
           style={hoverStyles}
         >
-          {vinylsCategory?.name || "Vinilos"}
+          {t("navigation.vinyls")}
           <motion.svg
             className="w-3 h-3 ml-1 inline-block"
             fill="none"

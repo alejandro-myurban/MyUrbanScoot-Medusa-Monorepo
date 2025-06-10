@@ -5,10 +5,22 @@
   },
   "navigation": {
     "home": "Inicio",
-    "products": "Productos",
+    "vinyls": "Vinilos",
     "categories": "Categorías",
     "account": "Cuenta",
-    "cart": "Carrito"
+    "cart": "Carrito",
+    "lang": "Idioma",
+    "search": "Buscar",
+    "contact": "Contacto",
+    "spare_parts": "Repuestos",
+    "circuit_zone": "Zona Circuito",
+    "scoot": "Patinetes Eléctricos",
+    "blog": "Blog jeje",
+    "tooltip": {
+      "shippment": "🚚 Envíos gratis con 20 €",
+      "gift": "🎁 Regalo en pedidos superiores a 100 €",
+      "spare_parts" : "🛠️ Repuestos exclusivos para tu patinete"
+    }
   },
   "actions": {
     "add_to_cart": "AÑADIR AL CARRO",
@@ -22,6 +34,16 @@
     "shipping_address": "Dirección de envío",
     "delivery": "Tipo de envío",
     "payment": "Pago",
-    "review":"Revisión"
+    "review": "Revisión"
+  },
+  "login": {
+    "title": "Accede",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "forgot_password": "¿Olvidaste tu contraseña?",
+    "login_button": "Continuar",
+    "register_link": "¿No tienes una cuenta?",
+    "register_button": "Regístrate",
+    "google": "Continuar con Google"
   }
 }

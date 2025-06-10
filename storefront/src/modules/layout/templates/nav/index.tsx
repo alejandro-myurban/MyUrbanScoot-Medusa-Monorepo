@@ -58,7 +58,7 @@ export default async function Nav() {
         <div className="hidden lg:flex flex-1 justify-center">
           <NavigationMenu>
             <NavigationMenuList className="flex gap-6">
-              <NavigationMenuItem>
+              {/* <NavigationMenuItem>
                 <LocalizedClientLink href="/category/noticias-patinete-electrico">
                   <NavigationMenuLink className="text-black/80 hover:text-black ">
                     <ActiveNavItem
@@ -70,7 +70,7 @@ export default async function Nav() {
                     </ActiveNavItem>
                   </NavigationMenuLink>
                 </LocalizedClientLink>
-              </NavigationMenuItem>
+              </NavigationMenuItem> */}
 
               <NavigationMenuItem>
                 <DarkVinylNavDropdown
@@ -82,13 +82,11 @@ export default async function Nav() {
               <NavigationMenuItem>
                 <LocalizedClientLink href="/spare-parts">
                   <NavigationMenuLink className="text-black/80 hover:text-black">
-                    <ActiveNavItem
-                      href="/spare-parts"
-                      exactMatch={true}
-                      className="text-black/80 hover:text-black"
-                    >
-                      Recambios
-                    </ActiveNavItem>
+                      <ActiveNavItem
+                      className="text-black/80 hover:text-black after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
+                      href="/spare_parts"
+                      translationKey="navigation.spare_parts"
+                    />
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
@@ -96,12 +94,10 @@ export default async function Nav() {
                 <LocalizedClientLink href="/categories/patinetes-electricos">
                   <NavigationMenuLink className="text-white/80 hover:text-white">
                     <ActiveNavItem
+                      className="text-black/80 hover:text-black after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
                       href="/categories/patinetes-electricos"
-                      exactMatch={true}
-                      className="text-black/80 hover:text-black"
-                    >
-                      Patinetes Eléctricos
-                    </ActiveNavItem>
+                      translationKey="navigation.scoot"
+                    />
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
@@ -109,12 +105,10 @@ export default async function Nav() {
                 <LocalizedClientLink href="">
                   <NavigationMenuLink className="text-white/80 hover:text-white">
                     <ActiveNavItem
+                      className="text-black/80 hover:text-black after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
                       href=""
-                      exactMatch={true}
-                      className="text-black/80 hover:text-black"
-                    >
-                      Zona Circuito
-                    </ActiveNavItem>
+                      translationKey="navigation.circuit_zone"
+                    />
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
@@ -182,18 +176,17 @@ export default async function Nav() {
         <div className="hidden lg:flex flex-1 justify-center">
           <NavigationMenu>
             <NavigationMenuList className="flex gap-6">
-              <NavigationMenuItem>
+              {/* <NavigationMenuItem>
                 <LocalizedClientLink href="/category/noticias-patinete-electrico">
                   <NavigationMenuLink className="text-white/80 hover:text-white ">
                     <ActiveNavItem
                       className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
                       href="/blog"
-                    >
-                      Blog
-                    </ActiveNavItem>
+                      translationKey="navigation.blog"
+                    />
                   </NavigationMenuLink>
                 </LocalizedClientLink>
-              </NavigationMenuItem>
+              </NavigationMenuItem> */}
 
               <NavigationMenuItem>
                 <DarkVinylNavDropdown
@@ -207,10 +200,9 @@ export default async function Nav() {
                   <NavigationMenuLink className="text-white/80 hover:text-white">
                     <ActiveNavItem
                       className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
-                      href="/spare-parts"
-                    >
-                      Recambios
-                    </ActiveNavItem>
+                      href="/spare_parts"
+                      translationKey="navigation.spare_parts"
+                    />
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
@@ -218,12 +210,10 @@ export default async function Nav() {
                 <LocalizedClientLink href="/spare-parts">
                   <NavigationMenuLink className="text-white/80 hover:text-white">
                     <ActiveNavItem
-                      href="/spare-parts"
-                      exactMatch={true}
-                      className="text-white/80 hover:text-white"
-                    >
-                      Patinetes Eléctricos
-                    </ActiveNavItem>
+                      className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
+                      href="/blog"
+                      translationKey="navigation.scoot"
+                    />
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
@@ -231,12 +221,10 @@ export default async function Nav() {
                 <LocalizedClientLink href="/spare-parts">
                   <NavigationMenuLink className="text-white/80 hover:text-white">
                     <ActiveNavItem
-                      href="/spare-parts"
-                      exactMatch={true}
-                      className="text-white/80 hover:text-white"
-                    >
-                      Zona Circuito
-                    </ActiveNavItem>
+                      className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
+                      href="/blog"
+                      translationKey="navigation.circuit_zone"
+                    />
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>

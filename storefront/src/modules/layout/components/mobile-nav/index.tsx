@@ -17,6 +17,9 @@ import {
   SheetTrigger,
 } from "../../../../src/components/ui/sheet"
 import { motion, AnimatePresence } from "framer-motion"
+import SearchModal from "@modules/search-algolia/components/modal"
+import LanguageSwitcher from "../language-switcher"
+import { useTranslation } from "react-i18next"
 
 interface MobileMenuProps {
   categories: any[]
@@ -31,8 +34,8 @@ const collapsibleVariants = {
     overflow: "hidden",
     transition: {
       duration: 0.2,
-      ease: "easeInOut"
-    }
+      ease: "easeInOut",
+    },
   },
   visible: {
     opacity: 1,
@@ -42,8 +45,8 @@ const collapsibleVariants = {
       duration: 0.2,
       ease: "easeInOut",
       staggerChildren: 0.03,
-      delayChildren: 0.05
-    }
+      delayChildren: 0.05,
+    },
   },
   exit: {
     opacity: 0,
@@ -51,9 +54,9 @@ const collapsibleVariants = {
     overflow: "hidden",
     transition: {
       duration: 0.15,
-      ease: "easeInOut"
-    }
-  }
+      ease: "easeInOut",
+    },
+  },
 }
 
 const itemVariants = {
@@ -61,38 +64,39 @@ const itemVariants = {
     opacity: 0,
     x: -10,
     transition: {
-      duration: 0.15
-    }
+      duration: 0.15,
+    },
   },
   visible: {
     opacity: 1,
     x: 0,
     transition: {
       duration: 0.2,
-      ease: "easeOut"
-    }
-  }
+      ease: "easeOut",
+    },
+  },
 }
 
 const linkVariants = {
   hidden: {
     opacity: 0,
-    y: 5
+    y: 5,
   },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
       duration: 0.2,
-      ease: "easeOut"
-    }
-  }
+      ease: "easeOut",
+    },
+  },
 }
 
 export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false)
   const [openBrands, setOpenBrands] = useState<string[]>([])
+  const {t} = useTranslation()
 
   const vinylsCategory = categories[0]
   const brands = vinylsCategory?.category_children || []
@@ -153,7 +157,7 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
         <div className="flex-1 overflow-y-auto overflow-x-hidden mt-8 pr-2 pb-6">
           <div className="space-y-6">
             {/* Logo con animación */}
-            <motion.div 
+            <motion.div
               className="pb-6 border-b border-gray-200/20"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -169,35 +173,26 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
             {/* Navigation Links */}
             <nav className="space-y-4">
               {/* Links de cuenta con animación */}
-              <motion.div 
+              <motion.div
                 className="flex gap-2 justify-center items-center"
                 initial="hidden"
                 animate="visible"
                 variants={{
                   visible: {
                     transition: {
-                      staggerChildren: 0.05
-                    }
-                  }
+                      staggerChildren: 0.05,
+                    },
+                  },
                 }}
               >
-                <motion.div variants={linkVariants}>
-                  <LocalizedClientLink
-                    href="/account"
-                    onClick={handleLinkClick}
-                    className={`${textColorSecondary} ${hoverColor} flex gap-2 font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-gray-100/10`}
-                  >
-                    <UserCircleIcon /> Mi Cuenta
-                  </LocalizedClientLink>
+                <motion.div
+                  className="relative z-[10000]"
+                  variants={linkVariants}
+                >
+                  <SearchModal dark={isDark} />
                 </motion.div>
-                <motion.div variants={linkVariants}>
-                  <LocalizedClientLink
-                    href="/account"
-                    onClick={handleLinkClick}
-                    className={`${textColorSecondary} ${hoverColor} flex gap-2 font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:bg-gray-100/10`}
-                  >
-                    <ShoppingBag /> Ver Carro
-                  </LocalizedClientLink>
+                <motion.div className="flex items-center justify-center gap-2" variants={linkVariants}>
+                  <LanguageSwitcher /> <p className="text-white/90 font-semibold">{t("navigation.lang")}</p>
                 </motion.div>
               </motion.div>
 
@@ -230,7 +225,10 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                   onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <LocalizedClientLink href="/categories/vinilos" className="text-lg font-medium">
+                  <LocalizedClientLink
+                    href="/categories/vinilos"
+                    className="text-lg font-medium"
+                  >
                     {vinylsCategory?.name || "Vinilos"}
                   </LocalizedClientLink>
                   <motion.div
@@ -252,7 +250,7 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                     >
                       {/* Marcas (Kugoo, Dualtron, etc.) */}
                       {brands?.map((brand: any, index: number) => (
-                        <motion.div 
+                        <motion.div
                           key={brand.id}
                           variants={itemVariants}
                           custom={index}
@@ -275,8 +273,15 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                                   whileTap={{ scale: 0.9 }}
                                 >
                                   <motion.div
-                                    animate={{ rotate: openBrands.includes(brand.id) ? 180 : 0 }}
-                                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                                    animate={{
+                                      rotate: openBrands.includes(brand.id)
+                                        ? 180
+                                        : 0,
+                                    }}
+                                    transition={{
+                                      duration: 0.2,
+                                      ease: "easeInOut",
+                                    }}
                                   >
                                     <ChevronDown className="w-4 h-4" />
                                   </motion.div>
@@ -293,21 +298,23 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                                     className="ml-4 mt-1 space-y-1"
                                   >
                                     {/* Modelos */}
-                                    {brand.category_children.map((model: any, modelIndex: number) => (
-                                      <motion.div
-                                        key={model.id}
-                                        variants={itemVariants}
-                                        custom={modelIndex}
-                                      >
-                                        <LocalizedClientLink
-                                          href={`/categories/${model.handle}`}
-                                          onClick={handleLinkClick}
-                                          className={`${textColorSecondary} ${hoverColor} block py-2 px-4 rounded-md transition-all duration-200 hover:bg-gray-100/5 text-sm`}
+                                    {brand.category_children.map(
+                                      (model: any, modelIndex: number) => (
+                                        <motion.div
+                                          key={model.id}
+                                          variants={itemVariants}
+                                          custom={modelIndex}
                                         >
-                                          {model.name}
-                                        </LocalizedClientLink>
-                                      </motion.div>
-                                    ))}
+                                          <LocalizedClientLink
+                                            href={`/categories/${model.handle}`}
+                                            onClick={handleLinkClick}
+                                            className={`${textColorSecondary} ${hoverColor} block py-2 px-4 rounded-md transition-all duration-200 hover:bg-gray-100/5 text-sm`}
+                                          >
+                                            {model.name}
+                                          </LocalizedClientLink>
+                                        </motion.div>
+                                      )
+                                    )}
 
                                     {/* Ver todo en marca */}
                                     <motion.div
@@ -347,7 +354,9 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                         className={`border-t ${borderColor} mt-2 pt-2`}
                       >
                         <LocalizedClientLink
-                          href={`/categories/${vinylsCategory?.handle || "vinilos"}`}
+                          href={`/categories/${
+                            vinylsCategory?.handle || "vinilos"
+                          }`}
                           onClick={handleLinkClick}
                           className={`${textColorSecondary} ${hoverColor} block py-2 px-4 rounded-md transition-all duration-200 hover:bg-gray-100/5 text-sm italic`}
                         >

@@ -8,6 +8,7 @@ import esCommon from "../../public/locales/es/common.json"
 import enCommon from "../../public/locales/en/common.json"
 
 i18n
+  
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({

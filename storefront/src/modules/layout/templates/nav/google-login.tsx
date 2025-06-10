@@ -2,8 +2,10 @@
 
 import { sdk } from "@lib/config"
 import { Google } from "@medusajs/icons"
+import { useTranslation } from "react-i18next"
 
 export default function GoogleLogin() {
+  const { t } = useTranslation()
   const loginWithGoogle = async () => {
     const result = await sdk.auth.login("customer", "google", {})
 
@@ -28,7 +30,13 @@ export default function GoogleLogin() {
 
   return (
     <div>
-      <button className="flex gap-2 justify-center items-center" onClick={loginWithGoogle}>Login with <Google /></button>
+      <button
+        className="flex gap-2 justify-center items-center"
+        onClick={loginWithGoogle}
+      >
+        {t("login.google")}
+        <Google />
+      </button>
     </div>
   )
 }

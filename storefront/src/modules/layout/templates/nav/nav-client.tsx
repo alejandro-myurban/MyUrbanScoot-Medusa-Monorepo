@@ -20,7 +20,7 @@ export default function NavClient({ dark = false }: { dark?: boolean }) {
         scroll={false}
         data-testid="nav-search-link"
       >
-        Contacto
+        {t("navigation.contact")}
       </LocalizedClientLink>
     </div>
   )
