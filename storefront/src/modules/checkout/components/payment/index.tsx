@@ -2,7 +2,7 @@
 
 import { paymentInfoMap } from "@lib/constants"
 import { initiatePaymentSession } from "@lib/data/cart"
-import { CheckCircleSolid, CreditCard} from "@medusajs/icons"
+import { CheckCircleSolid, CreditCard } from "@medusajs/icons"
 import { Button, Container, Heading, Text, clx, RadioGroup } from "@medusajs/ui"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import { StripeContext } from "@modules/checkout/components/payment-wrapper/stripe-wrapper"
@@ -24,7 +24,13 @@ const Payment = ({
   const [error, setError] = useState<string | null>(null)
   const [stripeComplete, setStripeComplete] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>()
-  const [selectedProvider, setSelectedProvider] = useState<string>("")
+  const [selectedProvider, setSelectedProvider] = useState<string>(() => {
+    // Inicializar desde sessionStorage si existe
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("selectedPaymentProvider") || ""
+    }
+    return ""
+  })
 
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -36,7 +42,7 @@ const Payment = ({
   const activeSession = cart.payment_collection?.payment_sessions?.find(
     (paymentSession: any) => paymentSession.status === "pending"
   )
-  
+
   const paidByGiftcard =
     cart?.gift_cards && cart?.gift_cards?.length > 0 && cart?.total === 0
 
@@ -72,11 +78,11 @@ const Payment = ({
     },
     {
       id: "cod",
-      provider_id: "pp_system_default", 
+      provider_id: "pp_system_default",
       title: "Contrareembolso",
       description: "Paga al recibir tu pedido",
       icon: <Mailbox className="w-5 h-5" />,
-    }
+    },
   ]
 
   const handlePaymentElementChange = async (
@@ -152,18 +158,21 @@ const Payment = ({
     }
   }
 
-  // Inicializar con el primer método disponible
+  // Guardar en sessionStorage cuando cambie
   useEffect(() => {
-    if (isOpen && !selectedProvider && paymentOptions.length > 0) {
+    if (selectedProvider && typeof window !== "undefined") {
+      sessionStorage.setItem("selectedPaymentProvider", selectedProvider)
+    }
+  }, [selectedProvider])
+
+  // Inicializar solo si no hay nada seleccionado
+  useEffect(() => {
+    if (isOpen && paymentOptions.length > 0 && !selectedProvider) {
       const defaultProvider = paymentOptions[0].provider_id
       setSelectedProvider(defaultProvider)
       handleProviderChange(defaultProvider)
     }
   }, [isOpen, selectedProvider])
-
-  useEffect(() => {
-    setError(null)
-  }, [isOpen])
 
   // Determinar si el botón debe estar habilitado
   const isButtonDisabled = () => {
@@ -178,7 +187,9 @@ const Payment = ({
     return true
   }
 
-  const selectedOption = paymentOptions.find(opt => opt.provider_id === selectedProvider)
+  const selectedOption = paymentOptions.find(
+    (opt) => opt.provider_id === selectedProvider
+  )
 
   return (
     <div className="bg-white">
@@ -229,9 +240,9 @@ const Payment = ({
                       className={clx(
                         "flex items-center space-x-3 border rounded-lg p-4 cursor-pointer transition-colors",
                         {
-                          "border-ui-border-interactive bg-ui-bg-field-component": 
+                          "border-ui-border-interactive bg-ui-bg-field-component":
                             selectedProvider === option.provider_id,
-                          "border-ui-border-base hover:border-ui-border-strong": 
+                          "border-ui-border-base hover:border-ui-border-strong":
                             selectedProvider !== option.provider_id,
                         }
                       )}
@@ -280,8 +291,9 @@ const Payment = ({
                         Pago contra reembolso
                       </Text>
                       <Text className="txt-small text-ui-fg-subtle">
-                        Pagarás el importe total al recibir tu pedido. 
-                        El repartidor aceptará efectivo o tarjeta según disponibilidad.
+                        Pagarás el importe total al recibir tu pedido. El
+                        repartidor aceptará efectivo o tarjeta según
+                        disponibilidad.
                       </Text>
                     </div>
                   </div>
@@ -348,10 +360,9 @@ const Payment = ({
                     {selectedOption.icon}
                   </Container>
                   <Text>
-                    {selectedProvider === "pp_stripe_stripe" 
+                    {selectedProvider === "pp_stripe_stripe"
                       ? "Another step will appear"
-                      : "Pay on delivery"
-                    }
+                      : "Pay on delivery"}
                   </Text>
                 </div>
               </div>
