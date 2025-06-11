@@ -405,7 +405,7 @@ export default function SearchModal({ dark = false }: { dark?: boolean }) {
                       )}
 
                       {/* Mensaje cuando no hay búsqueda */}
-                      {!searchQuery && (
+                      {/* {!searchQuery && (
                         <motion.div
                           key="no-search"
                           className="px-4 py-8 text-center"
@@ -418,7 +418,7 @@ export default function SearchModal({ dark = false }: { dark?: boolean }) {
                             Empieza a escribir para buscar productos
                           </p>
                         </motion.div>
-                      )}
+                      )} */}
 
                       {/* Si hay búsqueda pero no resultados */}
                       {searchQuery && (

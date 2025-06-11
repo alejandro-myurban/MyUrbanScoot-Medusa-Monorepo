@@ -4,6 +4,7 @@ import {
 } from "@medusajs/framework/workflows-sdk";
 import { useQueryGraphStep } from "@medusajs/medusa/core-flows";
 import { syncProductsStep, SyncProductsStepInput } from "./steps/sync-products";
+import { QueryContext } from "@medusajs/framework/utils";
 
 type SyncProductsWorkflowInput = {
   filters?: Record<string, unknown>;
@@ -20,11 +21,13 @@ export const syncProductsWorkflow = createWorkflow(
       fields: [
         "id",
         "title",
-        "description",
         "handle",
         "thumbnail",
         "categories.*",
-        "tags.*",
+        "variants.id",
+        "variants.title",
+        "variants.prices.*",
+        "variants.calculated_price.*",
       ],
       pagination: {
         take: limit,
@@ -34,6 +37,14 @@ export const syncProductsWorkflow = createWorkflow(
         // @ts-ignore
         status: "published",
         ...filters,
+      },
+      context: {
+        variants: {
+          calculated_price: QueryContext({
+            currency_code: "eur", // o la moneda que corresponda
+            region_id: "reg_01JSP4QGE8SADHTVCS3M91T6B2", // opcional pero recomendado si lo tienes
+          }),
+        },
       },
     });
 

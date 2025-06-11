@@ -116,7 +116,7 @@ export default async function ProductPreview({
           />
 
           {/* Contenido de la tarjeta */}
-          <div className="p-4 space-y-3 ">
+          <div className="p-4 ">
             {/* Título del producto */}
             <Text
               className="text-gray-900 font-dmSans font-medium text-base leading-tight"
@@ -131,7 +131,7 @@ export default async function ProductPreview({
             </div>
 
             {/* Precios */}
-            <div className="flex items-end gap-x-3 flex-wrap">
+            <div className="flex items-end gap-x-3 mt-2 flex-wrap">
               {discountedPrice ? (
                 <>
                   {/* Precio con descuento */}

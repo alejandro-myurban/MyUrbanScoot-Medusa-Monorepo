@@ -33,11 +33,9 @@ export const PriceRangeFilter = ({
         const calculatedMin = Math.floor(Math.min(...prices))
         const calculatedMax = Math.ceil(Math.max(...prices))
         
-        // Actualizar los límites dinámicos
         setMinPrice(calculatedMin)
         setMaxPrice(calculatedMax)
         
-        // Usar valores iniciales de la URL si están disponibles, sino usar el rango completo
         const rangeMin = initialMin !== undefined ? Math.max(initialMin, calculatedMin) : calculatedMin
         const rangeMax = initialMax !== undefined ? Math.min(initialMax, calculatedMax) : calculatedMax
         
@@ -45,7 +43,6 @@ export const PriceRangeFilter = ({
         setIsInitialized(true)
       }
     } else {
-      // Si no hay productos, resetear todo
       setMinPrice(0)
       setMaxPrice(100)
       setPriceRange([0, 100])
@@ -53,12 +50,11 @@ export const PriceRangeFilter = ({
     }
   }, [products, initialMin, initialMax])
 
-  // Efecto separado para notificar cambios cuando se resetea el rango
   useEffect(() => {
     if (isInitialized) {
       onPriceChange(priceRange)
     }
-  }, [minPrice, maxPrice, isInitialized]) // Solo cuando cambien los límites y esté inicializado
+  }, [minPrice, maxPrice, isInitialized])
 
   const getPercentage = (value: number) => {
     if (maxPrice === minPrice) return 0
@@ -69,16 +65,27 @@ export const PriceRangeFilter = ({
     return Math.round(minPrice + (percentage / 100) * (maxPrice - minPrice))
   }
 
-  const handleMouseDown = (thumbIndex: number) => (e: React.MouseEvent) => {
+  // Función para obtener la posición X del evento (mouse o touch)
+  const getClientX = (e: MouseEvent | TouchEvent): number => {
+    if ('touches' in e) {
+      return e.touches[0]?.clientX || 0
+    }
+    return e.clientX
+  }
+
+  // Manejar inicio de arrastre (mouse y touch)
+  const handlePointerDown = (thumbIndex: number) => (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault()
     setIsDragging(thumbIndex)
   }
 
-  const handleMouseMove = (e: MouseEvent) => {
+  // Manejar movimiento (mouse y touch)
+  const handlePointerMove = (e: MouseEvent | TouchEvent) => {
     if (isDragging === null || !sliderRef.current) return
 
     const rect = sliderRef.current.getBoundingClientRect()
-    const percentage = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100))
+    const clientX = getClientX(e)
+    const percentage = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100))
     const newValue = getValueFromPercentage(percentage)
 
     setPriceRange((prev) => {
@@ -92,7 +99,8 @@ export const PriceRangeFilter = ({
     })
   }
 
-  const handleMouseUp = () => {
+  // Manejar fin de arrastre (mouse y touch)
+  const handlePointerUp = () => {
     if (isDragging !== null) {
       setIsDragging(null)
       onPriceChange(priceRange)
@@ -101,11 +109,22 @@ export const PriceRangeFilter = ({
 
   useEffect(() => {
     if (isDragging !== null) {
-      document.addEventListener("mousemove", handleMouseMove)
-      document.addEventListener("mouseup", handleMouseUp)
+      // Agregar eventos de mouse
+      document.addEventListener("mousemove", handlePointerMove)
+      document.addEventListener("mouseup", handlePointerUp)
+      
+      // Agregar eventos táctiles
+      document.addEventListener("touchmove", handlePointerMove)
+      document.addEventListener("touchend", handlePointerUp)
+      
       return () => {
-        document.removeEventListener("mousemove", handleMouseMove)
-        document.removeEventListener("mouseup", handleMouseUp)
+        // Remover eventos de mouse
+        document.removeEventListener("mousemove", handlePointerMove)
+        document.removeEventListener("mouseup", handlePointerUp)
+        
+        // Remover eventos táctiles
+        document.removeEventListener("touchmove", handlePointerMove)
+        document.removeEventListener("touchend", handlePointerUp)
       }
     }
   }, [isDragging, priceRange])
@@ -132,7 +151,6 @@ export const PriceRangeFilter = ({
   const minPercent = getPercentage(priceRange[0])
   const maxPercent = getPercentage(priceRange[1])
 
-  // Si no hay productos con precios, no mostrar el filtro
   if (maxPrice === minPrice || maxPrice === 0) {
     return null
   }
@@ -146,7 +164,6 @@ export const PriceRangeFilter = ({
         <span><NumberFlow value={priceRange[1]} />€</span>
       </div>
 
-      {/* Mostrar el rango total disponible */}
       <div className="flex justify-between items-center mb-2 text-xs text-gray-400">
         <span>{minPrice}€</span>
         <span>{maxPrice}€</span>
@@ -166,24 +183,26 @@ export const PriceRangeFilter = ({
 
           {/* Thumb mínimo */}
           <div
-            className="absolute w-5 h-5 bg-gray-700 border-2 border-white rounded-full shadow-lg cursor-pointer transform -translate-y-1.5 hover:bg-gray-800 transition-colors"
+            className="absolute w-5 h-5 bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer transform -translate-y-1.5 hover:bg-gray-800 transition-colors touch-manipulation"
             style={{
               left: `${minPercent}%`,
               transform: `translateX(-50%) translateY(-6px)`,
               zIndex: isDragging === 0 ? 30 : 20,
             }}
-            onMouseDown={handleMouseDown(0)}
+            onMouseDown={handlePointerDown(0)}
+            onTouchStart={handlePointerDown(0)}
           />
 
           {/* Thumb máximo */}
           <div
-            className="absolute w-5 h-5 bg-gray-700 border-2 border-white rounded-full shadow-lg cursor-pointer transform -translate-y-1.5 hover:bg-gray-800 transition-colors"
+            className="absolute w-5 h-5 bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer transform -translate-y-1.5 hover:bg-gray-800 transition-colors touch-manipulation"
             style={{
               left: `${maxPercent}%`,
               transform: `translateX(-50%) translateY(-6px)`,
               zIndex: isDragging === 1 ? 30 : 10,
             }}
-            onMouseDown={handleMouseDown(1)}
+            onMouseDown={handlePointerDown(1)}
+            onTouchStart={handlePointerDown(1)}
           />
         </div>
       </div>
