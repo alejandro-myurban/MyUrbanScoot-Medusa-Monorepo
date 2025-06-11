@@ -16,7 +16,7 @@ const LineItemPrice = ({ item, style = "default" }: LineItemPriceProps) => {
 
   const adjustmentsSum = (item.adjustments || []).reduce(
     (acc, adjustment) => adjustment.amount + acc,
-    0
+    0 
   )
 
   const originalPrice = original_price_number * item.quantity
