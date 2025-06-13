@@ -1,17 +1,48 @@
 "use client"
 
 import { paymentInfoMap } from "@lib/constants"
-import { initiatePaymentSession } from "@lib/data/cart"
+import {
+  initiatePaymentSession,
+  createPaymentCollection,
+  retrieveCart,
+} from "@lib/data/cart"
 import { CheckCircleSolid, CreditCard } from "@medusajs/icons"
 import { Button, Container, Heading, Text, clx, RadioGroup } from "@medusajs/ui"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import { StripeContext } from "@modules/checkout/components/payment-wrapper/stripe-wrapper"
 import Divider from "@modules/common/components/divider"
-import { PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js"
+import {
+  PaymentElement,
+  useElements,
+  useStripe,
+  ExpressCheckoutElement,
+} from "@stripe/react-stripe-js"
 import { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
 import { Mailbox } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useContext, useEffect, useState } from "react"
+// Importar el hook
+import { useCodFee } from "../../../../lib/hooks/use-cod" // Ajusta la ruta según tu estructura
+
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)")
+
+    setIsMobile(mediaQuery.matches)
+
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches)
+    }
+
+    mediaQuery.addEventListener("change", handleChange)
+
+    return () => mediaQuery.removeEventListener("change", handleChange)
+  }, [])
+
+  return isMobile
+}
 
 const Payment = ({
   cart,
@@ -24,30 +55,159 @@ const Payment = ({
   const [error, setError] = useState<string | null>(null)
   const [stripeComplete, setStripeComplete] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>()
+  const [currentCart, setCurrentCart] = useState(cart)
   const [selectedProvider, setSelectedProvider] = useState<string>(() => {
-    // Inicializar desde sessionStorage si existe
     if (typeof window !== "undefined") {
-      return sessionStorage.getItem("selectedPaymentProvider") || ""
+      return (
+        sessionStorage.getItem("selectedPaymentProvider") || "pp_stripe_stripe"
+      )
     }
-    return ""
+    return "pp_stripe_stripe"
   })
 
+  // Inicializar el hook COD
+  const {
+    handlePaymentProviderChange,
+    isLoading: codLoading,
+    error: codError,
+  } = useCodFee({ cartId: cart.id })
+
+  console.log("CARRITOOOO", currentCart)
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  const isMobile = useIsMobile()
 
   const isOpen = searchParams.get("step") === "payment"
   const stripeReady = useContext(StripeContext)
 
-  const activeSession = cart.payment_collection?.payment_sessions?.find(
+  // Provincias no peninsulares (islas)
+  const NON_PENINSULAR_PROVINCES = [
+    "Illes Balears",
+    "Baleares",
+    "Islas Baleares",
+    "Las Palmas",
+    "Santa Cruz de Tenerife",
+    "Canarias",
+    "Islas Canarias",
+    "Ceuta",
+    "Melilla",
+    "Ibiza",
+    "Formentera",
+    "Gran Canaria",
+    "Tenerife",
+    "Lanzarote",
+    "Fuerteventura",
+    "La Palma",
+    "La Gomera",
+    "El Hierro",
+    "La Graciosa",
+    "Mallorca",
+    "Menorca",
+  ]
+
+  // Función para verificar si una provincia es no peninsular
+  const isNonPeninsularProvince = (province: string): boolean => {
+    if (!province) return false
+
+    const normalizedProvince = province.toLowerCase().trim()
+
+    if (normalizedProvince.length <= 2) {
+      return false
+    }
+
+    return NON_PENINSULAR_PROVINCES.some(
+      (nonPeninsularProvince) =>
+        normalizedProvince.includes(nonPeninsularProvince.toLowerCase()) ||
+        nonPeninsularProvince.toLowerCase().includes(normalizedProvince)
+    )
+  }
+
+  // Función para verificar si COD está disponible
+  const isCODAvailable = (): boolean => {
+    const maxCODAmount = 100
+    const isNonPeninsular = isNonPeninsularProvince(
+      cart?.billing_address?.province || ""
+    )
+    const exceedsMaxAmount = cart.total > maxCODAmount
+
+    return !exceedsMaxAmount && !isNonPeninsular
+  }
+
+  // Verificar si hay cargo COD en el carrito
+  const hasCodFee = currentCart?.items?.some(
+    (item: any) => item.metadata?.is_cod_fee === true
+  )
+
+  // Métodos de pago disponibles - filtrados según disponibilidad
+  const getAllPaymentOptions = () => [
+    {
+      id: "stripe",
+      provider_id: "pp_stripe_stripe",
+      title: "Tarjeta de Crédito/Débito",
+      description: "Paga con tarjeta de forma segura",
+      icon: <CreditCard className="w-5 h-5" />,
+    },
+    {
+      id: "cod",
+      provider_id: "pp_system_default",
+      title: "Contrareembolso",
+      description: hasCodFee
+        ? "Paga al recibir tu pedido (+5€ incluido)"
+        : "Paga al recibir tu pedido (+5€)",
+      icon: <Mailbox className="w-5 h-5" />,
+    },
+  ]
+
+  const paymentOptions = getAllPaymentOptions().filter((option) => {
+    if (option.provider_id === "pp_system_default") {
+      return isCODAvailable()
+    }
+    return true
+  })
+
+  useEffect(() => {
+    if (isOpen) {
+      // Si el proveedor seleccionado ya no está disponible, cambiar a stripe
+      const isSelectedProviderAvailable = paymentOptions.some(
+        (option) => option.provider_id === selectedProvider
+      )
+
+      if (!isSelectedProviderAvailable) {
+        const newProvider = "pp_stripe_stripe"
+        setSelectedProvider(newProvider)
+        handleProviderChange(newProvider)
+      } else if (!selectedProvider) {
+        // Solo establecer stripe como default si no hay ningún provider seleccionado
+        const savedProvider = sessionStorage.getItem("selectedPaymentProvider")
+        const defaultProvider =
+          savedProvider &&
+          paymentOptions.some((opt) => opt.provider_id === savedProvider)
+            ? savedProvider
+            : paymentOptions[0]?.provider_id || "pp_stripe_stripe"
+        setSelectedProvider(defaultProvider)
+        handleProviderChange(defaultProvider)
+      }
+    }
+  }, [isOpen, paymentOptions.length])
+
+  // Actualizar el carrito cuando cambie
+  useEffect(() => {
+    setCurrentCart(cart)
+  }, [cart])
+
+  const activeSession = currentCart.payment_collection?.payment_sessions?.find(
     (paymentSession: any) => paymentSession.status === "pending"
   )
 
   const paidByGiftcard =
-    cart?.gift_cards && cart?.gift_cards?.length > 0 && cart?.total === 0
+    currentCart?.gift_cards &&
+    currentCart?.gift_cards?.length > 0 &&
+    currentCart?.total === 0
 
   const paymentReady =
-    (activeSession && cart?.shipping_methods.length !== 0) || paidByGiftcard
+    (activeSession && currentCart?.shipping_methods.length !== 0) ||
+    paidByGiftcard
 
   const createQueryString = useCallback(
     (name: string, value: string) => {
@@ -67,24 +227,6 @@ const Payment = ({
   const stripe = stripeReady ? useStripe() : null
   const elements = stripeReady ? useElements() : null
 
-  // Métodos de pago disponibles
-  const paymentOptions = [
-    {
-      id: "stripe",
-      provider_id: "pp_stripe_stripe",
-      title: "Tarjeta de Crédito/Débito",
-      description: "Paga con tarjeta de forma segura",
-      icon: <CreditCard className="w-5 h-5" />,
-    },
-    {
-      id: "cod",
-      provider_id: "pp_system_default",
-      title: "Contrareembolso",
-      description: "Paga al recibir tu pedido",
-      icon: <Mailbox className="w-5 h-5" />,
-    },
-  ]
-
   const handlePaymentElementChange = async (
     event: StripePaymentElementChangeEvent
   ) => {
@@ -98,19 +240,62 @@ const Payment = ({
     }
   }
 
+  // FUNCIÓN MODIFICADA: Aquí es donde integras el hook COD
   const handleProviderChange = async (providerId: string) => {
     setSelectedProvider(providerId)
     setError(null)
     setIsLoading(true)
 
     try {
-      // Inicializar la sesión de pago para el provider seleccionado
-      await initiatePaymentSession(cart, {
+      console.log(`🔄 Iniciando sesión para provider: ${providerId}`)
+
+      // NUEVA LÓGICA: Manejar el cargo COD antes de crear la sesión de pago
+      console.log(`🔄 Manejando cargo COD para provider: ${providerId}`)
+      const updatedCart = await handlePaymentProviderChange(providerId)
+
+      if (updatedCart) {
+        console.log("✅ Carrito actualizado con/sin cargo COD:", updatedCart)
+        setCurrentCart(updatedCart)
+      } else if (codError) {
+        throw new Error(codError)
+      }
+
+      // Verificar el carrito antes de iniciar la sesión
+      console.log("Cart before payment session:", {
+        id: cart.id,
+        payment_collection: cart.payment_collection,
+        existing_sessions:
+          cart.payment_collection?.payment_sessions?.length || 0,
+      })
+
+      // Si no hay payment collection, crear una primero
+      let paymentCollectionId = cart.payment_collection?.id
+
+      if (!paymentCollectionId) {
+        console.log("🔄 No hay payment collection, creando una...")
+        const collectionResult = await createPaymentCollection(cart.id)
+
+        if (collectionResult && collectionResult.cart) {
+          paymentCollectionId = collectionResult.cart.payment_collection?.id
+          console.log(`✅ Payment collection creada: ${paymentCollectionId}`)
+        } else {
+          throw new Error("No se pudo crear la payment collection")
+        }
+      }
+
+      // Ahora inicializar la sesión de pago
+      const result = await initiatePaymentSession(cart, {
         provider_id: providerId,
       })
-      console.log(`Sesión iniciada para provider: ${providerId}`)
+
+      console.log(`✅ Sesión iniciada para provider: ${providerId}`, result)
+
+      // Si es COD (sistema), verificar que se creó correctamente
+      if (providerId === "pp_system_default") {
+        console.log("🔍 Verificando sesión COD creada...")
+      }
     } catch (err: any) {
-      console.error(`Error al inicializar sesión para ${providerId}:`, err)
+      console.error(`❌ Error al inicializar sesión para ${providerId}:`, err)
       setError(`Error al inicializar el método de pago: ${err.message}`)
     } finally {
       setIsLoading(false)
@@ -165,31 +350,81 @@ const Payment = ({
     }
   }, [selectedProvider])
 
-  // Inicializar solo si no hay nada seleccionado
+  // Crear payment collection si no existe y luego inicializar proveedor
   useEffect(() => {
-    if (isOpen && paymentOptions.length > 0 && !selectedProvider) {
+    if (
+      isOpen &&
+      paymentOptions.length > 0 &&
+      !currentCart.payment_collection
+    ) {
+      console.log("🔄 Creando payment collection inicial...")
+      createPaymentCollection(currentCart.id)
+        .then(async (result) => {
+          console.log("✅ Payment collection creada:", result)
+
+          // Recargar el carrito
+          const updatedCart = await retrieveCart(currentCart.id)
+          if (updatedCart) {
+            setCurrentCart(updatedCart)
+          }
+
+          // Después de crear la collection, inicializar el proveedor por defecto
+          if (!selectedProvider) {
+            const defaultProvider = paymentOptions[0].provider_id
+            setSelectedProvider(defaultProvider)
+            handleProviderChange(defaultProvider)
+          }
+        })
+        .catch((err) => {
+          console.error("❌ Error creando payment collection:", err)
+          setError("Error al inicializar el proceso de pago")
+        })
+    } else if (
+      isOpen &&
+      paymentOptions.length > 0 &&
+      currentCart.payment_collection &&
+      !selectedProvider
+    ) {
+      // Si ya hay payment collection pero no hay proveedor seleccionado
       const defaultProvider = paymentOptions[0].provider_id
       setSelectedProvider(defaultProvider)
       handleProviderChange(defaultProvider)
     }
-  }, [isOpen, selectedProvider])
+  }, [isOpen, currentCart.payment_collection, selectedProvider])
 
   // Determinar si el botón debe estar habilitado
-  const isButtonDisabled = () => {
+  const isButtonDisabled = (): boolean => {
     if (paidByGiftcard) return false
     if (!selectedProvider) return true
+    if (codLoading) return true // Deshabilitar mientras se procesa COD
+
     if (selectedProvider === "pp_stripe_stripe") {
       return !stripeComplete || !stripe || !elements
     }
+
     if (selectedProvider === "pp_system_default") {
-      return false // El contrareembolso siempre está listo
+      // Ya no necesitamos estas validaciones aquí porque la opción no se muestra si no está disponible
+      return false
     }
+
     return true
+  }
+
+  const getButtonText = () => {
+    if (codLoading) return "Procesando..."
+    return "Continuar a revisión"
   }
 
   const selectedOption = paymentOptions.find(
     (opt) => opt.provider_id === selectedProvider
   )
+
+  // Combinar errores
+  const displayError = error || codError
+
+  function onChange(event: StripePaymentElementChangeEvent) {
+    handlePaymentElementChange(event);
+  }
 
   return (
     <div className="bg-white">
@@ -232,26 +467,31 @@ const Payment = ({
                 <RadioGroup
                   value={selectedProvider}
                   onValueChange={handleProviderChange}
-                  className="grid gap-4"
+                  className="grid gap-0"
+                  disabled={codLoading} // Deshabilitar durante carga COD
                 >
                   {paymentOptions.map((option) => (
                     <div
                       key={option.id}
                       className={clx(
-                        "flex items-center space-x-3 border rounded-lg p-4 cursor-pointer transition-colors",
+                        "flex items-center space-x-3 border p-4 cursor-pointer transition-colors",
                         {
                           "border-ui-border-interactive bg-ui-bg-field-component":
                             selectedProvider === option.provider_id,
                           "border-ui-border-base hover:border-ui-border-strong":
                             selectedProvider !== option.provider_id,
+                          "opacity-50 cursor-not-allowed": codLoading,
                         }
                       )}
-                      onClick={() => handleProviderChange(option.provider_id)}
+                      onClick={() =>
+                        !codLoading && handleProviderChange(option.provider_id)
+                      }
                     >
                       <RadioGroup.Item
                         value={option.provider_id}
                         id={option.id}
                         className="shrink-0"
+                        disabled={codLoading}
                       />
                       <Container className="flex items-center h-8 w-fit p-2 bg-ui-button-neutral-hover">
                         {option.icon}
@@ -269,13 +509,23 @@ const Payment = ({
                 </RadioGroup>
               </div>
 
+              {/* Notificación del cargo COD */}
+              {selectedProvider === "pp_system_default" && hasCodFee && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <Text className="txt-small text-green-700">
+                    ✓ Se ha añadido el cargo por contra reembolso (5€) a tu
+                    pedido
+                  </Text>
+                </div>
+              )}
+
               {/* Stripe Payment Element */}
               {selectedProvider === "pp_stripe_stripe" && stripeReady && (
                 <div className="mb-6 transition-all duration-150 ease-in-out">
                   <PaymentElement
                     onChange={handlePaymentElementChange}
                     options={{
-                      layout: "tabs",
+                      layout: isMobile ? "accordion" : "tabs",
                     }}
                   />
                 </div>
@@ -286,14 +536,14 @@ const Payment = ({
                 <div className="mb-6 p-4 bg-ui-bg-subtle rounded-lg">
                   <div className="flex items-start gap-3">
                     <Mailbox className="w-5 h-5 text-ui-fg-muted mt-0.5" />
-                    <div>
+                    <div className="flex-1">
                       <Text className="txt-medium-plus text-ui-fg-base mb-1">
                         Pago contra reembolso
                       </Text>
                       <Text className="txt-small text-ui-fg-subtle">
                         Pagarás el importe total al recibir tu pedido. El
                         repartidor aceptará efectivo o tarjeta según
-                        disponibilidad.
+                        disponibilidad. Se aplica un cargo adicional de 5€.
                       </Text>
                     </div>
                   </div>
@@ -317,7 +567,7 @@ const Payment = ({
           )}
 
           <ErrorMessage
-            error={error}
+            error={displayError}
             data-testid="payment-method-error-message"
           />
 
@@ -325,17 +575,17 @@ const Payment = ({
             size="large"
             className="mt-6"
             onClick={handleSubmit}
-            isLoading={isLoading}
+            isLoading={isLoading || codLoading}
             disabled={isButtonDisabled()}
             data-testid="submit-payment-button"
           >
-            Continue to review
+            {getButtonText()}
           </Button>
         </div>
 
         {/* Vista resumen cuando no está abierto */}
         <div className={isOpen ? "hidden" : "block"}>
-          {cart && paymentReady && activeSession && selectedOption ? (
+          {currentCart && paymentReady && activeSession && selectedOption ? (
             <div className="flex items-start gap-x-1 w-full">
               <div className="flex flex-col w-1/3">
                 <Text className="txt-medium-plus text-ui-fg-base mb-1">
@@ -353,7 +603,7 @@ const Payment = ({
                   Payment details
                 </Text>
                 <div
-                  className="flex gap-2 txt-medium text-ui-fg-subtle items-center"
+                  className="flex txt-medium text-ui-fg-subtle items-center"
                   data-testid="payment-details-summary"
                 >
                   <Container className="flex items-center h-7 w-fit p-2 bg-ui-button-neutral-hover">

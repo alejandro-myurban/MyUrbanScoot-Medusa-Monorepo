@@ -32,7 +32,7 @@
   },
   "checkout": {
     "shipping_address": "Dirección de envío",
-    "delivery": "Tipo de envío",
+    "delivery": "Envíos",
     "payment": "Pago",
     "review": "Revisión"
   },

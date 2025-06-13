@@ -56,13 +56,17 @@ const Shipping: React.FC<ShippingProps> = ({
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
-  const {t} = useTranslation();
+  const { t } = useTranslation()
 
   const isOpen = searchParams.get("step") === "delivery"
 
   const selectedShippingMethod = availableShippingMethods?.find(
     (method) => method.id === cart.shipping_methods?.at(-1)?.shipping_option_id
   )
+
+  // Verificar si el método seleccionado es de tipo calculated
+  const isCalculatedShippingSelected =
+    selectedShippingMethod?.price_type === "calculated"
 
   const handleEdit = () => {
     router.push(pathname + "?step=delivery", { scroll: false })
@@ -160,25 +164,52 @@ const Shipping: React.FC<ShippingProps> = ({
   // Función para mostrar el precio correctamente
   const getShippingOptionPrice = useCallback(
     (option: HttpTypes.StoreCartShippingOption): string => {
+      let amount = 0
+
       // Para opciones de tipo calculated, usamos el precio calculado
       if (option.price_type === "calculated") {
         if (!calculatedPrices[option.id]) {
           return "Calculando..."
         }
-        return convertToLocale({
-          amount: calculatedPrices[option.id],
-          currency_code: cart?.currency_code || "EUR",
-        })
+        amount = calculatedPrices[option.id]
+      } else {
+        // Para opciones de tipo flat, usamos el precio fijo
+        amount = option.amount || 0
       }
 
-      // Para opciones de tipo flat, usamos el precio fijo
+      // Si el precio es 0, mostrar "GRATIS"
+      if (amount === 0) {
+        return "GRATIS"
+      }
+
       return convertToLocale({
-        amount: option.amount || 0,
+        amount,
         currency_code: cart?.currency_code || "EUR",
       })
     },
     [calculatedPrices, cart?.currency_code]
   )
+
+  // Función para obtener el rango de fechas de entrega
+  const getDeliveryDateRange = () => {
+    if (!itemsWithEstimate.length) return null
+
+    const minDays = Math.min(...itemsWithEstimate.map((item) => item.totalDays))
+    const maxDays = Math.max(...itemsWithEstimate.map((item) => item.totalDays))
+
+    const startDate = addBusinessDays(new Date(), minDays)
+    // Añadir 2 días extra al final del rango
+    const endDate = addBusinessDays(new Date(), maxDays + 2)
+
+    return {
+      minDays,
+      maxDays: maxDays + 2, // Mostrar el rango con los días extra incluidos
+      startDate,
+      endDate,
+    }
+  }
+
+  const deliveryRange = getDeliveryDateRange()
 
   console.log("CARRITO", cart)
   return (
@@ -187,7 +218,7 @@ const Shipping: React.FC<ShippingProps> = ({
         <Heading
           level="h2"
           className={clx(
-            "flex flex-row text-3xl-regular gap-x-2 items-baseline",
+            "flex flex-row font-bold text-3xl-regular gap-x-2 items-baseline uppercase font-dmSans",
             {
               "opacity-50 pointer-events-none select-none":
                 !isOpen && cart.shipping_methods?.length === 0,
@@ -216,56 +247,106 @@ const Shipping: React.FC<ShippingProps> = ({
       </div>
       {isOpen ? (
         <div data-testid="delivery-options-container">
-          <div className="pb-8">
+          <div className="pb-8 space-y-4">
             <RadioGroup value={selectedShippingMethod?.id} onChange={set}>
               {availableShippingMethods?.map((option) => {
+                const isSelected = option.id === selectedShippingMethod?.id
                 return (
                   <RadioGroup.Option
                     key={option.id}
                     value={option.id}
                     data-testid="delivery-option-radio"
                     className={clx(
-                      "flex items-center justify-between text-small-regular cursor-pointer py-4 border rounded-rounded px-8 mb-2 hover:shadow-borders-interactive-with-active",
+                      "relative block w-full p-6 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer transition-all duration-200",
                       {
-                        "border-ui-border-interactive":
-                          option.id === selectedShippingMethod?.id,
+                        "border-black bg-white shadow-sm": isSelected,
+                        "hover:border-gray-300 hover:bg-gray-100": !isSelected,
                       }
                     )}
                   >
-                    <div className="flex items-center gap-x-4">
-                      <Radio
-                        checked={option.id === selectedShippingMethod?.id}
-                      />
-                      <span className="text-base-regular">{option.name} </span>
+                    <div className="flex items-start w-full justify-between">
+                      <div className="flex items-start w-full gap-4">
+                        <div className="flex items-center h-6">
+                          <Radio checked={isSelected} />
+                        </div>
+                        <div className="flex-1 w-full">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-lg font-semibold text-gray-900">
+                              {option.name}
+                            </h4>
+                            <span className="text-lg font-bold text-gray-900">
+                              {getShippingOptionPrice(option)}
+                            </span>
+                          </div>
+
+                          {/* Mostrar información de tiempo si es el método seleccionado y es calculated */}
+                          {isSelected &&
+                            option.price_type === "calculated" &&
+                            deliveryRange && (
+                              <div className="mt-3 space-y-2">
+                                <div className="text-sm text-gray-600">
+                                  <span className="font-medium">
+                                    Tiempo producción:
+                                  </span>{" "}
+                                  {deliveryRange.minDays ===
+                                  deliveryRange.maxDays
+                                    ? `${deliveryRange.minDays} días`
+                                    : `${deliveryRange.minDays}-${deliveryRange.maxDays} días`}
+                                </div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  Tu pedido llegará entre el{" "}
+                                  <span className="font-bold">
+                                    {deliveryRange.startDate.toLocaleDateString(
+                                      "es-ES",
+                                      {
+                                        day: "numeric",
+                                        month: "long",
+                                        year: "numeric",
+                                      }
+                                    )}
+                                  </span>
+                                  {deliveryRange.minDays !==
+                                    deliveryRange.maxDays && (
+                                    <>
+                                      {" "}
+                                      y el{" "}
+                                      <span className="font-bold">
+                                        {deliveryRange.endDate.toLocaleDateString(
+                                          "es-ES",
+                                          {
+                                            day: "numeric",
+                                            month: "long",
+                                            year: "numeric",
+                                          }
+                                        )}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  si nadie la lía por el camino
+                                </div>
+                              </div>
+                            )}
+
+                          {/* Para métodos flat rate, mostrar descripción simple */}
+                          {isSelected && option.price_type === "flat" && (
+                            <div className="mt-2 text-sm text-gray-600">
+                              {option.name.includes("Express") &&
+                                "1-2 días laborales"}
+                              {option.name.includes("Standard") &&
+                                "3-5 días laborales"}
+                              {option.name.includes("Recogida") &&
+                                "Disponible para recogida"}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <span className="justify-self-end text-ui-fg-base">
-                      {getShippingOptionPrice(option)}
-                    </span>
                   </RadioGroup.Option>
                 )
               })}
             </RadioGroup>
-          </div>
-          <div>
-            {itemsWithEstimate.map((item) => (
-              <div key={item.id} className="mb-4 border p-4">
-                <p>
-                  <strong>{item.title}</strong>
-                </p>
-                <p>Producción: {item.production} días</p>
-                <p>Envío: {item.shipping} días</p>
-                <p>Total (hábiles): {item.totalDays} días</p>
-                <p>
-                  Fecha estimada de entrega:{" "}
-                  {item.estimatedDate.toLocaleDateString("es-ES", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
-            ))}
           </div>
 
           <ErrorMessage

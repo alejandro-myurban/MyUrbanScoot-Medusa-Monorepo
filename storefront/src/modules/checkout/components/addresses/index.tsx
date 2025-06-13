@@ -17,6 +17,7 @@ import ShippingAddress from "../shipping-address"
 import { SubmitButton } from "../submit-button"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { ExpressCheckoutElement } from "@stripe/react-stripe-js"
 
 const Addresses = ({
   cart,
@@ -32,7 +33,7 @@ const Addresses = ({
   const [submitCount, setSubmitCount] = useState(0)
   const isOpen = searchParams.get("step") === "address" || "delivery"
   const [showButton, setShowButton] = useState<boolean>(false)
-  const {t} = useTranslation()
+  const { t } = useTranslation()
 
   const { state: sameAsBilling, toggle: toggleSameAsBilling } = useToggleState(
     cart?.shipping_address && cart?.billing_address
@@ -52,7 +53,7 @@ const Addresses = ({
       const tgt = e.target as HTMLInputElement
       if (tgt.name === "email") {
         form.requestSubmit()
-        
+
         // Set a timeout to show the button after 5 seconds
         const timer = setTimeout(() => {
           setShowButton(true)
@@ -65,7 +66,7 @@ const Addresses = ({
 
     // Listen in capture phase to catch blur before it propagates
     form.addEventListener("blur", onBlur, true)
-    
+
     return () => {
       form.removeEventListener("blur", onBlur, true)
     }
@@ -79,8 +80,57 @@ const Addresses = ({
     return formAction(formData)
   }
 
+  const expressCheckoutOptions = {
+    buttonType: {
+      googlePay: "checkout" as const,
+      applePay: "check-out" as const,
+    },
+    buttonTheme: {
+      googlePay: "black" as const,
+      applePay: "black" as const,
+    },
+    buttonHeight: 48,
+    paymentMethods: {
+      googlePay: "always" as const, // Siempre mostrar Google Pay si está disponible
+      applePay: "always" as const, // Siempre mostrar Apple Pay si está disponible
+      link: "never" as const, // ❌ NO mostrar Link
+      amazonPay: "never" as const, // ❌ NO mostrar Amazon Pay
+      paypal: "never" as const, 
+      klarna: "never" as const 
+    },
+  }
+
+  const handleExpressCheckout = async (event: any) => {
+    // El popup y toda la lógica ya la maneja Stripe automáticamente
+    // Solo necesitas manejar el resultado final aquí
+    console.log("Pago completado con Express Checkout:", event)
+
+    // Continuar al siguiente paso o completar el pedido
+    router.push(pathname + "?step=review")
+  }
+
   return (
     <div className="bg-white">
+      {/* Express Checkout Element - Solo mostrar si hay un carrito válido */}
+      {cart && cart.total && cart.total > 0 && (
+        <div className="mb-6">
+          <ExpressCheckoutElement
+            className="mt-4"
+            options={expressCheckoutOptions}
+            onConfirm={handleExpressCheckout}
+          />
+
+          {/* Separador visual */}
+          <div className="flex items-center my-6">
+            <div className="flex-1 border-t border-gray-300"></div>
+            <span className="px-3 text-gray-500 text-sm">
+              O completa manualmente
+            </span>
+            <div className="flex-1 border-t border-gray-300"></div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-row items-center justify-between mb-6">
         <Heading
           level="h2"

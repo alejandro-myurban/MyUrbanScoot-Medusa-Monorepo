@@ -72,6 +72,16 @@ const CashOnDeliveryButton = ({
 
     try {
       console.log("Procesando orden con contrareembolso...")
+      
+      // Verificar que hay una sesión de pago activa para COD
+      const codSession = cart.payment_collection?.payment_sessions?.find(
+        (session) => session.provider_id === "pp_system_default" && session.status === "pending"
+      )
+      
+      if (!codSession) {
+        throw new Error("No se encontró una sesión de pago válida para contrareembolso")
+      }
+      
       await placeOrder()
       console.log("Orden de contrareembolso completada exitosamente")
     } catch (err: any) {
@@ -101,7 +111,7 @@ const CashOnDeliveryButton = ({
   )
 }
 
-// Componente para Stripe (tu código anterior mejorado)
+// Componente para Stripe
 const StripePaymentButton = ({
   cart,
   notReady,
