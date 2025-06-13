@@ -109,11 +109,11 @@ class MiFulfillmentProviderService extends AbstractFulfillmentProviderService {
     // Calcula el precio basado en el peso total
     let price = 0;
     if (totalWeight <= 1) {
-      price = 5;
+      price = 5.99;
     } else if (totalWeight <= 5) {
-      price = 10;
+      price = 5.99;
     } else {
-      price = 20;
+      price = 5.99;
     }
     
     console.log("PRECIO CALCULADO:", price);

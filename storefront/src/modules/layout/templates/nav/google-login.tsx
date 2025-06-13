@@ -29,13 +29,13 @@ export default function GoogleLogin() {
   }
 
   return (
-    <div>
+    <div className="p-[2px] rounded-lg bg-gradient-to-r from-blue-500 via-red-500 to-green-500">
       <button
-        className="flex gap-2 justify-center items-center"
+        type="button"
         onClick={loginWithGoogle}
+        className="flex text-sm justify-center font-dmSans font-semibold items-center py-2 px-1 gap-2 w-full bg-white text-black/90 uppercase rounded-lg"
       >
-        {t("login.google")}
-        <Google />
+        {t("login.google")} <Google />
       </button>
     </div>
   )

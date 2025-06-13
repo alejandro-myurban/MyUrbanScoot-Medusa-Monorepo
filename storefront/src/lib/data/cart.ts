@@ -22,9 +22,9 @@ import { getRegion } from "./regions"
  * @returns {Promise<boolean>} - True si la operación fue exitosa
  */
 export async function addCustomNameFee() {
-  const cartId = getCartId();
+  const cartId = getCartId()
   if (!cartId) {
-    throw new Error("No se encontró un carrito existente");
+    throw new Error("No se encontró un carrito existente")
   }
 
   return sdk.client
@@ -32,18 +32,18 @@ export async function addCustomNameFee() {
       method: "POST",
       headers: getAuthHeaders(),
     })
-    .then(async (response : any) => {
+    .then(async (response: any) => {
       // Parse the response body
-      revalidateTag("cart");
-      return response.success; // Access the `success` property directly
+      revalidateTag("cart")
+      return response.success // Access the `success` property directly
     })
-    .catch(medusaError);
+    .catch(medusaError)
 }
 
 export async function deleteRelatedItems(id: string) {
-  const cartId = getCartId();
+  const cartId = getCartId()
   if (!cartId) {
-    throw new Error("No se encontró un carrito existente");
+    throw new Error("No se encontró un carrito existente")
   }
 
   return sdk.client
@@ -52,12 +52,12 @@ export async function deleteRelatedItems(id: string) {
       headers: getAuthHeaders(),
       body: { line_item_id: id },
     })
-    .then(async (response : any) => {
+    .then(async (response: any) => {
       // Parse the response body
-      revalidateTag("cart");
-      return response.sucess; // Access the `success` property directly
+      revalidateTag("cart")
+      return response.sucess // Access the `success` property directly
     })
-    .catch(medusaError);
+    .catch(medusaError)
 }
 
 export async function retrieveCart(cartId = getCartId()) {
@@ -549,5 +549,57 @@ export async function updateCartPaymentMethod(
   } catch (error) {
     console.error("Error updating payment method:", error)
     throw new Error("No se pudo actualizar el método de pago")
+  }
+}
+
+// Añade esta función a tu archivo @lib/data/cart.ts
+
+export async function createPaymentCollection(cartId: string) {
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/payment-collections`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-publishable-api-key":
+            process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+        },
+        body: JSON.stringify({
+          cart_id: cartId,
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(
+        errorData.message ||
+          `Failed to create payment collection: ${response.statusText}`
+      )
+    }
+
+    const data = await response.json()
+
+    // Recargar el carrito para obtener la payment collection actualizada
+    const cartResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/carts/${cartId}`,
+      {
+        headers: {
+          "x-publishable-api-key":
+            process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+        },
+      }
+    )
+
+    if (!cartResponse.ok) {
+      throw new Error("Failed to reload cart after creating payment collection")
+    }
+
+    const cartData = await cartResponse.json()
+    return cartData
+  } catch (error) {
+    console.error("Error creating payment collection:", error)
+    throw error
   }
 }

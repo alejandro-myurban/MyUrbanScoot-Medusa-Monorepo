@@ -7,6 +7,7 @@ import { SubmitButton } from "@modules/checkout/components/submit-button"
 import { login } from "@lib/data/customer"
 import GoogleLogin from "@modules/layout/templates/nav/google-login"
 import { useTranslation } from "react-i18next"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 type Props = {
   setCurrentView: (view: LOGIN_VIEW) => void
@@ -59,9 +60,20 @@ const Login = ({ setCurrentView }: Props) => {
           />
         </div>
         <ErrorMessage error={message} data-testid="login-error-message" />
+        <div className="mt-2 text-center">
+          <p className="text-xs text-gray-500">
+            ¿Has olvidado tu contraseña?{" "}
+            <LocalizedClientLink
+              href="/reset-password"
+              className="text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Haz click aquí
+            </LocalizedClientLink>
+          </p>
+        </div>
         <SubmitButton
           data-testid="sign-in-button"
-          className="w-full mt-6 uppercase"
+          className="w-full mt-4 uppercase font-dmSans"
         >
           {t("login.login_button")}
         </SubmitButton>
@@ -70,16 +82,9 @@ const Login = ({ setCurrentView }: Props) => {
           <span className="text-gray-500 text-sm font-medium">O</span>
           <div className="flex-1 h-px bg-gray-300"></div>
         </div>
-        <SubmitButton
-          data-testid="sign-in-button"
-          className="w-full bg-white text-black/90 uppercase bg-gradient-to-r from-blue-500 via-red-500 to-green-500 bg-clip-border p-[2px]"
-        >
-          <div className="bg-white rounded px-4 py-2 w-full h-full flex items-center justify-center">
-            <GoogleLogin />
-          </div>
-        </SubmitButton>
+        <GoogleLogin />
       </form>
-      <span className="text-center text-ui-fg-base text-small-regular mt-6">
+      <span className="text-center  text-ui-fg-base text-small-regular mt-6">
         {t("login.register_link")}{" "}
         <button
           onClick={() => setCurrentView(LOGIN_VIEW.REGISTER)}
