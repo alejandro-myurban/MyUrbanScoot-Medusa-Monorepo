@@ -146,66 +146,95 @@ const Addresses = ({
         return
       }
 
-      // Extraer datos del evento
-      const payerNameSplit = (event.billingDetails?.name ?? event.shippingAddress?.name)?.split(' ')
+      // Extraer datos del evento correctamente
+      const payerNameSplit = (event.billingDetails?.name ?? event.shippingAddress?.name)?.split(' ') || []
       
-      if (!payerNameSplit) {
+      if (payerNameSplit.length === 0) {
         event.paymentFailed({ reason: 'fail' })
         setExpressCheckoutError("Por favor proporciona un nombre válido")
         return
       }
 
-      // Construir direcciones
+      // Construir dirección de envío desde shippingAddress
       const shippingAddress = {
-        first_name: payerNameSplit[0] ?? '',
-        last_name: payerNameSplit.slice(1).join(' ') ?? '',
-        address_1: event.shippingAddress?.address?.line1 ?? '',
-        address_2: event.shippingAddress?.address?.line2 ?? '',
-        city: event.shippingAddress?.address?.city ?? '',
-        province: event.shippingAddress?.address?.state ?? '',
-        postal_code: event.shippingAddress?.address?.postal_code ?? '',
-        country_code: event.shippingAddress?.address?.country?.toLowerCase() ?? '',
-        phone: event.billingDetails?.phone ?? '',
+        first_name: payerNameSplit[0] || '',
+        last_name: payerNameSplit.slice(1).join(' ') || '',
+        address_1: event.shippingAddress?.address?.line1 || '',
+        address_2: event.shippingAddress?.address?.line2 || '',
+        city: event.shippingAddress?.address?.city || '',
+        province: event.shippingAddress?.address?.state || '',
+        postal_code: event.shippingAddress?.address?.postal_code || '',
+        country_code: event.shippingAddress?.address?.country?.toLowerCase() || '',
+        phone: event.billingDetails?.phone || '',
       }
 
+      // Construir dirección de facturación desde billingDetails
       const billingAddress = {
-        first_name: payerNameSplit[0] ?? '',
-        last_name: payerNameSplit.slice(1).join(' ') ?? '',
-        address_1: event.billingDetails?.address?.line1 ?? '',
-        address_2: event.billingDetails?.address?.line2 ?? '',
-        city: event.billingDetails?.address?.city ?? '',
-        province: event.billingDetails?.address?.state ?? '',
-        postal_code: event.billingDetails?.address?.postal_code ?? '',
-        country_code: event.billingDetails?.address?.country?.toLowerCase() ?? '',
-        phone: event.billingDetails?.phone ?? '',
+        first_name: payerNameSplit[0] || '',
+        last_name: payerNameSplit.slice(1).join(' ') || '',
+        address_1: event.billingDetails?.address?.line1 || '',
+        address_2: event.billingDetails?.address?.line2 || '',
+        city: event.billingDetails?.address?.city || '',
+        province: event.billingDetails?.address?.state || '',
+        postal_code: event.billingDetails?.address?.postal_code || '',
+        country_code: event.billingDetails?.address?.country?.toLowerCase() || '',
+        phone: event.billingDetails?.phone || '',
       }
 
       console.log("📍 Dirección de envío:", shippingAddress)
       console.log("💳 Dirección de facturación:", billingAddress)
 
-      // Actualizar carrito con las direcciones
+      // Crear FormData con la estructura exacta que espera setAddresses
       const formData = new FormData()
       
-      // Agregar datos de envío
-      Object.entries(shippingAddress).forEach(([key, value]) => {
-        formData.append(`shipping_address.${key}`, value as string)
-      })
-      
-      // Agregar datos de facturación
-      Object.entries(billingAddress).forEach(([key, value]) => {
-        formData.append(`billing_address.${key}`, value as string)
-      })
-      
+      // Email
       formData.append('email', event.billingDetails?.email ?? cart?.email ?? '')
-      formData.append('same_as_billing', 'false')
-
-      // Actualizar direcciones
-      await setAddresses(null, formData)
-
-      console.log("✅ Direcciones actualizadas, redirigiendo...")
       
-      // Redirigir al siguiente paso
-      router.push(pathname + "?step=payment")
+      // Shipping address - formato exacto que espera la función
+      formData.append('shipping_address.first_name', shippingAddress.first_name)
+      formData.append('shipping_address.last_name', shippingAddress.last_name)
+      formData.append('shipping_address.address_1', shippingAddress.address_1)
+      formData.append('shipping_address.company', '') // Campo requerido aunque esté vacío
+      formData.append('shipping_address.postal_code', shippingAddress.postal_code)
+      formData.append('shipping_address.city', shippingAddress.city)
+      formData.append('shipping_address.country_code', shippingAddress.country_code)
+      formData.append('shipping_address.province', shippingAddress.province)
+      formData.append('shipping_address.phone', shippingAddress.phone)
+      
+      // Billing address
+      formData.append('billing_address.first_name', billingAddress.first_name)
+      formData.append('billing_address.last_name', billingAddress.last_name)
+      formData.append('billing_address.address_1', billingAddress.address_1)
+      formData.append('billing_address.company', '') // Campo requerido aunque esté vacío
+      formData.append('billing_address.postal_code', billingAddress.postal_code)
+      formData.append('billing_address.city', billingAddress.city)
+      formData.append('billing_address.country_code', billingAddress.country_code)
+      formData.append('billing_address.province', billingAddress.province)
+      formData.append('billing_address.phone', billingAddress.phone)
+      
+      // ✅ NO incluir same_as_billing para que use direcciones separadas
+      // La función detecta automáticamente si no está "on"
+      
+      console.log("📦 FormData preparado para setAddresses:")
+      Array.from(formData.entries()).forEach(([key, value]) => {
+        console.log(`${key}: ${value}`)
+      })
+
+      // Actualizar direcciones en el carrito
+      const result = await setAddresses(null, formData)
+      
+      console.log("🔄 Resultado de setAddresses:", result)
+
+      // Verificar si hubo errores
+      if (result && typeof result === 'string') {
+        throw new Error(result)
+      }
+
+      console.log("✅ Direcciones actualizadas correctamente")
+      
+      // La función setAddresses hace redirect automáticamente a:
+      // `/${country_code}/checkout?step=delivery`
+      // No necesitamos hacer nada más aquí
       
     } catch (error: any) {
       console.error("❌ Error en ExpressCheckout:", error)
@@ -227,9 +256,29 @@ const Addresses = ({
       return event.reject()
     }
 
+    // Obtener opciones de envío según la dirección
+    const shippingRates = mapShippingRates([])
+    console.log("🚚 Opciones de envío disponibles:", shippingRates)
+
     // Resolver con las opciones de envío
     const resolveDetails = {
-      shippingRates: mapShippingRates([])
+      shippingRates: shippingRates
+    }
+
+    // También actualizar el total inicial con la primera opción de envío
+    if (elements && cart?.total && shippingRates.length > 0) {
+      const cartTotalInCents = Math.round(cart.total * 100)
+      const firstShippingRate = shippingRates[0].amount
+      const totalWithShipping = cartTotalInCents + firstShippingRate
+      
+      console.log("💰 Actualizando total inicial con envío:")
+      console.log("- Cart total:", cartTotalInCents, "centavos")
+      console.log("- First shipping:", firstShippingRate, "centavos")
+      console.log("- Total with shipping:", totalWithShipping, "centavos")
+      
+      elements.update({
+        amount: totalWithShipping,
+      })
     }
 
     return event.resolve(resolveDetails)
@@ -241,7 +290,13 @@ const Addresses = ({
     // Actualizar el total con el costo de envío
     if (elements && cart?.total) {
       const shippingAmount = event.shippingRate.amount
-      const newTotal = Math.round(cart.total * 100) + shippingAmount
+      const cartTotalInCents = Math.round(cart.total * 100)
+      const newTotal = cartTotalInCents + shippingAmount
+      
+      console.log("💰 Cálculo del total:")
+      console.log("- Cart total:", cart.total, "€ =", cartTotalInCents, "centavos")
+      console.log("- Shipping cost:", shippingAmount, "centavos")
+      console.log("- New total:", newTotal, "centavos")
       
       elements.update({
         amount: newTotal,
@@ -336,9 +391,6 @@ const Addresses = ({
                   applePay: 'always',
                   googlePay: 'always',
                   link: 'auto',
-                  paypal: "never",
-                  klarna: "never",
-                  
                 },
               }}
               onCancel={onCancel}
