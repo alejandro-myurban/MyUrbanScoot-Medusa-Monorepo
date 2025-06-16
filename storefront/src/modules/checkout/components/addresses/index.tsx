@@ -7,7 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import Divider from "@modules/common/components/divider"
 import Spinner from "@modules/common/icons/spinner"
 
-import { setAddresses } from "@lib/data/cart"
+import { setAddresses, createPaymentCollection } from "@lib/data/cart"
 import compareAddresses from "@lib/util/compare-addresses"
 import { HttpTypes } from "@medusajs/types"
 import { useFormState } from "react-dom"
@@ -15,9 +15,14 @@ import BillingAddress from "../billing_address"
 import ErrorMessage from "../error-message"
 import ShippingAddress from "../shipping-address"
 import { SubmitButton } from "../submit-button"
-import { useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ExpressCheckoutElement } from "@stripe/react-stripe-js"
+import {
+  ExpressCheckoutElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js"
+import { StripeContext } from "@modules/checkout/components/payment-wrapper/stripe-wrapper"
 
 const Addresses = ({
   cart,
@@ -31,9 +36,57 @@ const Addresses = ({
   const pathname = usePathname()
   const formRef = useRef<HTMLFormElement>(null)
   const [submitCount, setSubmitCount] = useState(0)
-  const isOpen = searchParams.get("step") === "address" || "delivery"
+  const [expressCheckoutLoading, setExpressCheckoutLoading] = useState(false)
+  const [expressCheckoutError, setExpressCheckoutError] = useState<
+    string | null
+  >(null)
+
+  const isOpen =
+    searchParams.get("step") === "address" ||
+    searchParams.get("step") === "delivery"
   const [showButton, setShowButton] = useState<boolean>(false)
   const { t } = useTranslation()
+
+  // Usar la misma lógica que Payment
+  const stripeReady = useContext(StripeContext)
+  const stripe = stripeReady ? useStripe() : null
+  const elements = stripeReady ? useElements() : null
+
+  // Debug adicional para diagnosticar el problema
+  useEffect(() => {
+    console.log("🔍 Diagnóstico detallado de Stripe:")
+    console.log("- StripeContext ready:", stripeReady)
+    console.log("- useStripe() result:", stripe)
+    console.log("- useElements() result:", elements)
+    console.log(
+      "- Stripe loading state:",
+      stripe === null ? "loading" : "ready"
+    )
+    console.log(
+      "- Elements loading state:",
+      elements === null ? "loading" : "ready"
+    )
+  }, [stripeReady, stripe, elements])
+
+  // Debug logs más detallados
+  useEffect(() => {
+    console.log("=== DEBUG ADDRESSES EXPRESS CHECKOUT ===")
+    console.log("stripeReady:", stripeReady)
+    console.log("stripe initialized:", !!stripe)
+    console.log("elements initialized:", !!elements)
+    console.log("cart exists:", !!cart)
+    console.log("cart total:", cart?.total)
+    console.log("payment collection exists:", !!cart?.payment_collection)
+    console.log(
+      "payment sessions:",
+      cart?.payment_collection?.payment_sessions?.length || 0
+    )
+    console.log(
+      "shipping address complete:",
+      !!cart?.shipping_address?.address_1
+    )
+    console.log("==========================================")
+  }, [stripeReady, stripe, elements, cart])
 
   const { state: sameAsBilling, toggle: toggleSameAsBilling } = useToggleState(
     cart?.shipping_address && cart?.billing_address
@@ -45,6 +98,26 @@ const Addresses = ({
     router.push(pathname + "?step=address")
   }
 
+  // Inicializar payment collection si no existe (necesario para ExpressCheckout)
+  useEffect(() => {
+    const initializePaymentCollection = async () => {
+      if (cart && !cart.payment_collection && stripeReady) {
+        try {
+          console.log(
+            "🔄 Inicializando payment collection para ExpressCheckout..."
+          )
+          await createPaymentCollection(cart.id)
+          console.log("✅ Payment collection creada para ExpressCheckout")
+        } catch (error) {
+          console.error("❌ Error creando payment collection:", error)
+          setExpressCheckoutError("Error inicializando ExpressCheckout")
+        }
+      }
+    }
+
+    initializePaymentCollection()
+  }, [cart?.id, cart?.payment_collection, stripeReady])
+
   useEffect(() => {
     const form = formRef.current
     if (!form) return
@@ -54,17 +127,14 @@ const Addresses = ({
       if (tgt.name === "email") {
         form.requestSubmit()
 
-        // Set a timeout to show the button after 5 seconds
         const timer = setTimeout(() => {
           setShowButton(true)
         }, 5000)
 
-        // Clean up the timer if the component unmounts
         return () => clearTimeout(timer)
       }
     }
 
-    // Listen in capture phase to catch blur before it propagates
     form.addEventListener("blur", onBlur, true)
 
     return () => {
@@ -74,12 +144,12 @@ const Addresses = ({
 
   const [message, formAction] = useFormState(setAddresses, null)
 
-  // Wrap the formAction to increment submit count
   const handleSubmit = (formData: FormData) => {
     setSubmitCount((prev) => prev + 1)
     return formAction(formData)
   }
 
+  // Configuración optimizada para ExpressCheckout
   const expressCheckoutOptions = {
     buttonType: {
       googlePay: "checkout" as const,
@@ -91,28 +161,77 @@ const Addresses = ({
     },
     buttonHeight: 48,
     paymentMethods: {
-      googlePay: "always" as const, // Siempre mostrar Google Pay si está disponible
-      applePay: "always" as const, // Siempre mostrar Apple Pay si está disponible
-      link: "never" as const, // ❌ NO mostrar Link
-      amazonPay: "never" as const, // ❌ NO mostrar Amazon Pay
-      paypal: "never" as const, 
-      klarna: "never" as const 
+      googlePay: "always" as const,
+      applePay: "always" as const,
+      link: "never" as const,
+      amazonPay: "never" as const,
+      paypal: "never" as const,
+      klarna: "never" as const,
+    },
+    // Configuración específica para el paso de dirección
+    layout: {
+      overflow: "never" as const,
+      maxColumns: 1,
+      maxRows: 1,
     },
   }
 
   const handleExpressCheckout = async (event: any) => {
-    // El popup y toda la lógica ya la maneja Stripe automáticamente
-    // Solo necesitas manejar el resultado final aquí
-    console.log("Pago completado con Express Checkout:", event)
+    setExpressCheckoutLoading(true)
+    setExpressCheckoutError(null)
 
-    // Continuar al siguiente paso o completar el pedido
-    router.push(pathname + "?step=review")
+    try {
+      console.log("🚀 Iniciando ExpressCheckout desde Addresses:", event)
+
+      // Verificar que tenemos todo lo necesario
+      if (!stripe || !elements) {
+        throw new Error("Stripe no está disponible")
+      }
+
+      // El ExpressCheckout maneja automáticamente la dirección de envío
+      // Aquí podrías agregar lógica adicional si necesitas validar algo específico
+
+      console.log("✅ ExpressCheckout completado, redirigiendo a review...")
+      router.push(pathname + "?step=review")
+    } catch (error: any) {
+      console.error("❌ Error en ExpressCheckout:", error)
+      setExpressCheckoutError(
+        error.message || "Error procesando el pago express"
+      )
+    } finally {
+      setExpressCheckoutLoading(false)
+    }
+  }
+
+  // Condiciones más específicas para mostrar ExpressCheckout
+  const shouldShowExpressCheckout =
+    stripeReady &&
+    stripe !== null && // Stripe puede ser null mientras carga
+    elements !== null && // Elements puede ser null mientras carga
+    cart &&
+    cart.total &&
+    cart.total > 0 &&
+    cart.payment_collection && // Necesario para que funcione
+    !expressCheckoutLoading
+
+  // Mensaje de debug más informativo
+  const getDebugMessage = () => {
+    const checks = [
+      { name: "Stripe Ready", value: stripeReady },
+      { name: "Stripe", value: stripe !== null ? "ready" : "null/loading" },
+      { name: "Elements", value: elements !== null ? "ready" : "null/loading" },
+      { name: "Cart", value: !!cart },
+      { name: "Total > 0", value: cart && cart.total > 0 },
+      { name: "Payment Collection", value: !!cart?.payment_collection },
+    ]
+
+    return checks.map((check) => `${check.name}: ${check.value}`).join(", ")
   }
 
   return (
     <div className="bg-white">
-      {/* Express Checkout Element - Solo mostrar si hay un carrito válido */}
-      {cart && cart.total && cart.total > 0 && (
+      {/* Express Checkout Element */}
+      {shouldShowExpressCheckout ? (
         <div className="mb-6">
           <ExpressCheckoutElement
             className="mt-4"
@@ -120,7 +239,14 @@ const Addresses = ({
             onConfirm={handleExpressCheckout}
           />
 
-          {/* Separador visual */}
+          {expressCheckoutError && (
+            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
+              <Text className="text-sm text-red-700">
+                {expressCheckoutError}
+              </Text>
+            </div>
+          )}
+
           <div className="flex items-center my-6">
             <div className="flex-1 border-t border-gray-300"></div>
             <span className="px-3 text-gray-500 text-sm">
@@ -128,6 +254,15 @@ const Addresses = ({
             </span>
             <div className="flex-1 border-t border-gray-300"></div>
           </div>
+        </div>
+      ) : (
+        <div className="mb-6 p-4 bg-white border border-blue-200 rounded">
+          {expressCheckoutLoading && (
+            <div className="mt-2 flex items-center gap-2">
+              <Spinner />
+              <span className="text-sm">Inicializando pago express...</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -151,6 +286,7 @@ const Addresses = ({
           </Text>
         )}
       </div>
+
       {isOpen ? (
         <form ref={formRef} action={handleSubmit} key={submitCount}>
           <div className="pb-8">

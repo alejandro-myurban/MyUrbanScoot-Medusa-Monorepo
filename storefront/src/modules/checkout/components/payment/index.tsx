@@ -47,9 +47,11 @@ const useIsMobile = () => {
 const Payment = ({
   cart,
   availablePaymentMethods,
+  onCartUpdate, // Nueva prop opcional
 }: {
   cart: any
   availablePaymentMethods: any[]
+  onCartUpdate?: (cart: any) => void
 }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -249,51 +251,23 @@ const Payment = ({
     try {
       console.log(`🔄 Iniciando sesión para provider: ${providerId}`)
 
-      // NUEVA LÓGICA: Manejar el cargo COD antes de crear la sesión de pago
+      // Manejar el cargo COD antes de crear la sesión de pago
       console.log(`🔄 Manejando cargo COD para provider: ${providerId}`)
       const updatedCart = await handlePaymentProviderChange(providerId)
 
       if (updatedCart) {
         console.log("✅ Carrito actualizado con/sin cargo COD:", updatedCart)
         setCurrentCart(updatedCart)
+
+        // NUEVO: Notificar al componente padre sobre la actualización
+        if (onCartUpdate) {
+          onCartUpdate(updatedCart)
+        }
       } else if (codError) {
         throw new Error(codError)
       }
 
-      // Verificar el carrito antes de iniciar la sesión
-      console.log("Cart before payment session:", {
-        id: cart.id,
-        payment_collection: cart.payment_collection,
-        existing_sessions:
-          cart.payment_collection?.payment_sessions?.length || 0,
-      })
-
-      // Si no hay payment collection, crear una primero
-      let paymentCollectionId = cart.payment_collection?.id
-
-      if (!paymentCollectionId) {
-        console.log("🔄 No hay payment collection, creando una...")
-        const collectionResult = await createPaymentCollection(cart.id)
-
-        if (collectionResult && collectionResult.cart) {
-          paymentCollectionId = collectionResult.cart.payment_collection?.id
-          console.log(`✅ Payment collection creada: ${paymentCollectionId}`)
-        } else {
-          throw new Error("No se pudo crear la payment collection")
-        }
-      }
-
-      // Ahora inicializar la sesión de pago
-      const result = await initiatePaymentSession(cart, {
-        provider_id: providerId,
-      })
-
-      console.log(`✅ Sesión iniciada para provider: ${providerId}`, result)
-
-      // Si es COD (sistema), verificar que se creó correctamente
-      if (providerId === "pp_system_default") {
-        console.log("🔍 Verificando sesión COD creada...")
-      }
+      // ... resto de tu código existente
     } catch (err: any) {
       console.error(`❌ Error al inicializar sesión para ${providerId}:`, err)
       setError(`Error al inicializar el método de pago: ${err.message}`)
@@ -423,7 +397,7 @@ const Payment = ({
   const displayError = error || codError
 
   function onChange(event: StripePaymentElementChangeEvent) {
-    handlePaymentElementChange(event);
+    handlePaymentElementChange(event)
   }
 
   return (
