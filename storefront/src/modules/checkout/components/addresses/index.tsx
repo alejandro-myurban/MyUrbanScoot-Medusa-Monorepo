@@ -40,6 +40,9 @@ const Addresses = ({
   const [expressCheckoutError, setExpressCheckoutError] = useState<
     string | null
   >(null)
+  const [canMakePaymentStatus, setCanMakePaymentStatus] = useState<
+    'first_load' | 'available' | 'unavailable'
+  >('first_load')
 
   const isOpen =
     searchParams.get("step") === "address" ||
@@ -47,46 +50,9 @@ const Addresses = ({
   const [showButton, setShowButton] = useState<boolean>(false)
   const { t } = useTranslation()
 
-  // Usar la misma lógica que Payment
   const stripeReady = useContext(StripeContext)
   const stripe = stripeReady ? useStripe() : null
   const elements = stripeReady ? useElements() : null
-
-  // Debug adicional para diagnosticar el problema
-  useEffect(() => {
-    console.log("🔍 Diagnóstico detallado de Stripe:")
-    console.log("- StripeContext ready:", stripeReady)
-    console.log("- useStripe() result:", stripe)
-    console.log("- useElements() result:", elements)
-    console.log(
-      "- Stripe loading state:",
-      stripe === null ? "loading" : "ready"
-    )
-    console.log(
-      "- Elements loading state:",
-      elements === null ? "loading" : "ready"
-    )
-  }, [stripeReady, stripe, elements])
-
-  // Debug logs más detallados
-  useEffect(() => {
-    console.log("=== DEBUG ADDRESSES EXPRESS CHECKOUT ===")
-    console.log("stripeReady:", stripeReady)
-    console.log("stripe initialized:", !!stripe)
-    console.log("elements initialized:", !!elements)
-    console.log("cart exists:", !!cart)
-    console.log("cart total:", cart?.total)
-    console.log("payment collection exists:", !!cart?.payment_collection)
-    console.log(
-      "payment sessions:",
-      cart?.payment_collection?.payment_sessions?.length || 0
-    )
-    console.log(
-      "shipping address complete:",
-      !!cart?.shipping_address?.address_1
-    )
-    console.log("==========================================")
-  }, [stripeReady, stripe, elements, cart])
 
   const { state: sameAsBilling, toggle: toggleSameAsBilling } = useToggleState(
     cart?.shipping_address && cart?.billing_address
@@ -98,16 +64,14 @@ const Addresses = ({
     router.push(pathname + "?step=address")
   }
 
-  // Inicializar payment collection si no existe (necesario para ExpressCheckout)
+  // Inicializar payment collection si no existe
   useEffect(() => {
     const initializePaymentCollection = async () => {
       if (cart && !cart.payment_collection && stripeReady) {
         try {
-          console.log(
-            "🔄 Inicializando payment collection para ExpressCheckout..."
-          )
+          console.log("🔄 Inicializando payment collection...")
           await createPaymentCollection(cart.id)
-          console.log("✅ Payment collection creada para ExpressCheckout")
+          console.log("✅ Payment collection creada")
         } catch (error) {
           console.error("❌ Error creando payment collection:", error)
           setExpressCheckoutError("Error inicializando ExpressCheckout")
@@ -117,6 +81,181 @@ const Addresses = ({
 
     initializePaymentCollection()
   }, [cart?.id, cart?.payment_collection, stripeReady])
+
+  // Mapear opciones de envío al formato de Stripe
+  const mapShippingRates = (shippingOptions: any[]) => {
+    if (!shippingOptions?.length) {
+      // Opciones por defecto si no hay ninguna
+      return [
+        {
+          id: "standard",
+          displayName: "Envío Estándar (3-5 días)",
+          amount: 500, // €5.00 en centavos
+        },
+        {
+          id: "express", 
+          displayName: "Envío Express (1-2 días)",
+          amount: 1500, // €15.00 en centavos
+        },
+      ]
+    }
+
+    return shippingOptions.map((option, index) => ({
+      id: option.id ?? index.toString(),
+      displayName: option.name ?? `Opción de envío ${index + 1}`,
+      amount: Math.round((option.amount ?? 0) * 100), // Convertir a centavos
+    }))
+  }
+
+  // Eventos del ExpressCheckoutElement
+  const onReady = ({ availablePaymentMethods, ...rest }: any) => {
+    console.log("🚀 ExpressCheckout ready:", { availablePaymentMethods, rest })
+    
+    if (!availablePaymentMethods) {
+      setCanMakePaymentStatus('unavailable')
+      return
+    }
+
+    setCanMakePaymentStatus('available')
+  }
+
+  const onClick = ({ resolve, expressPaymentType }: any) => {
+    console.log("👆 ExpressCheckout clicked:", expressPaymentType)
+    setExpressCheckoutLoading(true)
+    
+    const options = {
+      emailRequired: true,
+      shippingAddressRequired: true,
+      billingAddressRequired: true,
+      phoneNumberRequired: true,
+      shippingRates: mapShippingRates([]), // Usar opciones por defecto
+    }
+
+    resolve(options)
+  }
+
+  const onConfirm = async (event: any) => {
+    console.log("✅ ExpressCheckout confirm:", event)
+    setExpressCheckoutLoading(true)
+    setExpressCheckoutError(null)
+
+    try {
+      if (!stripe || !elements) {
+        event.paymentFailed({ reason: 'fail' })
+        setExpressCheckoutError("Stripe no está disponible")
+        return
+      }
+
+      // Extraer datos del evento
+      const payerNameSplit = (event.billingDetails?.name ?? event.shippingAddress?.name)?.split(' ')
+      
+      if (!payerNameSplit) {
+        event.paymentFailed({ reason: 'fail' })
+        setExpressCheckoutError("Por favor proporciona un nombre válido")
+        return
+      }
+
+      // Construir direcciones
+      const shippingAddress = {
+        first_name: payerNameSplit[0] ?? '',
+        last_name: payerNameSplit.slice(1).join(' ') ?? '',
+        address_1: event.shippingAddress?.address?.line1 ?? '',
+        address_2: event.shippingAddress?.address?.line2 ?? '',
+        city: event.shippingAddress?.address?.city ?? '',
+        province: event.shippingAddress?.address?.state ?? '',
+        postal_code: event.shippingAddress?.address?.postal_code ?? '',
+        country_code: event.shippingAddress?.address?.country?.toLowerCase() ?? '',
+        phone: event.billingDetails?.phone ?? '',
+      }
+
+      const billingAddress = {
+        first_name: payerNameSplit[0] ?? '',
+        last_name: payerNameSplit.slice(1).join(' ') ?? '',
+        address_1: event.billingDetails?.address?.line1 ?? '',
+        address_2: event.billingDetails?.address?.line2 ?? '',
+        city: event.billingDetails?.address?.city ?? '',
+        province: event.billingDetails?.address?.state ?? '',
+        postal_code: event.billingDetails?.address?.postal_code ?? '',
+        country_code: event.billingDetails?.address?.country?.toLowerCase() ?? '',
+        phone: event.billingDetails?.phone ?? '',
+      }
+
+      console.log("📍 Dirección de envío:", shippingAddress)
+      console.log("💳 Dirección de facturación:", billingAddress)
+
+      // Actualizar carrito con las direcciones
+      const formData = new FormData()
+      
+      // Agregar datos de envío
+      Object.entries(shippingAddress).forEach(([key, value]) => {
+        formData.append(`shipping_address.${key}`, value as string)
+      })
+      
+      // Agregar datos de facturación
+      Object.entries(billingAddress).forEach(([key, value]) => {
+        formData.append(`billing_address.${key}`, value as string)
+      })
+      
+      formData.append('email', event.billingDetails?.email ?? cart?.email ?? '')
+      formData.append('same_as_billing', 'false')
+
+      // Actualizar direcciones
+      await setAddresses(null, formData)
+
+      console.log("✅ Direcciones actualizadas, redirigiendo...")
+      
+      // Redirigir al siguiente paso
+      router.push(pathname + "?step=payment")
+      
+    } catch (error: any) {
+      console.error("❌ Error en ExpressCheckout:", error)
+      setExpressCheckoutError(error.message || "Error procesando el pago express")
+      event.paymentFailed({ reason: 'fail' })
+    } finally {
+      setExpressCheckoutLoading(false)
+    }
+  }
+
+  const onShippingAddressChange = async (event: any) => {
+    console.log("📍 Cambio de dirección:", event.address)
+    
+    // Validar país (ejemplo: solo España y países UE)
+    const allowedCountries = ["ES", "FR", "IT", "DE", "PT", "NL", "BE"]
+    
+    if (!allowedCountries.includes(event.address?.country)) {
+      setExpressCheckoutError("No enviamos a este país")
+      return event.reject()
+    }
+
+    // Resolver con las opciones de envío
+    const resolveDetails = {
+      shippingRates: mapShippingRates([])
+    }
+
+    return event.resolve(resolveDetails)
+  }
+
+  const onShippingRateChange = async (event: any) => {
+    console.log("🚚 Cambio de tarifa de envío:", event.shippingRate)
+    
+    // Actualizar el total con el costo de envío
+    if (elements && cart?.total) {
+      const shippingAmount = event.shippingRate.amount
+      const newTotal = Math.round(cart.total * 100) + shippingAmount
+      
+      elements.update({
+        amount: newTotal,
+      })
+    }
+
+    event.resolve()
+  }
+
+  const onCancel = () => {
+    console.log("❌ ExpressCheckout cancelado")
+    setExpressCheckoutLoading(false)
+    setExpressCheckoutError(null)
+  }
 
   useEffect(() => {
     const form = formRef.current
@@ -149,95 +288,72 @@ const Addresses = ({
     return formAction(formData)
   }
 
-  // Configuración optimizada para ExpressCheckout
-  const expressCheckoutOptions = {
-    buttonType: {
-      googlePay: "checkout" as const,
-      applePay: "check-out" as const,
-    },
-    buttonTheme: {
-      googlePay: "black" as const,
-      applePay: "black" as const,
-    },
-    buttonHeight: 48,
-    paymentMethods: {
-      googlePay: "always" as const,
-      applePay: "always" as const,
-      link: "never" as const,
-      amazonPay: "never" as const,
-      paypal: "never" as const,
-      klarna: "never" as const,
-    },
+  // Skeleton mientras carga
+  const ExpressCheckoutSkeleton = () => {
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        <div className="h-11 animate-pulse rounded-lg bg-gray-200" />
+        <div className="h-11 animate-pulse rounded-lg bg-gray-200" />
+      </div>
+    )
   }
 
-  const handleExpressCheckout = async (event: any) => {
-    setExpressCheckoutLoading(true)
-    setExpressCheckoutError(null)
-
-    try {
-      console.log("🚀 Iniciando ExpressCheckout desde Addresses:", event)
-
-      // Verificar que tenemos todo lo necesario
-      if (!stripe || !elements) {
-        throw new Error("Stripe no está disponible")
-      }
-
-      // El ExpressCheckout maneja automáticamente la dirección de envío
-      // Aquí podrías agregar lógica adicional si necesitas validar algo específico
-
-      console.log("✅ ExpressCheckout completado, redirigiendo a review...")
-      router.push(pathname + "?step=review")
-    } catch (error: any) {
-      console.error("❌ Error en ExpressCheckout:", error)
-      setExpressCheckoutError(
-        error.message || "Error procesando el pago express"
-      )
-    } finally {
-      setExpressCheckoutLoading(false)
-    }
-  }
-
-  // Condiciones más específicas para mostrar ExpressCheckout
+  // Condiciones para mostrar ExpressCheckout
   const shouldShowExpressCheckout =
     stripeReady &&
-    stripe !== null && // Stripe puede ser null mientras carga
-    elements !== null && // Elements puede ser null mientras carga
+    stripe !== null &&
+    elements !== null &&
     cart &&
     cart.total &&
     cart.total > 0 &&
-    cart.payment_collection && // Necesario para que funcione
-    !expressCheckoutLoading
-
-  // Mensaje de debug más informativo
-  const getDebugMessage = () => {
-    const checks = [
-      { name: "Stripe Ready", value: stripeReady },
-      { name: "Stripe", value: stripe !== null ? "ready" : "null/loading" },
-      { name: "Elements", value: elements !== null ? "ready" : "null/loading" },
-      { name: "Cart", value: !!cart },
-      { name: "Total > 0", value: cart && cart.total > 0 },
-      { name: "Payment Collection", value: !!cart?.payment_collection },
-    ]
-
-    return checks.map((check) => `${check.name}: ${check.value}`).join(", ")
-  }
+    cart.payment_collection &&
+    (canMakePaymentStatus === 'available' || canMakePaymentStatus === 'first_load')
 
   return (
     <div className="bg-white">
-      {/* Express Checkout Element */}
-      {shouldShowExpressCheckout ? (
+      {/* Express Checkout */}
+      {shouldShowExpressCheckout && (
         <div className="mb-6">
-          <ExpressCheckoutElement
-            className="mt-4"
-            options={expressCheckoutOptions}
-            onConfirm={handleExpressCheckout}
-          />
+          <Heading level="h3" className="text-xl mb-4">
+            Pago Express
+          </Heading>
 
           {expressCheckoutError && (
-            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
               <Text className="text-sm text-red-700">
                 {expressCheckoutError}
               </Text>
+            </div>
+          )}
+
+          <div className="py-4">
+            {canMakePaymentStatus === 'first_load' && <ExpressCheckoutSkeleton />}
+
+            <ExpressCheckoutElement
+              options={{
+                paymentMethodOrder: ['apple_pay', 'google_pay', 'link'],
+                paymentMethods: {
+                  applePay: 'always',
+                  googlePay: 'always',
+                  link: 'auto',
+                  paypal: "never",
+                  klarna: "never",
+                  
+                },
+              }}
+              onCancel={onCancel}
+              onReady={onReady}
+              onShippingAddressChange={onShippingAddressChange}
+              onClick={onClick}
+              onConfirm={onConfirm}
+              onShippingRateChange={onShippingRateChange}
+            />
+          </div>
+
+          {expressCheckoutLoading && (
+            <div className="mt-3 flex items-center gap-2">
+              <Spinner />
+              <Text className="text-sm">Procesando pago express...</Text>
             </div>
           )}
 
@@ -248,15 +364,6 @@ const Addresses = ({
             </span>
             <div className="flex-1 border-t border-gray-300"></div>
           </div>
-        </div>
-      ) : (
-        <div className="mb-6 p-4 bg-white border border-blue-200 rounded">
-          {expressCheckoutLoading && (
-            <div className="mt-2 flex items-center gap-2">
-              <Spinner />
-              <span className="text-sm">Inicializando pago express...</span>
-            </div>
-          )}
         </div>
       )}
 
