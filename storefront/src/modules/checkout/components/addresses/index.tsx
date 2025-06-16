@@ -168,12 +168,6 @@ const Addresses = ({
       paypal: "never" as const,
       klarna: "never" as const,
     },
-    // Configuración específica para el paso de dirección
-    layout: {
-      overflow: "never" as const,
-      maxColumns: 1,
-      maxRows: 1,
-    },
   }
 
   const handleExpressCheckout = async (event: any) => {
