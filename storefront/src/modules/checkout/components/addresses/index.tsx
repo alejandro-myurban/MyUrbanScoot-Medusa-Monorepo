@@ -7,7 +7,13 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import Divider from "@modules/common/components/divider"
 import Spinner from "@modules/common/icons/spinner"
 
-import { setAddresses, createPaymentCollection, setShippingMethod } from "@lib/data/cart"
+import {
+  setAddresses,
+  createPaymentCollection,
+  setShippingMethod,
+  placeOrder,
+} from "@lib/data/cart"
+import { sdk } from "@lib/config"
 import compareAddresses from "@lib/util/compare-addresses"
 import { HttpTypes } from "@medusajs/types"
 import { useFormState } from "react-dom"
@@ -41,9 +47,11 @@ const Addresses = ({
   const [expressCheckoutError, setExpressCheckoutError] = useState<
     string | null
   >(null)
+  const [expressCheckoutElementMounted, setExpressCheckoutElementMounted] =
+    useState(false)
   const [canMakePaymentStatus, setCanMakePaymentStatus] = useState<
-    'first_load' | 'available' | 'unavailable'
-  >('first_load')
+    "first_load" | "available" | "unavailable"
+  >("first_load")
 
   const isOpen =
     searchParams.get("step") === "address" ||
@@ -65,6 +73,39 @@ const Addresses = ({
     router.push(pathname + "?step=address")
   }
 
+  // Estado para cachear las shipping options
+  const [cachedShippingOptions, setCachedShippingOptions] = useState<any[]>([])
+
+  // Precargar shipping options cuando el carrito esté disponible
+  useEffect(() => {
+    const preloadShippingOptions = async () => {
+      if (cart?.id && cart?.shipping_address) {
+        try {
+          console.log(
+            "🔄 Precargando shipping options para carrito con dirección..."
+          )
+          const options = await listCartShippingMethods(cart.id)
+          if (options && options.length > 0) {
+            console.log("✅ Shipping options precargadas:", options)
+            setCachedShippingOptions(options)
+          }
+        } catch (error) {
+          console.log("⚠️ Error precargando shipping options:", error)
+        }
+      }
+    }
+
+    preloadShippingOptions()
+  }, [cart?.id, cart?.shipping_address])
+
+  // Limpiar estado al desmontar el componente
+  useEffect(() => {
+    return () => {
+      setExpressCheckoutElementMounted(false)
+      setCanMakePaymentStatus("first_load")
+    }
+  }, [])
+
   // Inicializar payment collection si no existe
   useEffect(() => {
     const initializePaymentCollection = async () => {
@@ -83,67 +124,193 @@ const Addresses = ({
     initializePaymentCollection()
   }, [cart?.id, cart?.payment_collection, stripeReady])
 
+  // Función para calcular precios de métodos calculated
+  const calculateShippingPrices = async (
+    shippingOptions: any[],
+    cartId: string
+  ) => {
+    const calculatedOptions = shippingOptions.filter(
+      (option) => option.price_type === "calculated"
+    )
+
+    if (!calculatedOptions.length) {
+      console.log("📦 No hay opciones de tipo 'calculated' para calcular")
+      return {}
+    }
+
+    console.log(
+      `🧮 Calculando precios para ${calculatedOptions.length} opciones calculated...`
+    )
+
+    try {
+      const promises = calculatedOptions.map((option) => {
+        console.log(`💰 Calculando precio para: ${option.name} (${option.id})`)
+        return sdk.store.fulfillment.calculate(option.id, {
+          cart_id: cartId,
+          data: {},
+        })
+      })
+
+      const results = await Promise.allSettled(promises)
+      const pricesMap: Record<string, number> = {}
+
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          const optionId = result.value?.shipping_option?.id
+          const amount = result.value?.shipping_option?.amount
+          if (optionId && amount !== undefined) {
+            pricesMap[optionId] = amount
+            console.log(
+              `✅ Precio calculado para ${calculatedOptions[index].name}: ${amount}€`
+            )
+          }
+        } else {
+          console.log(
+            `❌ Error calculando precio para ${calculatedOptions[index].name}:`,
+            result.reason
+          )
+        }
+      })
+
+      console.log("💰 Mapa de precios calculados final:", pricesMap)
+      return pricesMap
+    } catch (error) {
+      console.error("❌ Error general calculando precios:", error)
+      return {}
+    }
+  }
+
   // Mapear opciones de envío al formato de Stripe
-  const mapShippingRates = (shippingOptions: any[]) => {
+  const mapShippingRates = async (shippingOptions: any[], cartId?: string) => {
     console.log("🔄 Mapeando shipping options:", shippingOptions)
-    
+
     if (!shippingOptions?.length) {
       // ⚠️ FALLBACK: Opciones hardcodeadas si no hay opciones reales
       console.log("⚠️ No hay shipping options reales, usando fallback")
       return [
         {
-          id: "so_01standard", // Usar IDs que existan en tu Medusa
+          id: "so_01standard",
           displayName: "Envío Estándar (3-5 días)",
           amount: 500, // €5.00 en centavos
         },
         {
-          id: "so_01express", // Usar IDs que existan en tu Medusa
+          id: "so_01express",
           displayName: "Envío Express (1-2 días)",
           amount: 1500, // €15.00 en centavos
         },
       ]
     }
 
+    // ✅ Calcular precios para opciones de tipo "calculated"
+    let calculatedPrices: Record<string, number> = {}
+    if (cartId) {
+      console.log("🧮 Iniciando cálculo de precios para opciones calculated...")
+      calculatedPrices = await calculateShippingPrices(shippingOptions, cartId)
+    } else {
+      console.log("⚠️ No hay cartId, no se pueden calcular precios dinámicos")
+    }
+
     // ✅ Mapear desde las opciones reales de Medusa
     const mappedRates = shippingOptions.map((option, index) => {
       console.log(`📦 Mapeando opción ${index}:`, option)
-      
-      return {
-        id: option.id, // ✅ ID real de la shipping_option de Medusa
-        displayName: option.name || `Opción de envío ${index + 1}`,
-        amount: Math.round((option.amount || 0) * 100), // Convertir a centavos
+
+      // Obtener el precio correcto según el tipo
+      let amountInCents = 0
+
+      if (option.price_type === "flat") {
+        // Para precios fijos, usar calculated_price.calculated_amount
+        amountInCents = Math.round(
+          (option.calculated_price?.calculated_amount || 0) * 100
+        )
+        console.log(
+          `💰 Precio fijo: ${
+            option.calculated_price?.calculated_amount || 0
+          } € = ${amountInCents} centavos`
+        )
+      } else if (option.price_type === "calculated") {
+        // ✅ Usar el precio calculado dinámicamente
+        const calculatedAmount = calculatedPrices[option.id]
+        if (calculatedAmount !== undefined) {
+          amountInCents = Math.round(calculatedAmount * 100)
+          console.log(
+            `💰 Precio calculado dinámicamente: ${calculatedAmount} € = ${amountInCents} centavos`
+          )
+        } else {
+          // Fallback si no se pudo calcular
+          amountInCents = 599 // €5.99 por defecto
+          console.log(
+            `⚠️ No se pudo calcular precio para ${option.name}, usando fallback: ${amountInCents} centavos`
+          )
+        }
       }
+
+      const mappedOption = {
+        id: option.id,
+        displayName: option.name || `Opción de envío ${index + 1}`,
+        amount: amountInCents,
+      }
+
+      console.log(`✅ Opción mapeada:`, mappedOption)
+      return mappedOption
     })
-    
-    console.log("✅ Opciones mapeadas para Stripe:", mappedRates)
+
+    console.log("✅ Todas las opciones mapeadas para Stripe:", mappedRates)
     return mappedRates
   }
 
   // Eventos del ExpressCheckoutElement
   const onReady = ({ availablePaymentMethods, ...rest }: any) => {
-    console.log("🚀 ExpressCheckout ready:", { availablePaymentMethods, rest })
-    
-    if (!availablePaymentMethods) {
-      setCanMakePaymentStatus('unavailable')
-      return
-    }
+    console.log("🚀 ExpressCheckout ready:", {
+      availablePaymentMethods,
+      rest,
+    })
 
-    setCanMakePaymentStatus('available')
+    // Simplemente logear, no cambiar estados que puedan desmontar el componente
+    if (availablePaymentMethods) {
+      console.log("✅ Métodos de pago disponibles")
+    } else {
+      console.log("⚠️ No hay métodos de pago disponibles")
+    }
   }
 
-  const onClick = ({ resolve, expressPaymentType }: any) => {
+  const onClick = async ({ resolve, expressPaymentType }: any) => {
     console.log("👆 ExpressCheckout clicked:", expressPaymentType)
-    setExpressCheckoutLoading(true)
-    
+    console.log("🔍 Datos del carrito disponibles:", {
+      cartId: cart?.id,
+      hasCart: !!cart,
+    })
+
+    // ✅ ESTRATEGIA: Usar opciones con IDs reales pero precios estimados inicialmente
+    const initialShippingRates = [
+      {
+        id: "so_01JSP4QGQKEBFDVJGDVQV8T04T", // ID real de "Recogida en tienda"
+        displayName: "Recogida en tienda",
+        amount: 0, // Gratis
+      },
+      {
+        id: "so_01JVSHQH3JF956B9A4JFZGAMEP", // ID real de "Envío a domicilio"
+        displayName: "Envío a domicilio",
+        amount: 599, // €5.99 estimado
+      },
+    ]
+
     const options = {
       emailRequired: true,
       shippingAddressRequired: true,
       billingAddressRequired: true,
       phoneNumberRequired: true,
-      shippingRates: mapShippingRates([]), // Usar opciones por defecto
+      shippingRates: initialShippingRates,
     }
 
+    console.log(
+      "📋 Opciones iniciales enviadas a Google Pay (con IDs reales):",
+      options
+    )
+    console.log("📋 Número de shipping rates:", options.shippingRates.length)
+
+    // ✅ Resolver inmediatamente con opciones predefinidas
     resolve(options)
+    setExpressCheckoutLoading(true)
   }
 
   const onConfirm = async (event: any) => {
@@ -154,45 +321,49 @@ const Addresses = ({
     try {
       if (!stripe || !elements) {
         console.error("❌ Stripe no disponible")
-        event.paymentFailed({ reason: 'fail' })
+        event.paymentFailed({ reason: "fail" })
         setExpressCheckoutError("Stripe no está disponible")
         return
       }
 
       // Extraer datos del evento correctamente
-      const payerNameSplit = (event.billingDetails?.name ?? event.shippingAddress?.name)?.split(' ') || []
-      
+      const payerNameSplit =
+        (event.billingDetails?.name ?? event.shippingAddress?.name)?.split(
+          " "
+        ) || []
+
       if (payerNameSplit.length === 0) {
         console.error("❌ No se encontró nombre")
-        event.paymentFailed({ reason: 'fail' })
+        event.paymentFailed({ reason: "fail" })
         setExpressCheckoutError("Por favor proporciona un nombre válido")
         return
       }
 
-      // Construir dirección de envío desde shippingAddress
+      // Construir direcciones
       const shippingAddress = {
-        first_name: payerNameSplit[0] || '',
-        last_name: payerNameSplit.slice(1).join(' ') || '',
-        address_1: event.shippingAddress?.address?.line1 || '',
-        address_2: event.shippingAddress?.address?.line2 || '',
-        city: event.shippingAddress?.address?.city || '',
-        province: event.shippingAddress?.address?.state || '',
-        postal_code: event.shippingAddress?.address?.postal_code || '',
-        country_code: event.shippingAddress?.address?.country?.toLowerCase() || '',
-        phone: event.billingDetails?.phone || '',
+        first_name: payerNameSplit[0] || "",
+        last_name: payerNameSplit.slice(1).join(" ") || "",
+        address_1: event.shippingAddress?.address?.line1 || "",
+        address_2: event.shippingAddress?.address?.line2 || "",
+        city: event.shippingAddress?.address?.city || "",
+        province: event.shippingAddress?.address?.state || "",
+        postal_code: event.shippingAddress?.address?.postal_code || "",
+        country_code:
+          event.shippingAddress?.address?.country?.toLowerCase() || "",
+        phone: event.billingDetails?.phone || "",
       }
 
-      // Construir dirección de facturación desde billingDetails
       const billingAddress = {
-        first_name: payerNameSplit[0] || '',
-        last_name: payerNameSplit.slice(1).join(' ') || '',
-        address_1: event.billingDetails?.address?.line1 || '',
-        address_2: event.billingDetails?.address?.line2 || '',
-        city: event.billingDetails?.address?.city || '',
-        province: event.billingDetails?.address?.state || '',
-        postal_code: event.billingDetails?.address?.postal_code || '',
-        country_code: event.billingDetails?.address?.country?.toLowerCase() || '',
-        phone: event.billingDetails?.phone || '',
+        first_name: payerNameSplit[0] || "",
+        last_name: payerNameSplit.slice(1).join(" ") || "",
+        address_1: event.billingDetails?.address?.line1 || "",
+        address_2: event.billingDetails?.address?.line2 || "",
+        city: event.billingDetails?.address?.city || "",
+        province: event.billingDetails?.address?.state || "",
+        postal_code: event.billingDetails?.address?.postal_code || "",
+        country_code:
+          event.billingDetails?.address?.country?.toLowerCase() || "",
+        phone: event.billingDetails?.phone || "",
       }
 
       console.log("📍 Dirección de envío:", shippingAddress)
@@ -200,86 +371,156 @@ const Addresses = ({
 
       // Crear FormData con la estructura exacta que espera setAddresses
       const formData = new FormData()
-      
+
       // Email
-      formData.append('email', event.billingDetails?.email ?? cart?.email ?? '')
-      
-      // Shipping address - formato exacto que espera la función
-      formData.append('shipping_address.first_name', shippingAddress.first_name)
-      formData.append('shipping_address.last_name', shippingAddress.last_name)
-      formData.append('shipping_address.address_1', shippingAddress.address_1)
-      formData.append('shipping_address.company', '') // Campo requerido aunque esté vacío
-      formData.append('shipping_address.postal_code', shippingAddress.postal_code)
-      formData.append('shipping_address.city', shippingAddress.city)
-      formData.append('shipping_address.country_code', shippingAddress.country_code)
-      formData.append('shipping_address.province', shippingAddress.province)
-      formData.append('shipping_address.phone', shippingAddress.phone)
-      
+      formData.append("email", event.billingDetails?.email ?? cart?.email ?? "")
+
+      // Shipping address
+      formData.append("shipping_address.first_name", shippingAddress.first_name)
+      formData.append("shipping_address.last_name", shippingAddress.last_name)
+      formData.append("shipping_address.address_1", shippingAddress.address_1)
+      formData.append("shipping_address.company", "")
+      formData.append(
+        "shipping_address.postal_code",
+        shippingAddress.postal_code
+      )
+      formData.append("shipping_address.city", shippingAddress.city)
+      formData.append(
+        "shipping_address.country_code",
+        shippingAddress.country_code
+      )
+      formData.append("shipping_address.province", shippingAddress.province)
+      formData.append("shipping_address.phone", shippingAddress.phone)
+
       // Billing address
-      formData.append('billing_address.first_name', billingAddress.first_name)
-      formData.append('billing_address.last_name', billingAddress.last_name)
-      formData.append('billing_address.address_1', billingAddress.address_1)
-      formData.append('billing_address.company', '') // Campo requerido aunque esté vacío
-      formData.append('billing_address.postal_code', billingAddress.postal_code)
-      formData.append('billing_address.city', billingAddress.city)
-      formData.append('billing_address.country_code', billingAddress.country_code)
-      formData.append('billing_address.province', billingAddress.province)
-      formData.append('billing_address.phone', billingAddress.phone)
-      
-      // ✅ NO incluir same_as_billing para que use direcciones separadas
-      // La función detecta automáticamente si no está "on"
-      
+      formData.append("billing_address.first_name", billingAddress.first_name)
+      formData.append("billing_address.last_name", billingAddress.last_name)
+      formData.append("billing_address.address_1", billingAddress.address_1)
+      formData.append("billing_address.company", "")
+      formData.append("billing_address.postal_code", billingAddress.postal_code)
+      formData.append("billing_address.city", billingAddress.city)
+      formData.append(
+        "billing_address.country_code",
+        billingAddress.country_code
+      )
+      formData.append("billing_address.province", billingAddress.province)
+      formData.append("billing_address.phone", billingAddress.phone)
+
       console.log("📦 FormData preparado para setAddresses:")
-      Array.from(formData.keys()).forEach(key => {
-        console.log(`${key}: ${formData.get(key)}`)
+      Array.from(formData.entries()).forEach(([key, value]) => {
+        console.log(`${key}: ${value}`)
       })
 
       // Actualizar direcciones en el carrito
       const result = await setAddresses(null, formData)
-      
+
       console.log("🔄 Resultado de setAddresses:", result)
 
       // Verificar si hubo errores
-      if (result && typeof result === 'string') {
+      if (result && typeof result === "string") {
         throw new Error(result)
       }
 
       console.log("✅ Direcciones actualizadas correctamente")
-      
-      // 🚚 IMPORTANTE: Ahora guardar también el método de envío seleccionado
+
+      // 🚚 Guardar método de envío seleccionado
       const selectedShippingRate = event.shippingRate
       console.log("🚚 Método de envío seleccionado:", selectedShippingRate)
-      
+
       if (selectedShippingRate && cart?.id) {
         try {
           console.log("💾 Guardando método de envío en Medusa...")
           console.log("- Cart ID:", cart.id)
           console.log("- Shipping Option ID:", selectedShippingRate.id)
-          
+
           await setShippingMethod({
             cartId: cart.id,
-            shippingMethodId: selectedShippingRate.id
+            shippingMethodId: selectedShippingRate.id,
           })
-          
+
           console.log("✅ Método de envío guardado correctamente")
-          
-          // Ahora redirigir directamente a payment saltando delivery
-          const country = shippingAddress.country_code
-          window.location.href = `/${country}/checkout?step=review`
-          
         } catch (shippingError) {
           console.error("❌ Error guardando método de envío:", shippingError)
-          // Si falla, ir al paso de delivery para que elija manualmente
-          console.log("⚠️ Redirigiendo a delivery para selección manual")
+          // No fallamos aquí, continuamos con el pago
         }
-      } else {
-        console.log("⚠️ No hay método de envío seleccionado, ir a delivery")
       }
-      
+
+      // 💳 PROCESAR EL PAGO Y COMPLETAR LA ORDEN
+      console.log("💳 Iniciando procesamiento del pago...")
+
+      // Buscar la sesión de pago activa de Stripe
+      const paymentSession = cart?.payment_collection?.payment_sessions?.find(
+        (session) =>
+          session.provider_id === "pp_stripe_stripe" &&
+          session.status === "pending"
+      )
+
+      if (!paymentSession?.data?.client_secret) {
+        console.error("❌ No se encontró sesión de pago válida")
+        event.paymentFailed({ reason: "fail" })
+        setExpressCheckoutError("No se encontró sesión de pago válida")
+        return
+      }
+
+      const clientSecret = paymentSession.data.client_secret as string
+      console.log("🔑 Client secret obtenido para confirmar pago")
+
+      // Confirmar el pago con Stripe usando el Express Checkout Element
+      const { error: paymentError } = await stripe.confirmPayment({
+        elements,
+        clientSecret,
+        confirmParams: {
+          payment_method_data: {
+            billing_details: {
+              name: `${billingAddress.first_name} ${billingAddress.last_name}`,
+              address: {
+                city: billingAddress.city,
+                country: billingAddress.country_code.toUpperCase(),
+                line1: billingAddress.address_1,
+                line2: billingAddress.address_2 || undefined,
+                postal_code: billingAddress.postal_code,
+                state: billingAddress.province,
+              },
+              email: event.billingDetails?.email,
+              phone: billingAddress.phone,
+            },
+          },
+        },
+        redirect: "if_required", // No redirigir, manejar aquí
+      })
+
+      if (paymentError) {
+        console.error("❌ Error confirmando pago:", paymentError)
+        event.paymentFailed({ reason: "fail" })
+        setExpressCheckoutError(
+          paymentError.message || "Error procesando el pago"
+        )
+        return
+      }
+
+      console.log("✅ Pago confirmado correctamente")
+
+      // 📦 COMPLETAR LA ORDEN USANDO placeOrder()
+      console.log("📦 Completando orden con placeOrder()...")
+
+      try {
+        await placeOrder() // Esto manejará la redirección automática
+        console.log("✅ Orden completada exitosamente")
+
+        // Si llegamos aquí, la orden se completó y ya se redirigió
+        // No necesitamos hacer nada más
+      } catch (orderError) {
+        console.error("❌ Error completando la orden:", orderError)
+        event.paymentFailed({ reason: "fail" })
+        setExpressCheckoutError("Error completando la orden")
+        return
+      }
     } catch (error: any) {
       console.error("❌ Error en ExpressCheckout:", error)
-      setExpressCheckoutError(error.message || "Error procesando el pago express")
-      event.paymentFailed({ reason: 'fail' })
+      setExpressCheckoutError(
+        error.message || "Error procesando el pago express"
+      )
+      event.paymentFailed({ reason: "fail" })
     } finally {
       setExpressCheckoutLoading(false)
     }
@@ -287,24 +528,34 @@ const Addresses = ({
 
   const onShippingAddressChange = async (event: any) => {
     console.log("📍 Cambio de dirección:", event.address)
-    
+
     try {
-      // Validar país (ejemplo: solo España y países UE + Reino Unido para testing)
-      const allowedCountries = ["ES", "FR", "IT", "DE", "PT", "NL", "BE", "GB", "US", "AU"]
-      
+      // Validar países permitidos
+      const allowedCountries = [
+        "ES",
+        "FR",
+        "IT",
+        "DE",
+        "PT",
+        "NL",
+        "BE",
+        "GB",
+        "US",
+        "AU",
+      ]
+
       if (!allowedCountries.includes(event.address?.country)) {
         console.log("❌ País no permitido:", event.address?.country)
         setExpressCheckoutError("No enviamos a este país")
         return event.reject({
-          reason: 'shipping_address_invalid'
+          reason: "shipping_address_invalid",
         })
       }
 
-      // 🔄 Actualizar el carrito temporalmente con la nueva dirección 
-      // para obtener las opciones de envío reales
+      // Actualizar dirección temporal
       const tempAddress = {
         first_name: "temp",
-        last_name: "temp", 
+        last_name: "temp",
         address_1: event.address.line1 || "",
         company: "",
         postal_code: event.address.postal_code || "",
@@ -319,94 +570,98 @@ const Addresses = ({
       try {
         // Actualizar temporalmente para obtener shipping options
         const tempFormData = new FormData()
-        tempFormData.append('email', cart?.email || 'temp@temp.com')
+        tempFormData.append("email", cart?.email || "temp@temp.com")
         Object.entries(tempAddress).forEach(([key, value]) => {
           tempFormData.append(`shipping_address.${key}`, value as string)
         })
-        
-        console.log("🔄 Actualizando dirección temporal para obtener shipping options...")
+
+        console.log("🔄 Actualizando dirección temporal...")
         await setAddresses(null, tempFormData)
-        
-        // 🚚 Obtener las opciones de envío reales después de actualizar la dirección
+
+        // Obtener opciones de envío reales
         if (cart?.id) {
           console.log("📦 Obteniendo shipping options para cart:", cart.id)
-          realShippingOptions = await listCartShippingMethods(cart.id) || []
-          console.log("🚚 Shipping options obtenidas de Medusa:", realShippingOptions)
+          realShippingOptions = (await listCartShippingMethods(cart.id)) || []
+          console.log("🚚 Shipping options obtenidas:", realShippingOptions)
         }
-        
       } catch (tempError) {
         console.log("⚠️ Error actualizando dirección temporal:", tempError)
-        console.log("Usando opciones por defecto...")
       }
 
-      // Obtener opciones de envío (reales si están disponibles, sino hardcodeadas)
-      const shippingRates = mapShippingRates(realShippingOptions)
-      console.log("🚚 Opciones de envío mapeadas para Stripe:", shippingRates)
+      // Mapear opciones de envío
+      const shippingRates = await mapShippingRates(
+        realShippingOptions,
+        cart?.id
+      )
+      console.log("🚚 Opciones mapeadas para Stripe:", shippingRates)
 
-      // Verificar que hay opciones disponibles
       if (!shippingRates.length) {
-        console.log("❌ No hay opciones de envío disponibles para esta dirección")
-        setExpressCheckoutError("No hay métodos de envío disponibles para esta dirección")
+        console.log("❌ No hay opciones de envío disponibles")
+        setExpressCheckoutError(
+          "No hay métodos de envío disponibles para esta dirección"
+        )
         return event.reject({
-          reason: 'shipping_address_unserviceable'
+          reason: "shipping_address_unserviceable",
         })
       }
 
-      // También actualizar el total inicial con la primera opción de envío
-      if (elements && cart?.total && shippingRates.length > 0) {
+      // Validar montos
+      const validShippingRates = shippingRates.map((rate) => {
+        if (rate.amount <= 0) {
+          return { ...rate, amount: 0 }
+        }
+        return rate
+      })
+
+      console.log("🚚 Opciones finales para Google Pay:", validShippingRates)
+
+      // Actualizar total con envío
+      if (elements && cart?.total && validShippingRates.length > 0) {
         const cartTotalInCents = Math.round(cart.total * 100)
-        const firstShippingRate = shippingRates[0].amount
+        const firstShippingRate = validShippingRates[0].amount
         const totalWithShipping = cartTotalInCents + firstShippingRate
-        
-        console.log("💰 Actualizando total inicial con envío:")
-        console.log("- Cart total:", cartTotalInCents, "centavos")
-        console.log("- First shipping:", firstShippingRate, "centavos")
-        console.log("- Total with shipping:", totalWithShipping, "centavos")
-        
-        elements.update({
-          amount: totalWithShipping,
-        })
+
+        console.log("💰 Actualizando total:", totalWithShipping, "centavos")
+
+        try {
+          elements.update({ amount: totalWithShipping })
+          console.log("✅ Elements actualizado correctamente")
+        } catch (updateError: any) {
+          console.log("⚠️ No se pudo actualizar Elements:", updateError.message)
+        }
       }
 
-      // Resolver con las opciones de envío
-      const resolveDetails = {
-        shippingRates: shippingRates
-      }
-
-      console.log("✅ Resolviendo cambio de dirección con:", resolveDetails)
+      // Resolver con opciones válidas
+      const resolveDetails = { shippingRates: validShippingRates }
+      console.log("✅ Resolviendo cambio de dirección")
       return event.resolve(resolveDetails)
-      
     } catch (error) {
       console.error("❌ Error en onShippingAddressChange:", error)
-      return event.reject({
-        reason: 'shipping_address_invalid'
-      })
+      return event.reject({ reason: "shipping_address_invalid" })
     }
   }
 
   const onShippingRateChange = async (event: any) => {
     console.log("🚚 Cambio de tarifa de envío:", event.shippingRate)
-    
+
     try {
-      // Actualizar el total con el costo de envío
       if (elements && cart?.total) {
         const shippingAmount = event.shippingRate.amount
         const cartTotalInCents = Math.round(cart.total * 100)
         const newTotal = cartTotalInCents + shippingAmount
-        
-        console.log("💰 Cálculo del total:")
-        console.log("- Cart total:", cart.total, "€ =", cartTotalInCents, "centavos")
-        console.log("- Shipping cost:", shippingAmount, "centavos")
-        console.log("- New total:", newTotal, "centavos")
-        
-        elements.update({
-          amount: newTotal,
-        })
+
+        console.log("💰 Nuevo total:", newTotal, "centavos")
+
+        try {
+          elements.update({ amount: newTotal })
+          console.log("✅ Elements actualizado en onShippingRateChange")
+        } catch (updateError: any) {
+          console.log("⚠️ Error actualizando Elements:", updateError.message)
+        }
       }
 
-      console.log("✅ Resolviendo cambio de tarifa de envío")
+      console.log("✅ Resolviendo cambio de tarifa")
       event.resolve()
-      
     } catch (error) {
       console.error("❌ Error en onShippingRateChange:", error)
       event.reject()
@@ -427,20 +682,13 @@ const Addresses = ({
       const tgt = e.target as HTMLInputElement
       if (tgt.name === "email") {
         form.requestSubmit()
-
-        const timer = setTimeout(() => {
-          setShowButton(true)
-        }, 5000)
-
+        const timer = setTimeout(() => setShowButton(true), 5000)
         return () => clearTimeout(timer)
       }
     }
 
     form.addEventListener("blur", onBlur, true)
-
-    return () => {
-      form.removeEventListener("blur", onBlur, true)
-    }
+    return () => form.removeEventListener("blur", onBlur, true)
   }, [formRef])
 
   const [message, formAction] = useFormState(setAddresses, null)
@@ -460,7 +708,7 @@ const Addresses = ({
     )
   }
 
-  // Condiciones para mostrar ExpressCheckout
+  // Condiciones para mostrar ExpressCheckout - simplificadas
   const shouldShowExpressCheckout =
     stripeReady &&
     stripe !== null &&
@@ -468,15 +716,27 @@ const Addresses = ({
     cart &&
     cart.total &&
     cart.total > 0 &&
-    cart.payment_collection &&
-    (canMakePaymentStatus === 'available' || canMakePaymentStatus === 'first_load')
+    cart.payment_collection
+
+  // Debug log para ver por qué desaparece
+  useEffect(() => {
+    console.log("🔍 Debug shouldShowExpressCheckout:", {
+      stripeReady,
+      stripe: !!stripe,
+      elements: !!elements,
+      cart: !!cart,
+      cartTotal: cart?.total,
+      paymentCollection: !!cart?.payment_collection,
+      shouldShow: shouldShowExpressCheckout,
+    })
+  }, [stripeReady, stripe, elements, cart, shouldShowExpressCheckout])
 
   return (
     <div className="bg-white">
       {/* Express Checkout */}
       {shouldShowExpressCheckout && (
         <div className="mb-6">
-          <Heading level="h3" className="text-xl mb-4">
+          <Heading level="h2" className=" mb-4 font-dmSans text-2xl font-semibold uppercase">
             Pago Express
           </Heading>
 
@@ -489,24 +749,30 @@ const Addresses = ({
           )}
 
           <div className="py-4">
-            {canMakePaymentStatus === 'first_load' && <ExpressCheckoutSkeleton />}
+            {!stripeReady && <ExpressCheckoutSkeleton />}
 
-            <ExpressCheckoutElement
-              options={{
-                paymentMethodOrder: ['apple_pay', 'google_pay', 'link'],
-                paymentMethods: {
-                  applePay: 'always',
-                  googlePay: 'always',
-                  link: 'auto',
-                },
-              }}
-              onCancel={onCancel}
-              onReady={onReady}
-              onShippingAddressChange={onShippingAddressChange}
-              onClick={onClick}
-              onConfirm={onConfirm}
-              onShippingRateChange={onShippingRateChange}
-            />
+            {shouldShowExpressCheckout && (
+              <ExpressCheckoutElement
+                key={`express-checkout-${cart?.id}`}
+                options={{
+                  paymentMethodOrder: ["apple_pay", "google_pay", "link"],
+                  paymentMethods: {
+                    applePay: "always",
+                    googlePay: "always",
+                    link: "auto",
+                    paypal: "never",
+                    klarna: "never"
+                  },
+                  buttonHeight: 48,
+                }}
+                onCancel={onCancel}
+                onReady={onReady}
+                onShippingAddressChange={onShippingAddressChange}
+                onClick={onClick}
+                onConfirm={onConfirm}
+                onShippingRateChange={onShippingRateChange}
+              />
+            )}
           </div>
 
           {expressCheckoutLoading && (
@@ -519,7 +785,7 @@ const Addresses = ({
           <div className="flex items-center my-6">
             <div className="flex-1 border-t border-gray-300"></div>
             <span className="px-3 text-gray-500 text-sm">
-              O completa manualmente
+              O
             </span>
             <div className="flex-1 border-t border-gray-300"></div>
           </div>
@@ -529,7 +795,7 @@ const Addresses = ({
       <div className="flex flex-row items-center justify-between mb-6">
         <Heading
           level="h2"
-          className="flex flex-row text-3xl-regular gap-x-2 items-baseline"
+          className="flex flex-row text-2xl font-semibold font-dmSans uppercase gap-x-2 items-baseline"
         >
           {t("checkout.shipping_address")}
           {!isOpen && <CheckCircleSolid />}

@@ -107,7 +107,7 @@ export default function CheckoutForm({
 
       <div className="w-full grid grid-cols-1 gap-y-8">
         <div>
-          <Addresses cart={cart} customer={customer} />
+          <Addresses cart={cart} customer={customer} /> 
         </div>
 
         <div>

@@ -23,6 +23,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useContext, useEffect, useState } from "react"
 // Importar el hook
 import { useCodFee } from "../../../../lib/hooks/use-cod" // Ajusta la ruta según tu estructura
+import { useTranslation } from "react-i18next"
 
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false)
@@ -53,6 +54,7 @@ const Payment = ({
   availablePaymentMethods: any[]
   onCartUpdate?: (cart: any) => void
 }) => {
+  const {t} = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [stripeComplete, setStripeComplete] = useState(false)
@@ -406,14 +408,14 @@ const Payment = ({
         <Heading
           level="h2"
           className={clx(
-            "flex flex-row text-3xl-regular gap-x-2 items-baseline",
+            "flex flex-row text-2xl font-semibold font-dmSans uppercase gap-x-2 items-baseline",
             {
               "opacity-50 pointer-events-none select-none":
                 !isOpen && !paymentReady,
             }
           )}
         >
-          Payment
+          {t("checkout.payment")}
           {!isOpen && paymentReady && <CheckCircleSolid />}
         </Heading>
         {!isOpen && paymentReady && (
