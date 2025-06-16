@@ -7,7 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import Divider from "@modules/common/components/divider"
 import Spinner from "@modules/common/icons/spinner"
 
-import { setAddresses, createPaymentCollection } from "@lib/data/cart"
+import { setAddresses, createPaymentCollection, setShippingMethod } from "@lib/data/cart"
 import compareAddresses from "@lib/util/compare-addresses"
 import { HttpTypes } from "@medusajs/types"
 import { useFormState } from "react-dom"
@@ -23,6 +23,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js"
 import { StripeContext } from "@modules/checkout/components/payment-wrapper/stripe-wrapper"
+import { listCartShippingMethods } from "@lib/data/fulfillment"
 
 const Addresses = ({
   cart,
@@ -84,27 +85,38 @@ const Addresses = ({
 
   // Mapear opciones de envío al formato de Stripe
   const mapShippingRates = (shippingOptions: any[]) => {
+    console.log("🔄 Mapeando shipping options:", shippingOptions)
+    
     if (!shippingOptions?.length) {
-      // Opciones por defecto si no hay ninguna
+      // ⚠️ FALLBACK: Opciones hardcodeadas si no hay opciones reales
+      console.log("⚠️ No hay shipping options reales, usando fallback")
       return [
         {
-          id: "standard",
+          id: "so_01standard", // Usar IDs que existan en tu Medusa
           displayName: "Envío Estándar (3-5 días)",
           amount: 500, // €5.00 en centavos
         },
         {
-          id: "express", 
+          id: "so_01express", // Usar IDs que existan en tu Medusa
           displayName: "Envío Express (1-2 días)",
           amount: 1500, // €15.00 en centavos
         },
       ]
     }
 
-    return shippingOptions.map((option, index) => ({
-      id: option.id ?? index.toString(),
-      displayName: option.name ?? `Opción de envío ${index + 1}`,
-      amount: Math.round((option.amount ?? 0) * 100), // Convertir a centavos
-    }))
+    // ✅ Mapear desde las opciones reales de Medusa
+    const mappedRates = shippingOptions.map((option, index) => {
+      console.log(`📦 Mapeando opción ${index}:`, option)
+      
+      return {
+        id: option.id, // ✅ ID real de la shipping_option de Medusa
+        displayName: option.name || `Opción de envío ${index + 1}`,
+        amount: Math.round((option.amount || 0) * 100), // Convertir a centavos
+      }
+    })
+    
+    console.log("✅ Opciones mapeadas para Stripe:", mappedRates)
+    return mappedRates
   }
 
   // Eventos del ExpressCheckoutElement
@@ -141,6 +153,7 @@ const Addresses = ({
 
     try {
       if (!stripe || !elements) {
+        console.error("❌ Stripe no disponible")
         event.paymentFailed({ reason: 'fail' })
         setExpressCheckoutError("Stripe no está disponible")
         return
@@ -150,6 +163,7 @@ const Addresses = ({
       const payerNameSplit = (event.billingDetails?.name ?? event.shippingAddress?.name)?.split(' ') || []
       
       if (payerNameSplit.length === 0) {
+        console.error("❌ No se encontró nombre")
         event.paymentFailed({ reason: 'fail' })
         setExpressCheckoutError("Por favor proporciona un nombre válido")
         return
@@ -216,8 +230,8 @@ const Addresses = ({
       // La función detecta automáticamente si no está "on"
       
       console.log("📦 FormData preparado para setAddresses:")
-      Array.from(formData.entries()).forEach(([key, value]) => {
-        console.log(`${key}: ${value}`)
+      Array.from(formData.keys()).forEach(key => {
+        console.log(`${key}: ${formData.get(key)}`)
       })
 
       // Actualizar direcciones en el carrito
@@ -232,9 +246,35 @@ const Addresses = ({
 
       console.log("✅ Direcciones actualizadas correctamente")
       
-      // La función setAddresses hace redirect automáticamente a:
-      // `/${country_code}/checkout?step=delivery`
-      // No necesitamos hacer nada más aquí
+      // 🚚 IMPORTANTE: Ahora guardar también el método de envío seleccionado
+      const selectedShippingRate = event.shippingRate
+      console.log("🚚 Método de envío seleccionado:", selectedShippingRate)
+      
+      if (selectedShippingRate && cart?.id) {
+        try {
+          console.log("💾 Guardando método de envío en Medusa...")
+          console.log("- Cart ID:", cart.id)
+          console.log("- Shipping Option ID:", selectedShippingRate.id)
+          
+          await setShippingMethod({
+            cartId: cart.id,
+            shippingMethodId: selectedShippingRate.id
+          })
+          
+          console.log("✅ Método de envío guardado correctamente")
+          
+          // Ahora redirigir directamente a payment saltando delivery
+          const country = shippingAddress.country_code
+          window.location.href = `/${country}/checkout?step=payment`
+          
+        } catch (shippingError) {
+          console.error("❌ Error guardando método de envío:", shippingError)
+          // Si falla, ir al paso de delivery para que elija manualmente
+          console.log("⚠️ Redirigiendo a delivery para selección manual")
+        }
+      } else {
+        console.log("⚠️ No hay método de envío seleccionado, ir a delivery")
+      }
       
     } catch (error: any) {
       console.error("❌ Error en ExpressCheckout:", error)
@@ -248,62 +288,129 @@ const Addresses = ({
   const onShippingAddressChange = async (event: any) => {
     console.log("📍 Cambio de dirección:", event.address)
     
-    // Validar país (ejemplo: solo España y países UE)
-    const allowedCountries = ["ES", "FR", "IT", "DE", "PT", "NL", "BE"]
-    
-    if (!allowedCountries.includes(event.address?.country)) {
-      setExpressCheckoutError("No enviamos a este país")
-      return event.reject()
-    }
-
-    // Obtener opciones de envío según la dirección
-    const shippingRates = mapShippingRates([])
-    console.log("🚚 Opciones de envío disponibles:", shippingRates)
-
-    // Resolver con las opciones de envío
-    const resolveDetails = {
-      shippingRates: shippingRates
-    }
-
-    // También actualizar el total inicial con la primera opción de envío
-    if (elements && cart?.total && shippingRates.length > 0) {
-      const cartTotalInCents = Math.round(cart.total * 100)
-      const firstShippingRate = shippingRates[0].amount
-      const totalWithShipping = cartTotalInCents + firstShippingRate
+    try {
+      // Validar país (ejemplo: solo España y países UE + Reino Unido para testing)
+      const allowedCountries = ["ES", "FR", "IT", "DE", "PT", "NL", "BE", "GB", "US", "AU"]
       
-      console.log("💰 Actualizando total inicial con envío:")
-      console.log("- Cart total:", cartTotalInCents, "centavos")
-      console.log("- First shipping:", firstShippingRate, "centavos")
-      console.log("- Total with shipping:", totalWithShipping, "centavos")
+      if (!allowedCountries.includes(event.address?.country)) {
+        console.log("❌ País no permitido:", event.address?.country)
+        setExpressCheckoutError("No enviamos a este país")
+        return event.reject({
+          reason: 'shipping_address_invalid'
+        })
+      }
+
+      // 🔄 Actualizar el carrito temporalmente con la nueva dirección 
+      // para obtener las opciones de envío reales
+      const tempAddress = {
+        first_name: "temp",
+        last_name: "temp", 
+        address_1: event.address.line1 || "",
+        company: "",
+        postal_code: event.address.postal_code || "",
+        city: event.address.city || "",
+        country_code: event.address.country?.toLowerCase() || "",
+        province: event.address.state || "",
+        phone: "temp",
+      }
+
+      let realShippingOptions: any[] = []
+
+      try {
+        // Actualizar temporalmente para obtener shipping options
+        const tempFormData = new FormData()
+        tempFormData.append('email', cart?.email || 'temp@temp.com')
+        Object.entries(tempAddress).forEach(([key, value]) => {
+          tempFormData.append(`shipping_address.${key}`, value as string)
+        })
+        
+        console.log("🔄 Actualizando dirección temporal para obtener shipping options...")
+        await setAddresses(null, tempFormData)
+        
+        // 🚚 Obtener las opciones de envío reales después de actualizar la dirección
+        if (cart?.id) {
+          console.log("📦 Obteniendo shipping options para cart:", cart.id)
+          realShippingOptions = await listCartShippingMethods(cart.id) || []
+          console.log("🚚 Shipping options obtenidas de Medusa:", realShippingOptions)
+        }
+        
+      } catch (tempError) {
+        console.log("⚠️ Error actualizando dirección temporal:", tempError)
+        console.log("Usando opciones por defecto...")
+      }
+
+      // Obtener opciones de envío (reales si están disponibles, sino hardcodeadas)
+      const shippingRates = mapShippingRates(realShippingOptions)
+      console.log("🚚 Opciones de envío mapeadas para Stripe:", shippingRates)
+
+      // Verificar que hay opciones disponibles
+      if (!shippingRates.length) {
+        console.log("❌ No hay opciones de envío disponibles para esta dirección")
+        setExpressCheckoutError("No hay métodos de envío disponibles para esta dirección")
+        return event.reject({
+          reason: 'shipping_address_unserviceable'
+        })
+      }
+
+      // También actualizar el total inicial con la primera opción de envío
+      if (elements && cart?.total && shippingRates.length > 0) {
+        const cartTotalInCents = Math.round(cart.total * 100)
+        const firstShippingRate = shippingRates[0].amount
+        const totalWithShipping = cartTotalInCents + firstShippingRate
+        
+        console.log("💰 Actualizando total inicial con envío:")
+        console.log("- Cart total:", cartTotalInCents, "centavos")
+        console.log("- First shipping:", firstShippingRate, "centavos")
+        console.log("- Total with shipping:", totalWithShipping, "centavos")
+        
+        elements.update({
+          amount: totalWithShipping,
+        })
+      }
+
+      // Resolver con las opciones de envío
+      const resolveDetails = {
+        shippingRates: shippingRates
+      }
+
+      console.log("✅ Resolviendo cambio de dirección con:", resolveDetails)
+      return event.resolve(resolveDetails)
       
-      elements.update({
-        amount: totalWithShipping,
+    } catch (error) {
+      console.error("❌ Error en onShippingAddressChange:", error)
+      return event.reject({
+        reason: 'shipping_address_invalid'
       })
     }
-
-    return event.resolve(resolveDetails)
   }
 
   const onShippingRateChange = async (event: any) => {
     console.log("🚚 Cambio de tarifa de envío:", event.shippingRate)
     
-    // Actualizar el total con el costo de envío
-    if (elements && cart?.total) {
-      const shippingAmount = event.shippingRate.amount
-      const cartTotalInCents = Math.round(cart.total * 100)
-      const newTotal = cartTotalInCents + shippingAmount
-      
-      console.log("💰 Cálculo del total:")
-      console.log("- Cart total:", cart.total, "€ =", cartTotalInCents, "centavos")
-      console.log("- Shipping cost:", shippingAmount, "centavos")
-      console.log("- New total:", newTotal, "centavos")
-      
-      elements.update({
-        amount: newTotal,
-      })
-    }
+    try {
+      // Actualizar el total con el costo de envío
+      if (elements && cart?.total) {
+        const shippingAmount = event.shippingRate.amount
+        const cartTotalInCents = Math.round(cart.total * 100)
+        const newTotal = cartTotalInCents + shippingAmount
+        
+        console.log("💰 Cálculo del total:")
+        console.log("- Cart total:", cart.total, "€ =", cartTotalInCents, "centavos")
+        console.log("- Shipping cost:", shippingAmount, "centavos")
+        console.log("- New total:", newTotal, "centavos")
+        
+        elements.update({
+          amount: newTotal,
+        })
+      }
 
-    event.resolve()
+      console.log("✅ Resolviendo cambio de tarifa de envío")
+      event.resolve()
+      
+    } catch (error) {
+      console.error("❌ Error en onShippingRateChange:", error)
+      event.reject()
+    }
   }
 
   const onCancel = () => {
