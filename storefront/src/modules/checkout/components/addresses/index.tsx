@@ -265,7 +265,7 @@ const Addresses = ({
           
           // Ahora redirigir directamente a payment saltando delivery
           const country = shippingAddress.country_code
-          window.location.href = `/${country}/checkout?step=payment`
+          window.location.href = `/${country}/checkout?step=review`
           
         } catch (shippingError) {
           console.error("❌ Error guardando método de envío:", shippingError)

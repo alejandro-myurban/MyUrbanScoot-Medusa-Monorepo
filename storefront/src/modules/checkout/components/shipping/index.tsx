@@ -1,382 +1,749 @@
 "use client"
 
-import { RadioGroup } from "@headlessui/react"
 import { CheckCircleSolid } from "@medusajs/icons"
-import { Button, Heading, Text, clx } from "@medusajs/ui"
+import { Heading, Text, useToggleState } from "@medusajs/ui"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import Divider from "@modules/common/components/divider"
-import Radio from "@modules/common/components/radio"
-import ErrorMessage from "@modules/checkout/components/error-message"
-import { useRouter, useSearchParams, usePathname } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
-import { setShippingMethod } from "@lib/data/cart"
-import { convertToLocale } from "@lib/util/money"
-import { HttpTypes } from "@medusajs/types"
+import Spinner from "@modules/common/icons/spinner"
+
+import { setAddresses, createPaymentCollection, setShippingMethod } from "@lib/data/cart"
 import { sdk } from "@lib/config"
+import compareAddresses from "@lib/util/compare-addresses"
+import { HttpTypes } from "@medusajs/types"
+import { useFormState } from "react-dom"
+import BillingAddress from "../billing_address"
+import ErrorMessage from "../error-message"
+import ShippingAddress from "../shipping-address"
+import { SubmitButton } from "../submit-button"
+import { useContext, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import {
+  ExpressCheckoutElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js"
+import { StripeContext } from "@modules/checkout/components/payment-wrapper/stripe-wrapper"
+import { listCartShippingMethods } from "@lib/data/fulfillment"
 
-type ShippingProps = {
-  cart: HttpTypes.StoreCart
-  availableShippingMethods: HttpTypes.StoreCartShippingOption[] | null
-}
-
-function addBusinessDays(start: Date, days: number): Date {
-  const date = new Date(start)
-  let added = 0
-  while (added < days) {
-    date.setDate(date.getDate() + 1)
-    const dow = date.getDay()
-    if (dow !== 0 && dow !== 6) {
-      added += 1
-    }
-  }
-  return date
-}
-
-interface ItemWithEstimate extends HttpTypes.StoreCartLineItem {
-  production: number
-  shipping: number
-  totalDays: number
-  estimatedDate: Date
-}
-
-const Shipping: React.FC<ShippingProps> = ({
+const Addresses = ({
   cart,
-  availableShippingMethods,
+  customer,
+}: {
+  cart: HttpTypes.StoreCart | null
+  customer: HttpTypes.StoreCustomer | null
 }) => {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [calculatedPrices, setCalculatedPrices] = useState<
-    Record<string, number>
-  >({})
-  const [itemsWithEstimate, setItemsWithEstimate] = useState<
-    ItemWithEstimate[]
-  >([])
-
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  const formRef = useRef<HTMLFormElement>(null)
+  const [submitCount, setSubmitCount] = useState(0)
+  const [expressCheckoutLoading, setExpressCheckoutLoading] = useState(false)
+  const [expressCheckoutError, setExpressCheckoutError] = useState<
+    string | null
+  >(null)
+  const [canMakePaymentStatus, setCanMakePaymentStatus] = useState<
+    'first_load' | 'available' | 'unavailable'
+  >('first_load')
+
+  const isOpen =
+    searchParams.get("step") === "address" ||
+    searchParams.get("step") === "delivery"
+  const [showButton, setShowButton] = useState<boolean>(false)
   const { t } = useTranslation()
 
-  const isOpen = searchParams.get("step") === "delivery"
+  const stripeReady = useContext(StripeContext)
+  const stripe = stripeReady ? useStripe() : null
+  const elements = stripeReady ? useElements() : null
 
-  const selectedShippingMethod = availableShippingMethods?.find(
-    (method) => method.id === cart.shipping_methods?.at(-1)?.shipping_option_id
+  const { state: sameAsBilling, toggle: toggleSameAsBilling } = useToggleState(
+    cart?.shipping_address && cart?.billing_address
+      ? compareAddresses(cart?.shipping_address, cart?.billing_address)
+      : true
   )
 
-  // Verificar si el método seleccionado es de tipo calculated
-  const isCalculatedShippingSelected =
-    selectedShippingMethod?.price_type === "calculated"
-
   const handleEdit = () => {
-    router.push(pathname + "?step=delivery", { scroll: false })
+    router.push(pathname + "?step=address")
   }
 
-  const handleSubmit = () => {
-    router.push(pathname + "?step=payment", { scroll: false })
-  }
-
-  const set = async (id: string) => {
-    setIsLoading(true)
-    await setShippingMethod({ cartId: cart.id, shippingMethodId: id })
-      .catch((err) => {
-        setError(err.message)
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
-  }
-
+  // Inicializar payment collection si no existe
   useEffect(() => {
-    setError(null)
-  }, [isOpen])
+    const initializePaymentCollection = async () => {
+      if (cart && !cart.payment_collection && stripeReady) {
+        try {
+          console.log("🔄 Inicializando payment collection...")
+          await createPaymentCollection(cart.id)
+          console.log("✅ Payment collection creada")
+        } catch (error) {
+          console.error("❌ Error creando payment collection:", error)
+          setExpressCheckoutError("Error inicializando ExpressCheckout")
+        }
+      }
+    }
 
-  useEffect(() => {
-    const ids = (cart.items?.map((i) => i.product_id) || []).filter(
-      (id): id is string => id !== undefined
-    )
-    if (!ids.length) return
+    initializePaymentCollection()
+  }, [cart?.id, cart?.payment_collection, stripeReady])
 
-    sdk.store.product
-      .list(
-        { id: ids, fields: "id,+metadata" },
-        { next: { tags: ["products"] } }
-      )
-      .then(({ products }) => {
-        // Mapeamos products por ID para acceso rápido
-        const metaMap = products.reduce<Record<string, any>>((acc, p) => {
-          acc[p.id] = p.metadata || {}
-          return acc
-        }, {})
-
-        // Construimos el array enriquecido
-        const enriched: ItemWithEstimate[] = (cart.items || []).map((item) => {
-          const meta = item.product_id ? metaMap[item.product_id] || {} : {}
-          const production = parseInt(meta.estimated_production_time ?? "0", 10)
-          const shipping = parseInt(meta.shipping_time ?? "0", 10)
-          const totalDays = production + shipping
-          const estimatedDate = addBusinessDays(new Date(), totalDays)
-          return {
-            ...item,
-            production,
-            shipping,
-            totalDays,
-            estimatedDate,
-          }
-        })
-        setItemsWithEstimate(enriched)
-      })
-      .catch((err) => {
-        console.error("Error cargando metadata:", err)
-      })
-  }, [cart.items])
-
-  // --- Lógica para calcular precios de métodos "calculated" ---
-  useEffect(() => {
-    if (!cart || !availableShippingMethods?.length) return
-
-    const calculatedOptions = availableShippingMethods.filter(
+  // Función para calcular precios de métodos calculated (igual que en Shipping component)
+  const calculateShippingPrices = async (shippingOptions: any[], cartId: string) => {
+    const calculatedOptions = shippingOptions.filter(
       (option) => option.price_type === "calculated"
     )
 
-    // Solo hacemos cálculos para opciones de tipo calculated
-    if (calculatedOptions.length) {
+    if (!calculatedOptions.length) return {}
+
+    try {
       const promises = calculatedOptions.map((option) =>
         sdk.store.fulfillment.calculate(option.id, {
-          cart_id: cart.id,
-          data: {}, // Puedes pasar datos adicionales si tu provider los necesita
+          cart_id: cartId,
+          data: {},
         })
       )
 
-      Promise.allSettled(promises).then((res) => {
-        const pricesMap: Record<string, number> = {}
-        res
-          .filter((r) => r.status === "fulfilled")
-          .forEach((p: any) => {
-            pricesMap[p.value?.shipping_option.id || ""] =
-              p.value?.shipping_option.amount
-          })
-        setCalculatedPrices(pricesMap)
-      })
-    }
-  }, [availableShippingMethods, cart])
+      const results = await Promise.allSettled(promises)
+      const pricesMap: Record<string, number> = {}
+      
+      results
+        .filter((r) => r.status === "fulfilled")
+        .forEach((p: any) => {
+          pricesMap[p.value?.shipping_option.id || ""] = p.value?.shipping_option.amount
+        })
 
-  // Función para mostrar el precio correctamente
-  const getShippingOptionPrice = useCallback(
-    (option: HttpTypes.StoreCartShippingOption): string => {
-      let amount = 0
-
-      // Para opciones de tipo calculated, usamos el precio calculado
-      if (option.price_type === "calculated") {
-        if (!calculatedPrices[option.id]) {
-          return "Calculando..."
-        }
-        amount = calculatedPrices[option.id]
-      } else {
-        // Para opciones de tipo flat, usamos el precio fijo
-        amount = option.amount || 0
-      }
-
-      // Si el precio es 0, mostrar "GRATIS"
-      if (amount === 0) {
-        return "GRATIS"
-      }
-
-      return convertToLocale({
-        amount,
-        currency_code: cart?.currency_code || "EUR",
-      })
-    },
-    [calculatedPrices, cart?.currency_code]
-  )
-
-  // Función para obtener el rango de fechas de entrega
-  const getDeliveryDateRange = () => {
-    if (!itemsWithEstimate.length) return null
-
-    const minDays = Math.min(...itemsWithEstimate.map((item) => item.totalDays))
-    const maxDays = Math.max(...itemsWithEstimate.map((item) => item.totalDays))
-
-    const startDate = addBusinessDays(new Date(), minDays)
-    // Añadir 2 días extra al final del rango
-    const endDate = addBusinessDays(new Date(), maxDays + 2)
-
-    return {
-      minDays,
-      maxDays: maxDays + 2, // Mostrar el rango con los días extra incluidos
-      startDate,
-      endDate,
+      console.log("💰 Precios calculados:", pricesMap)
+      return pricesMap
+    } catch (error) {
+      console.error("❌ Error calculando precios:", error)
+      return {}
     }
   }
 
-  const deliveryRange = getDeliveryDateRange()
+  // Mapear opciones de envío al formato de Stripe
+  const mapShippingRates = async (shippingOptions: any[], cartId?: string) => {
+  // Mapear opciones de envío al formato de Stripe
+  const mapShippingRates = async (shippingOptions: any[], cartId?: string) => {
+    console.log("🔄 Mapeando shipping options:", shippingOptions)
+    
+    if (!shippingOptions?.length) {
+      // ⚠️ FALLBACK: Opciones hardcodeadas si no hay opciones reales
+      console.log("⚠️ No hay shipping options reales, usando fallback")
+      return [
+        {
+          id: "so_01standard",
+          displayName: "Envío Estándar (3-5 días)",
+          amount: 500, // €5.00 en centavos
+        },
+        {
+          id: "so_01express",
+          displayName: "Envío Express (1-2 días)",
+          amount: 1500, // €15.00 en centavos
+        },
+      ]
+    }
 
-  console.log("CARRITO", cart)
+    // ✅ Calcular precios para opciones de tipo "calculated"
+    let calculatedPrices: Record<string, number> = {}
+    if (cartId) {
+      calculatedPrices = await calculateShippingPrices(shippingOptions, cartId)
+    }
+
+    // ✅ Mapear desde las opciones reales de Medusa
+    const mappedRates = shippingOptions.map((option, index) => {
+      console.log(`📦 Mapeando opción ${index}:`, option)
+      
+      // Obtener el precio correcto según el tipo
+      let amountInCents = 0
+      
+      if (option.price_type === 'flat') {
+        // Para precios fijos, usar calculated_price.calculated_amount
+        amountInCents = Math.round((option.calculated_price?.calculated_amount || 0) * 100)
+        console.log(`💰 Precio fijo: ${option.calculated_price?.calculated_amount} € = ${amountInCents} centavos`)
+      } else if (option.price_type === 'calculated') {
+        // ✅ Usar el precio calculado dinámicamente
+        const calculatedAmount = calculatedPrices[option.id]
+        if (calculatedAmount !== undefined) {
+          amountInCents = Math.round(calculatedAmount * 100)
+          console.log(`💰 Precio calculado dinámicamente: ${calculatedAmount} € = ${amountInCents} centavos`)
+        } else {
+          // Fallback si no se pudo calcular
+          amountInCents = 599 // €5.99 por defecto
+          console.log(`⚠️ No se pudo calcular precio, usando fallback: ${amountInCents} centavos`)
+        }
+      }
+      
+      const mappedOption = {
+        id: option.id,
+        displayName: option.name || `Opción de envío ${index + 1}`,
+        amount: amountInCents,
+      }
+      
+      console.log(`✅ Opción mapeada:`, mappedOption)
+      return mappedOption
+    })
+    
+    console.log("✅ Todas las opciones mapeadas para Stripe:", mappedRates)
+    return mappedRates
+  }
+
+  // Eventos del ExpressCheckoutElement
+  const onReady = ({ availablePaymentMethods, ...rest }: any) => {
+    console.log("🚀 ExpressCheckout ready:", { availablePaymentMethods, rest })
+    
+    if (!availablePaymentMethods) {
+      setCanMakePaymentStatus('unavailable')
+      return
+    }
+
+    setCanMakePaymentStatus('available')
+  }
+
+  const onClick = async ({ resolve, expressPaymentType }: any) => {
+    console.log("👆 ExpressCheckout clicked:", expressPaymentType)
+    setExpressCheckoutLoading(true)
+    
+    // Obtener opciones de envío iniciales
+    const initialShippingRates = await mapShippingRates([], cart?.id)
+    
+    const options = {
+      emailRequired: true,
+      shippingAddressRequired: true,
+      billingAddressRequired: true,
+      phoneNumberRequired: true,
+      shippingRates: initialShippingRates,
+    }
+
+    resolve(options)
+  }
+
+  const onConfirm = async (event: any) => {
+    console.log("✅ ExpressCheckout confirm:", event)
+    setExpressCheckoutLoading(true)
+    setExpressCheckoutError(null)
+
+    try {
+      if (!stripe || !elements) {
+        console.error("❌ Stripe no disponible")
+        event.paymentFailed({ reason: 'fail' })
+        setExpressCheckoutError("Stripe no está disponible")
+        return
+      }
+
+      // Extraer datos del evento correctamente
+      const payerNameSplit = (event.billingDetails?.name ?? event.shippingAddress?.name)?.split(' ') || []
+      
+      if (payerNameSplit.length === 0) {
+        console.error("❌ No se encontró nombre")
+        event.paymentFailed({ reason: 'fail' })
+        setExpressCheckoutError("Por favor proporciona un nombre válido")
+        return
+      }
+
+      // Construir dirección de envío desde shippingAddress
+      const shippingAddress = {
+        first_name: payerNameSplit[0] || '',
+        last_name: payerNameSplit.slice(1).join(' ') || '',
+        address_1: event.shippingAddress?.address?.line1 || '',
+        address_2: event.shippingAddress?.address?.line2 || '',
+        city: event.shippingAddress?.address?.city || '',
+        province: event.shippingAddress?.address?.state || '',
+        postal_code: event.shippingAddress?.address?.postal_code || '',
+        country_code: event.shippingAddress?.address?.country?.toLowerCase() || '',
+        phone: event.billingDetails?.phone || '',
+      }
+
+      // Construir dirección de facturación desde billingDetails
+      const billingAddress = {
+        first_name: payerNameSplit[0] || '',
+        last_name: payerNameSplit.slice(1).join(' ') || '',
+        address_1: event.billingDetails?.address?.line1 || '',
+        address_2: event.billingDetails?.address?.line2 || '',
+        city: event.billingDetails?.address?.city || '',
+        province: event.billingDetails?.address?.state || '',
+        postal_code: event.billingDetails?.address?.postal_code || '',
+        country_code: event.billingDetails?.address?.country?.toLowerCase() || '',
+        phone: event.billingDetails?.phone || '',
+      }
+
+      console.log("📍 Dirección de envío:", shippingAddress)
+      console.log("💳 Dirección de facturación:", billingAddress)
+
+      // Crear FormData con la estructura exacta que espera setAddresses
+      const formData = new FormData()
+      
+      // Email
+      formData.append('email', event.billingDetails?.email ?? cart?.email ?? '')
+      
+      // Shipping address - formato exacto que espera la función
+      formData.append('shipping_address.first_name', shippingAddress.first_name)
+      formData.append('shipping_address.last_name', shippingAddress.last_name)
+      formData.append('shipping_address.address_1', shippingAddress.address_1)
+      formData.append('shipping_address.company', '') // Campo requerido aunque esté vacío
+      formData.append('shipping_address.postal_code', shippingAddress.postal_code)
+      formData.append('shipping_address.city', shippingAddress.city)
+      formData.append('shipping_address.country_code', shippingAddress.country_code)
+      formData.append('shipping_address.province', shippingAddress.province)
+      formData.append('shipping_address.phone', shippingAddress.phone)
+      
+      // Billing address
+      formData.append('billing_address.first_name', billingAddress.first_name)
+      formData.append('billing_address.last_name', billingAddress.last_name)
+      formData.append('billing_address.address_1', billingAddress.address_1)
+      formData.append('billing_address.company', '') // Campo requerido aunque esté vacío
+      formData.append('billing_address.postal_code', billingAddress.postal_code)
+      formData.append('billing_address.city', billingAddress.city)
+      formData.append('billing_address.country_code', billingAddress.country_code)
+      formData.append('billing_address.province', billingAddress.province)
+      formData.append('billing_address.phone', billingAddress.phone)
+      
+      // ✅ NO incluir same_as_billing para que use direcciones separadas
+      // La función detecta automáticamente si no está "on"
+      
+      console.log("📦 FormData preparado para setAddresses:")
+      formData.forEach((value, key) => {
+        console.log(`${key}: ${value}`)
+      })
+
+      // Actualizar direcciones en el carrito
+      const result = await setAddresses(null, formData)
+      
+      console.log("🔄 Resultado de setAddresses:", result)
+
+      // Verificar si hubo errores
+      if (result && typeof result === 'string') {
+        throw new Error(result)
+      }
+
+      console.log("✅ Direcciones actualizadas correctamente")
+      
+      // 🚚 IMPORTANTE: Ahora guardar también el método de envío seleccionado
+      const selectedShippingRate = event.shippingRate
+      console.log("🚚 Método de envío seleccionado:", selectedShippingRate)
+      
+      if (selectedShippingRate && cart?.id) {
+        try {
+          console.log("💾 Guardando método de envío en Medusa...")
+          console.log("- Cart ID:", cart.id)
+          console.log("- Shipping Option ID:", selectedShippingRate.id)
+          
+          await setShippingMethod({
+            cartId: cart.id,
+            shippingMethodId: selectedShippingRate.id
+          })
+          
+          console.log("✅ Método de envío guardado correctamente")
+          
+          // Ahora redirigir directamente a payment saltando delivery
+          const country = shippingAddress.country_code
+          window.location.href = `/${country}/checkout?step=payment`
+          
+        } catch (shippingError) {
+          console.error("❌ Error guardando método de envío:", shippingError)
+          // Si falla, ir al paso de delivery para que elija manualmente
+          console.log("⚠️ Redirigiendo a delivery para selección manual")
+        }
+      } else {
+        console.log("⚠️ No hay método de envío seleccionado, ir a delivery")
+      }
+      
+    } catch (error: any) {
+      console.error("❌ Error en ExpressCheckout:", error)
+      setExpressCheckoutError(error.message || "Error procesando el pago express")
+      event.paymentFailed({ reason: 'fail' })
+    } finally {
+      setExpressCheckoutLoading(false)
+    }
+  }
+
+  const onShippingAddressChange = async (event: any) => {
+    console.log("📍 Cambio de dirección:", event.address)
+    
+    try {
+      // Validar país (ejemplo: solo España y países UE + Reino Unido para testing)
+      const allowedCountries = ["ES", "FR", "IT", "DE", "PT", "NL", "BE", "GB", "US", "AU"]
+      
+      if (!allowedCountries.includes(event.address?.country)) {
+        console.log("❌ País no permitido:", event.address?.country)
+        setExpressCheckoutError("No enviamos a este país")
+        return event.reject({
+          reason: 'shipping_address_invalid'
+        })
+      }
+
+      // 🔄 Actualizar el carrito temporalmente con la nueva dirección 
+      // para obtener las opciones de envío reales
+      const tempAddress = {
+        first_name: "temp",
+        last_name: "temp", 
+        address_1: event.address.line1 || "",
+        company: "",
+        postal_code: event.address.postal_code || "",
+        city: event.address.city || "",
+        country_code: event.address.country?.toLowerCase() || "",
+        province: event.address.state || "",
+        phone: "temp",
+      }
+
+      let realShippingOptions: any[] = []
+
+      try {
+        // Actualizar temporalmente para obtener shipping options
+        const tempFormData = new FormData()
+        tempFormData.append('email', cart?.email || 'temp@temp.com')
+        Object.entries(tempAddress).forEach(([key, value]) => {
+          tempFormData.append(`shipping_address.${key}`, value as string)
+        })
+        
+        console.log("🔄 Actualizando dirección temporal para obtener shipping options...")
+        await setAddresses(null, tempFormData)
+        
+        // 🚚 Obtener las opciones de envío reales después de actualizar la dirección
+        if (cart?.id) {
+          console.log("📦 Obteniendo shipping options para cart:", cart.id)
+          realShippingOptions = await listCartShippingMethods(cart.id) || []
+          console.log("🚚 Shipping options obtenidas de Medusa:", realShippingOptions)
+        }
+        
+      } catch (tempError) {
+        console.log("⚠️ Error actualizando dirección temporal:", tempError)
+        console.log("Usando opciones por defecto...")
+      }
+
+      // Obtener opciones de envío (reales si están disponibles, sino hardcodeadas)
+      const shippingRates = await mapShippingRates(realShippingOptions, cart?.id)
+      console.log("🚚 Opciones de envío mapeadas para Stripe:", shippingRates)
+
+      // Verificar que hay opciones disponibles y que tienen montos válidos
+      if (!shippingRates.length) {
+        console.log("❌ No hay opciones de envío disponibles para esta dirección")
+        setExpressCheckoutError("No hay métodos de envío disponibles para esta dirección")
+        return event.reject({
+          reason: 'shipping_address_unserviceable'
+        })
+      }
+
+      // Asegurar que todas las opciones tengan al menos un monto mínimo
+      const validShippingRates = shippingRates.map(rate => {
+        if (rate.amount <= 0) {
+          console.log(`⚠️ Ajustando monto de "${rate.displayName}" de ${rate.amount} a 0 centavos`)
+          return {
+            ...rate,
+            amount: 0, // Google Pay acepta 0 para envío gratis
+          }
+        }
+        return rate
+      })
+
+      console.log("🚚 Opciones finales para Google Pay:", validShippingRates)
+
+      // También actualizar el total inicial con la primera opción de envío
+      if (elements && cart?.total && validShippingRates.length > 0) {
+        const cartTotalInCents = Math.round(cart.total * 100)
+        const firstShippingRate = validShippingRates[0].amount
+        const totalWithShipping = cartTotalInCents + firstShippingRate
+        
+        console.log("💰 Actualizando total inicial con envío:")
+        console.log("- Cart total:", cartTotalInCents, "centavos")
+        console.log("- First shipping:", firstShippingRate, "centavos")
+        console.log("- Total with shipping:", totalWithShipping, "centavos")
+        
+        elements.update({
+          amount: totalWithShipping,
+        })
+      }
+
+      // Resolver con las opciones de envío válidas
+      const resolveDetails = {
+        shippingRates: validShippingRates
+      }
+
+      console.log("✅ Resolviendo cambio de dirección con:", resolveDetails)
+      return event.resolve(resolveDetails)
+      
+    } catch (error) {
+      console.error("❌ Error en onShippingAddressChange:", error)
+      return event.reject({
+        reason: 'shipping_address_invalid'
+      })
+    }
+  }
+
+  const onShippingRateChange = async (event: any) => {
+    console.log("🚚 Cambio de tarifa de envío:", event.shippingRate)
+    
+    try {
+      // Actualizar el total con el costo de envío
+      if (elements && cart?.total) {
+        const shippingAmount = event.shippingRate.amount
+        const cartTotalInCents = Math.round(cart.total * 100)
+        const newTotal = cartTotalInCents + shippingAmount
+        
+        console.log("💰 Cálculo del total:")
+        console.log("- Cart total:", cart.total, "€ =", cartTotalInCents, "centavos")
+        console.log("- Shipping cost:", shippingAmount, "centavos")
+        console.log("- New total:", newTotal, "centavos")
+        
+        elements.update({
+          amount: newTotal,
+        })
+      }
+
+      console.log("✅ Resolviendo cambio de tarifa de envío")
+      event.resolve()
+      
+    } catch (error) {
+      console.error("❌ Error en onShippingRateChange:", error)
+      event.reject()
+    }
+  }
+
+  const onCancel = () => {
+    console.log("❌ ExpressCheckout cancelado")
+    setExpressCheckoutLoading(false)
+    setExpressCheckoutError(null)
+  }
+
+  useEffect(() => {
+    const form = formRef.current
+    if (!form) return
+
+    const onBlur = (e: Event) => {
+      const tgt = e.target as HTMLInputElement
+      if (tgt.name === "email") {
+        form.requestSubmit()
+
+        const timer = setTimeout(() => {
+          setShowButton(true)
+        }, 5000)
+
+        return () => clearTimeout(timer)
+      }
+    }
+
+    form.addEventListener("blur", onBlur, true)
+
+    return () => {
+      form.removeEventListener("blur", onBlur, true)
+    }
+  }, [formRef])
+
+  const [message, formAction] = useFormState(setAddresses, null)
+
+  const handleSubmit = (formData: FormData) => {
+    setSubmitCount((prev) => prev + 1)
+    return formAction(formData)
+  }
+
+  // Skeleton mientras carga
+  const ExpressCheckoutSkeleton = () => {
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        <div className="h-11 animate-pulse rounded-lg bg-gray-200" />
+        <div className="h-11 animate-pulse rounded-lg bg-gray-200" />
+      </div>
+    )
+  }
+
+  // Condiciones para mostrar ExpressCheckout
+  const shouldShowExpressCheckout =
+    stripeReady &&
+    stripe !== null &&
+    elements !== null &&
+    cart &&
+    cart.total &&
+    cart.total > 0 &&
+    cart.payment_collection &&
+    (canMakePaymentStatus === 'available' || canMakePaymentStatus === 'first_load')
+
   return (
     <div className="bg-white">
+      {/* Express Checkout */}
+      {shouldShowExpressCheckout && (
+        <div className="mb-6">
+          <Heading level="h3" className="text-xl mb-4">
+            Pago Express
+          </Heading>
+
+          {expressCheckoutError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+              <Text className="text-sm text-red-700">
+                {expressCheckoutError}
+              </Text>
+            </div>
+          )}
+
+          <div className="py-4">
+            {canMakePaymentStatus === 'first_load' && <ExpressCheckoutSkeleton />}
+
+            <ExpressCheckoutElement
+              options={{
+                paymentMethodOrder: ['apple_pay', 'google_pay', 'link'],
+                paymentMethods: {
+                  applePay: 'always',
+                  googlePay: 'always',
+                  link: 'auto',
+                },
+              }}
+              onCancel={onCancel}
+              onReady={onReady}
+              onShippingAddressChange={onShippingAddressChange}
+              onClick={onClick}
+              onConfirm={onConfirm}
+              onShippingRateChange={onShippingRateChange}
+            />
+          </div>
+
+          {expressCheckoutLoading && (
+            <div className="mt-3 flex items-center gap-2">
+              <Spinner />
+              <Text className="text-sm">Procesando pago express...</Text>
+            </div>
+          )}
+
+          <div className="flex items-center my-6">
+            <div className="flex-1 border-t border-gray-300"></div>
+            <span className="px-3 text-gray-500 text-sm">
+              O completa manualmente
+            </span>
+            <div className="flex-1 border-t border-gray-300"></div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-row items-center justify-between mb-6">
         <Heading
           level="h2"
-          className={clx(
-            "flex flex-row font-bold text-3xl-regular gap-x-2 items-baseline uppercase font-dmSans",
-            {
-              "opacity-50 pointer-events-none select-none":
-                !isOpen && cart.shipping_methods?.length === 0,
-            }
-          )}
+          className="flex flex-row text-3xl-regular gap-x-2 items-baseline"
         >
-          {t("checkout.delivery")}
-          {!isOpen && (cart.shipping_methods?.length ?? 0) > 0 && (
-            <CheckCircleSolid />
-          )}
+          {t("checkout.shipping_address")}
+          {!isOpen && <CheckCircleSolid />}
         </Heading>
-        {!isOpen &&
-          cart?.shipping_address &&
-          cart?.billing_address &&
-          cart?.email && (
-            <Text>
-              <button
-                onClick={handleEdit}
-                className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-                data-testid="edit-delivery-button"
-              >
-                Edit
-              </button>
-            </Text>
-          )}
+        {!isOpen && cart?.shipping_address && (
+          <Text>
+            <button
+              onClick={handleEdit}
+              className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
+              data-testid="edit-address-button"
+            >
+              Edit
+            </button>
+          </Text>
+        )}
       </div>
+
       {isOpen ? (
-        <div data-testid="delivery-options-container">
-          <div className="pb-8 space-y-4">
-            <RadioGroup value={selectedShippingMethod?.id} onChange={set}>
-              {availableShippingMethods?.map((option) => {
-                const isSelected = option.id === selectedShippingMethod?.id
-                return (
-                  <RadioGroup.Option
-                    key={option.id}
-                    value={option.id}
-                    data-testid="delivery-option-radio"
-                    className={clx(
-                      "relative block w-full p-6 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer transition-all duration-200",
-                      {
-                        "border-black bg-white shadow-sm": isSelected,
-                        "hover:border-gray-300 hover:bg-gray-100": !isSelected,
-                      }
-                    )}
-                  >
-                    <div className="flex items-start w-full justify-between">
-                      <div className="flex items-start w-full gap-4">
-                        <div className="flex items-center h-6">
-                          <Radio checked={isSelected} />
-                        </div>
-                        <div className="flex-1 w-full">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-lg font-semibold text-gray-900">
-                              {option.name}
-                            </h4>
-                            <span className="text-lg font-bold text-gray-900">
-                              {getShippingOptionPrice(option)}
-                            </span>
-                          </div>
+        <form ref={formRef} action={handleSubmit} key={submitCount}>
+          <div className="pb-8">
+            <ShippingAddress
+              customer={customer}
+              checked={sameAsBilling}
+              onChange={toggleSameAsBilling}
+              cart={cart}
+            />
 
-                          {/* Mostrar información de tiempo si es el método seleccionado y es calculated */}
-                          {isSelected &&
-                            option.price_type === "calculated" &&
-                            deliveryRange && (
-                              <div className="mt-3 space-y-2">
-                                <div className="text-sm text-gray-600">
-                                  <span className="font-medium">
-                                    Tiempo producción:
-                                  </span>{" "}
-                                  {deliveryRange.minDays ===
-                                  deliveryRange.maxDays
-                                    ? `${deliveryRange.minDays} días`
-                                    : `${deliveryRange.minDays}-${deliveryRange.maxDays} días`}
-                                </div>
-                                <div className="text-sm font-medium text-gray-900">
-                                  Tu pedido llegará entre el{" "}
-                                  <span className="font-bold">
-                                    {deliveryRange.startDate.toLocaleDateString(
-                                      "es-ES",
-                                      {
-                                        day: "numeric",
-                                        month: "long",
-                                        year: "numeric",
-                                      }
-                                    )}
-                                  </span>
-                                  {deliveryRange.minDays !==
-                                    deliveryRange.maxDays && (
-                                    <>
-                                      {" "}
-                                      y el{" "}
-                                      <span className="font-bold">
-                                        {deliveryRange.endDate.toLocaleDateString(
-                                          "es-ES",
-                                          {
-                                            day: "numeric",
-                                            month: "long",
-                                            year: "numeric",
-                                          }
-                                        )}
-                                      </span>
-                                    </>
-                                  )}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  si nadie la lía por el camino
-                                </div>
-                              </div>
-                            )}
+            {!sameAsBilling && (
+              <div>
+                <Heading
+                  level="h2"
+                  className="text-3xl-regular gap-x-4 pb-6 pt-8"
+                >
+                  Billing address
+                </Heading>
 
-                          {/* Para métodos flat rate, mostrar descripción simple */}
-                          {isSelected && option.price_type === "flat" && (
-                            <div className="mt-2 text-sm text-gray-600">
-                              {option.name.includes("Express") &&
-                                "1-2 días laborales"}
-                              {option.name.includes("Standard") &&
-                                "3-5 días laborales"}
-                              {option.name.includes("Recogida") &&
-                                "Disponible para recogida"}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </RadioGroup.Option>
-                )
-              })}
-            </RadioGroup>
+                <BillingAddress cart={cart} />
+              </div>
+            )}
+            {showButton && (
+              <SubmitButton
+                className="mt-6"
+                data-testid="submit-address-button"
+              >
+                Actualizar datos
+              </SubmitButton>
+            )}
+            <ErrorMessage error={message} data-testid="address-error-message" />
           </div>
-
-          <ErrorMessage
-            error={error}
-            data-testid="delivery-option-error-message"
-          />
-
-          <Button
-            size="large"
-            className="mt-6"
-            onClick={handleSubmit}
-            isLoading={isLoading}
-            disabled={!cart.shipping_methods?.[0]}
-            data-testid="submit-delivery-option-button"
-          >
-            Continue to payment
-          </Button>
-        </div>
+        </form>
       ) : (
         <div>
           <div className="text-small-regular">
-            {cart && (cart.shipping_methods?.length ?? 0) > 0 && (
-              <div className="flex flex-col w-1/3">
-                <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                  Method
-                </Text>
-                <Text className="txt-medium text-ui-fg-subtle">
-                  {selectedShippingMethod?.name}{" "}
-                  {getShippingOptionPrice(selectedShippingMethod!)}
-                </Text>
+            {cart && cart.shipping_address ? (
+              <div className="flex items-start gap-x-8">
+                <div className="flex items-start gap-x-1 w-full">
+                  <div
+                    className="flex flex-col w-1/3"
+                    data-testid="shipping-address-summary"
+                  >
+                    <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                      Shipping Address
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.shipping_address.first_name}{" "}
+                      {cart.shipping_address.last_name}
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.shipping_address.address_1}{" "}
+                      {cart.shipping_address.address_2}
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.shipping_address.postal_code},{" "}
+                      {cart.shipping_address.city}
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.shipping_address.country_code?.toUpperCase()}
+                    </Text>
+                  </div>
+
+                  <div
+                    className="flex flex-col w-1/3 "
+                    data-testid="shipping-contact-summary"
+                  >
+                    <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                      Contact
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.shipping_address.phone}
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.email}
+                    </Text>
+                  </div>
+
+                  <div
+                    className="flex flex-col w-1/3"
+                    data-testid="billing-address-summary"
+                  >
+                    <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                      Billing Address
+                    </Text>
+
+                    {sameAsBilling ? (
+                      <Text className="txt-medium text-ui-fg-subtle">
+                        Billing- and delivery address are the same.
+                      </Text>
+                    ) : (
+                      <>
+                        <Text className="txt-medium text-ui-fg-subtle">
+                          {cart.billing_address?.first_name}{" "}
+                          {cart.billing_address?.last_name}
+                        </Text>
+                        <Text className="txt-medium text-ui-fg-subtle">
+                          {cart.billing_address?.address_1}{" "}
+                          {cart.billing_address?.address_2}
+                        </Text>
+                        <Text className="txt-medium text-ui-fg-subtle">
+                          {cart.billing_address?.postal_code},{" "}
+                          {cart.billing_address?.city}
+                        </Text>
+                        <Text className="txt-medium text-ui-fg-subtle">
+                          {cart.billing_address?.country_code?.toUpperCase()}
+                        </Text>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <Spinner />
               </div>
             )}
           </div>
@@ -386,5 +753,5 @@ const Shipping: React.FC<ShippingProps> = ({
     </div>
   )
 }
-
-export default Shipping
+}
+export default Addresses
