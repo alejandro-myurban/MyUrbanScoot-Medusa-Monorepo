@@ -24,7 +24,7 @@ export default function NavConditional({
 
   // Si NO es home page, solo mostrar el navbar principal (blanco)
   if (!isHomePage) {
-    return <>{mainNavbar}</>
+    return <div className="sticky top-0 z-50 h-16">{mainNavbar}</div>
   }
 
   // Si ES home page, mostrar el comportamiento dual con ScrollNavWrapper

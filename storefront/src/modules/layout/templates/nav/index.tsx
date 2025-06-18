@@ -26,7 +26,7 @@ export default async function Nav() {
   // Navbar principal (claro)
   // --------------------------------------------------
   const mainNavbar = (
-    <header className="relative h-16 w-full bg-white/95 backdrop-blur-md shadow-sm z-50">
+    <header className="relative h-16 w-full bg-white/95 backdrop-blur-md shadow-sm z-50 ">
       <nav className="w-full max-w-screen-large mx-auto px-4 sm:px-6 flex items-center justify-between h-full lg:justify-between">
         {/* En móvil: hamburguesa a la izquierda */}
         <div className="lg:hidden">
