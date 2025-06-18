@@ -101,7 +101,10 @@ const medusaConfig = {
       resolve: "./src/modules/loyalty",
     },
     {
-      resolve: "./src/modules/blog"
+      resolve: "./src/modules/financing_data",
+    },
+    {
+      resolve: "./src/modules/blog",
     },
     {
       key: Modules.FILE,
@@ -194,13 +197,14 @@ const medusaConfig = {
           },
         ]
       : []),
-    ...(STRIPE_API_KEY && STRIPE_WEBHOOK_SECRET
-      ? [
-          {
-            key: Modules.PAYMENT,
-            resolve: "@medusajs/payment",
-            options: {
-              providers: [
+    {
+      key: Modules.PAYMENT,
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: [
+          // Stripe (si está configurado)
+          ...(STRIPE_API_KEY && STRIPE_WEBHOOK_SECRET
+            ? [
                 {
                   resolve: "@medusajs/payment-stripe",
                   id: "stripe",
@@ -210,13 +214,32 @@ const medusaConfig = {
                     capture: true,
                   },
                 },
-              ],
+              ]
+            : []),
+
+          // PayPal (SIEMPRE, no condicionado)
+          {
+            resolve: "@rsc-labs/medusa-paypal-payment/providers/paypal-payment",
+            id: "paypal-payment",
+            options: {
+              oAuthClientId: process.env.PAYPAL_CLIENT_ID,
+              oAuthClientSecret: process.env.PAYPAL_CLIENT_SECRET,
+              environment: process.env.PAYPAL_ENVIRONMENT,
             },
           },
-        ]
-      : []),
+        ],
+      },
+    },
   ],
   plugins: [
+    {
+      resolve: "@rsc-labs/medusa-paypal-payment",
+      options: {
+        oAuthClientId: process.env.PAYPAL_CLIENT_ID,
+        oAuthClientSecret: process.env.PAYPAL_CLIENT_SECRET,
+        environment: process.env.PAYPAL_ENVIRONMENT,
+      },
+    },
     {
       resolve: `medusa-plugin-tolgee`,
       options: {
@@ -243,6 +266,22 @@ const medusaConfig = {
     },
   ],
 };
+
+// 🔍 DEBUG: Verificar configuración antes de export
+console.log("🔧 PayPal provider config:", {
+  resolve: "@rsc-labs/medusa-paypal-payment/providers/paypal-payment",
+  id: "paypal-payment",
+  hasOptions: !!(process.env.PAYPAL_CLIENT_ID || "AYej1..."),
+});
+
+console.log(
+  "🔧 Payment module config:",
+  JSON.stringify(
+    medusaConfig.modules.find((m) => m.key === "payment"),
+    null,
+    2
+  )
+);
 
 console.log(JSON.stringify(medusaConfig, null, 2));
 export default defineConfig(medusaConfig);

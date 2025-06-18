@@ -156,7 +156,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                   {/* Producto actual */}
                   <BreadcrumbSeparator className="flex-none text-black [&>svg]:w-4 [&>svg]:h-4" />
                   <BreadcrumbItem>
-                    <BreadcrumbPage className="font-semibold">{product.title}</BreadcrumbPage>
+                    <BreadcrumbPage className="font-semibold">
+                      {product.title}
+                    </BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
@@ -184,14 +186,14 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                   >
                     <div className="flex flex-col small:top-48 small:py-0  w-full py-8 gap-y-6">
                       <ProductInfo product={product} />
-                      <ProductTabs product={product} />
+                      {/* <ProductTabs product={product} /> */}
                     </div>
+
                     <ProductActionsWrapper
                       id={product.id}
                       region={region}
                       countryCode={countryCode}
                     />
-                    <CustomNameNumberForm product={product} />
                     <BoughtTogether product={product} region={region} />
                   </Suspense>
                 </CombinedCartProvider>

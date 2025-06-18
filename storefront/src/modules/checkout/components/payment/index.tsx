@@ -11,26 +11,22 @@ import { Button, Container, Heading, Text, clx, RadioGroup } from "@medusajs/ui"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import { StripeContext } from "@modules/checkout/components/payment-wrapper/stripe-wrapper"
 import Divider from "@modules/common/components/divider"
-import {
-  PaymentElement,
-  useElements,
-  useStripe,
-  ExpressCheckoutElement,
-} from "@stripe/react-stripe-js"
+import { PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js"
 import { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
 import { Mailbox } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useContext, useEffect, useState } from "react"
-// Importar el hook
-import { useCodFee } from "../../../../lib/hooks/use-cod" // Ajusta la ruta según tu estructura
+import { useCodFee } from "../../../../lib/hooks/use-cod"
 import { useTranslation } from "react-i18next"
+import PayPal from "@modules/common/icons/paypal"
+import PayPalPaymentButton from "../paypal-button"
+import PayPalDebug from "../debug"
 
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)")
-
     setIsMobile(mediaQuery.matches)
 
     const handleChange = (e: MediaQueryListEvent) => {
@@ -38,7 +34,6 @@ const useIsMobile = () => {
     }
 
     mediaQuery.addEventListener("change", handleChange)
-
     return () => mediaQuery.removeEventListener("change", handleChange)
   }, [])
 
@@ -48,13 +43,13 @@ const useIsMobile = () => {
 const Payment = ({
   cart,
   availablePaymentMethods,
-  onCartUpdate, // Nueva prop opcional
+  onCartUpdate,
 }: {
   cart: any
   availablePaymentMethods: any[]
   onCartUpdate?: (cart: any) => void
 }) => {
-  const {t} = useTranslation()
+  const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [stripeComplete, setStripeComplete] = useState(false)
@@ -69,14 +64,12 @@ const Payment = ({
     return "pp_stripe_stripe"
   })
 
-  // Inicializar el hook COD
   const {
     handlePaymentProviderChange,
     isLoading: codLoading,
     error: codError,
   } = useCodFee({ cartId: cart.id })
 
-  console.log("CARRITOOOO", currentCart)
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -85,7 +78,7 @@ const Payment = ({
   const isOpen = searchParams.get("step") === "payment"
   const stripeReady = useContext(StripeContext)
 
-  // Provincias no peninsulares (islas)
+  // Provincias no peninsulares
   const NON_PENINSULAR_PROVINCES = [
     "Illes Balears",
     "Baleares",
@@ -110,15 +103,10 @@ const Payment = ({
     "Menorca",
   ]
 
-  // Función para verificar si una provincia es no peninsular
   const isNonPeninsularProvince = (province: string): boolean => {
     if (!province) return false
-
     const normalizedProvince = province.toLowerCase().trim()
-
-    if (normalizedProvince.length <= 2) {
-      return false
-    }
+    if (normalizedProvince.length <= 2) return false
 
     return NON_PENINSULAR_PROVINCES.some(
       (nonPeninsularProvince) =>
@@ -127,23 +115,19 @@ const Payment = ({
     )
   }
 
-  // Función para verificar si COD está disponible
   const isCODAvailable = (): boolean => {
     const maxCODAmount = 100
     const isNonPeninsular = isNonPeninsularProvince(
       cart?.billing_address?.province || ""
     )
     const exceedsMaxAmount = cart.total > maxCODAmount
-
     return !exceedsMaxAmount && !isNonPeninsular
   }
 
-  // Verificar si hay cargo COD en el carrito
   const hasCodFee = currentCart?.items?.some(
     (item: any) => item.metadata?.is_cod_fee === true
   )
 
-  // Métodos de pago disponibles - filtrados según disponibilidad
   const getAllPaymentOptions = () => [
     {
       id: "stripe",
@@ -151,6 +135,13 @@ const Payment = ({
       title: "Tarjeta de Crédito/Débito",
       description: "Paga con tarjeta de forma segura",
       icon: <CreditCard className="w-5 h-5" />,
+    },
+    {
+      id: "paypal",
+      provider_id: "pp_paypal-payment_paypal-payment",
+      title: "PayPal",
+      description: "Paga con tu cuenta PayPal de forma segura",
+      icon: <PayPal />,
     },
     {
       id: "cod",
@@ -172,7 +163,6 @@ const Payment = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Si el proveedor seleccionado ya no está disponible, cambiar a stripe
       const isSelectedProviderAvailable = paymentOptions.some(
         (option) => option.provider_id === selectedProvider
       )
@@ -182,7 +172,6 @@ const Payment = ({
         setSelectedProvider(newProvider)
         handleProviderChange(newProvider)
       } else if (!selectedProvider) {
-        // Solo establecer stripe como default si no hay ningún provider seleccionado
         const savedProvider = sessionStorage.getItem("selectedPaymentProvider")
         const defaultProvider =
           savedProvider &&
@@ -195,7 +184,6 @@ const Payment = ({
     }
   }, [isOpen, paymentOptions.length])
 
-  // Actualizar el carrito cuando cambie
   useEffect(() => {
     setCurrentCart(cart)
   }, [cart])
@@ -203,6 +191,27 @@ const Payment = ({
   const activeSession = currentCart.payment_collection?.payment_sessions?.find(
     (paymentSession: any) => paymentSession.status === "pending"
   )
+
+  // 🔍 AGREGAR ESTE DEBUG AQUÍ
+  console.log("=== PAYMENT SESSIONS DEBUG ===")
+  console.log("Current cart:", currentCart)
+  console.log("Payment collection:", currentCart?.payment_collection)
+  console.log(
+    "All payment sessions:",
+    currentCart?.payment_collection?.payment_sessions?.map((s: any) => ({
+      id: s.id,
+      provider_id: s.provider_id,
+      status: s.status,
+      data: s.data,
+    }))
+  )
+  console.log("Active session:", activeSession)
+  console.log("Selected provider:", selectedProvider)
+  console.log(
+    "Available payment methods from backend:",
+    availablePaymentMethods
+  )
+  console.log("========================")
 
   const paidByGiftcard =
     currentCart?.gift_cards &&
@@ -244,7 +253,6 @@ const Payment = ({
     }
   }
 
-  // FUNCIÓN MODIFICADA: Aquí es donde integras el hook COD
   const handleProviderChange = async (providerId: string) => {
     setSelectedProvider(providerId)
     setError(null)
@@ -253,23 +261,41 @@ const Payment = ({
     try {
       console.log(`🔄 Iniciando sesión para provider: ${providerId}`)
 
-      // Manejar el cargo COD antes de crear la sesión de pago
-      console.log(`🔄 Manejando cargo COD para provider: ${providerId}`)
-      const updatedCart = await handlePaymentProviderChange(providerId)
+      if (providerId === "pp_system_default") {
+        console.log(`🔄 Manejando cargo COD para provider: ${providerId}`)
+        const updatedCart = await handlePaymentProviderChange(providerId)
 
-      if (updatedCart) {
-        console.log("✅ Carrito actualizado con/sin cargo COD:", updatedCart)
-        setCurrentCart(updatedCart)
-
-        // NUEVO: Notificar al componente padre sobre la actualización
-        if (onCartUpdate) {
-          onCartUpdate(updatedCart)
+        if (updatedCart) {
+          console.log("✅ Carrito actualizado con cargo COD:", updatedCart)
+          setCurrentCart(updatedCart)
+          if (onCartUpdate) {
+            onCartUpdate(updatedCart)
+          }
+        } else if (codError) {
+          throw new Error(codError)
         }
-      } else if (codError) {
-        throw new Error(codError)
+      } else {
+        // Para Stripe y PayPal
+        console.log(`🔄 Creando sesión de pago para ${providerId}`)
+
+        await initiatePaymentSession(currentCart, {
+          provider_id: providerId,
+        })
+
+        const updatedCart = await retrieveCart(currentCart.id)
+        if (updatedCart) {
+          setCurrentCart(updatedCart)
+          if (onCartUpdate) {
+            onCartUpdate(updatedCart)
+          }
+        }
       }
 
-      // ... resto de tu código existente
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("selectedPaymentProvider", providerId)
+      }
+
+      console.log(`✅ Sesión iniciada exitosamente para ${providerId}`)
     } catch (err: any) {
       console.error(`❌ Error al inicializar sesión para ${providerId}:`, err)
       setError(`Error al inicializar el método de pago: ${err.message}`)
@@ -283,7 +309,14 @@ const Payment = ({
     setError(null)
 
     try {
-      // Si es Stripe, validar PaymentElement
+      // Para PayPal, no necesitamos hacer nada aquí ya que el PayPalPaymentButton maneja todo
+      if (selectedProvider === "pp_paypal-payment_paypal-payment") {
+        console.log("PayPal seleccionado - el botón PayPal manejará el flujo")
+        setIsLoading(false)
+        return
+      }
+
+      // Para Stripe
       if (selectedProvider === "pp_stripe_stripe") {
         if (!stripe || !elements) {
           setError("Procesamiento de pagos no disponible. Intenta de nuevo.")
@@ -303,12 +336,7 @@ const Payment = ({
         }
       }
 
-      // Para contrareembolso, no necesitamos validaciones adicionales
-      if (selectedProvider === "pp_system_default") {
-        console.log("Método de contrareembolso seleccionado, continuando...")
-      }
-
-      // Continuar al siguiente paso
+      // Para contrareembolso y Stripe continuar al siguiente paso
       router.push(pathname + "?" + createQueryString("step", "review"), {
         scroll: false,
       })
@@ -319,14 +347,12 @@ const Payment = ({
     }
   }
 
-  // Guardar en sessionStorage cuando cambie
   useEffect(() => {
     if (selectedProvider && typeof window !== "undefined") {
       sessionStorage.setItem("selectedPaymentProvider", selectedProvider)
     }
   }, [selectedProvider])
 
-  // Crear payment collection si no existe y luego inicializar proveedor
   useEffect(() => {
     if (
       isOpen &&
@@ -338,13 +364,11 @@ const Payment = ({
         .then(async (result) => {
           console.log("✅ Payment collection creada:", result)
 
-          // Recargar el carrito
           const updatedCart = await retrieveCart(currentCart.id)
           if (updatedCart) {
             setCurrentCart(updatedCart)
           }
 
-          // Después de crear la collection, inicializar el proveedor por defecto
           if (!selectedProvider) {
             const defaultProvider = paymentOptions[0].provider_id
             setSelectedProvider(defaultProvider)
@@ -361,25 +385,27 @@ const Payment = ({
       currentCart.payment_collection &&
       !selectedProvider
     ) {
-      // Si ya hay payment collection pero no hay proveedor seleccionado
       const defaultProvider = paymentOptions[0].provider_id
       setSelectedProvider(defaultProvider)
       handleProviderChange(defaultProvider)
     }
   }, [isOpen, currentCart.payment_collection, selectedProvider])
 
-  // Determinar si el botón debe estar habilitado
   const isButtonDisabled = (): boolean => {
     if (paidByGiftcard) return false
     if (!selectedProvider) return true
-    if (codLoading) return true // Deshabilitar mientras se procesa COD
+    if (codLoading) return true
+
+    // Para PayPal, el botón principal se deshabilita porque PayPal maneja su propio flujo
+    if (selectedProvider === "pp_paypal-payment_paypal-payment") {
+      return true
+    }
 
     if (selectedProvider === "pp_stripe_stripe") {
       return !stripeComplete || !stripe || !elements
     }
 
     if (selectedProvider === "pp_system_default") {
-      // Ya no necesitamos estas validaciones aquí porque la opción no se muestra si no está disponible
       return false
     }
 
@@ -388,6 +414,8 @@ const Payment = ({
 
   const getButtonText = () => {
     if (codLoading) return "Procesando..."
+    if (selectedProvider === "pp_paypal-payment_paypal-payment")
+      return "Usa el botón PayPal de arriba"
     return "Continuar a revisión"
   }
 
@@ -395,16 +423,14 @@ const Payment = ({
     (opt) => opt.provider_id === selectedProvider
   )
 
-  // Combinar errores
   const displayError = error || codError
-
-  function onChange(event: StripePaymentElementChangeEvent) {
-    handlePaymentElementChange(event)
-  }
 
   return (
     <div className="bg-white">
       <div className="flex flex-row items-center justify-between mb-6">
+        {process.env.NODE_ENV === "development" && (
+          <PayPalDebug cart={currentCart} />
+        )}
         <Heading
           level="h2"
           className={clx(
@@ -444,7 +470,7 @@ const Payment = ({
                   value={selectedProvider}
                   onValueChange={handleProviderChange}
                   className="grid gap-0"
-                  disabled={codLoading} // Deshabilitar durante carga COD
+                  disabled={codLoading}
                 >
                   {paymentOptions.map((option) => (
                     <div
@@ -507,6 +533,27 @@ const Payment = ({
                 </div>
               )}
 
+              {/* PayPal Payment Button - Componente mejorado */}
+              {selectedProvider === "pp_paypal-payment_paypal-payment" && (
+                <div className="mb-6 transition-all duration-150 ease-in-out">
+                  <div className="p-4 bg-ui-bg-subtle rounded-lg mb-4">
+                    <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                      PayPal
+                    </Text>
+                    <Text className="txt-small text-ui-fg-subtle">
+                      Haz clic en el botón de PayPal para autorizar el pago.
+                      Después podrás revisar tu pedido antes de confirmarlo.
+                    </Text>
+                  </div>
+
+                  <PayPalPaymentButton
+                    cart={currentCart}
+                    notReady={!paymentReady}
+                    data-testid="paypal-payment-button"
+                  />
+                </div>
+              )}
+
               {/* Información de contrareembolso */}
               {selectedProvider === "pp_system_default" && (
                 <div className="mb-6 p-4 bg-ui-bg-subtle rounded-lg">
@@ -547,16 +594,28 @@ const Payment = ({
             data-testid="payment-method-error-message"
           />
 
-          <Button
-            size="large"
-            className="mt-6"
-            onClick={handleSubmit}
-            isLoading={isLoading || codLoading}
-            disabled={isButtonDisabled()}
-            data-testid="submit-payment-button"
-          >
-            {getButtonText()}
-          </Button>
+          {/* Botón principal - se deshabilita para PayPal */}
+          {selectedProvider !== "pp_paypal-payment_paypal-payment" && (
+            <Button
+              size="large"
+              className="mt-6"
+              onClick={handleSubmit}
+              isLoading={isLoading || codLoading}
+              disabled={isButtonDisabled()}
+              data-testid="submit-payment-button"
+            >
+              {getButtonText()}
+            </Button>
+          )}
+
+          {/* Mensaje informativo para PayPal */}
+          {selectedProvider === "pp_paypal-payment_paypal-payment" && (
+            <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <Text className="txt-small text-blue-700 text-center">
+                👆 Usa el botón de PayPal de arriba para continuar
+              </Text>
+            </div>
+          )}
         </div>
 
         {/* Vista resumen cuando no está abierto */}
@@ -588,6 +647,8 @@ const Payment = ({
                   <Text>
                     {selectedProvider === "pp_stripe_stripe"
                       ? "Another step will appear"
+                      : selectedProvider === "pp_paypal-payment_paypal-payment"
+                      ? "Authorized with PayPal"
                       : "Pay on delivery"}
                   </Text>
                 </div>

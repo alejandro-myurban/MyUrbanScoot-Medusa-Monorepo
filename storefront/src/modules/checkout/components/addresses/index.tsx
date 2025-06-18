@@ -12,6 +12,7 @@ import {
   createPaymentCollection,
   setShippingMethod,
   placeOrder,
+  initiatePaymentSession,
 } from "@lib/data/cart"
 import { sdk } from "@lib/config"
 import compareAddresses from "@lib/util/compare-addresses"
@@ -112,6 +113,12 @@ const Addresses = ({
       if (cart && !cart.payment_collection && stripeReady) {
         try {
           console.log("🔄 Inicializando payment collection...")
+          if (!cart?.id) {
+            throw new Error("Cart is not available")
+          }
+          if (!cart?.id) {
+            throw new Error("Cart is not available")
+          }
           await createPaymentCollection(cart.id)
           console.log("✅ Payment collection creada")
         } catch (error) {
@@ -326,7 +333,7 @@ const Addresses = ({
         return
       }
 
-      // Extraer datos del evento correctamente
+      // Extraer datos del evento
       const payerNameSplit =
         (event.billingDetails?.name ?? event.shippingAddress?.name)?.split(
           " "
@@ -339,7 +346,7 @@ const Addresses = ({
         return
       }
 
-      // Construir direcciones
+      // Construir direcciones (mismo código que tienes)
       const shippingAddress = {
         first_name: payerNameSplit[0] || "",
         last_name: payerNameSplit.slice(1).join(" ") || "",
@@ -366,20 +373,16 @@ const Addresses = ({
         phone: event.billingDetails?.phone || "",
       }
 
-      console.log("📍 Dirección de envío:", shippingAddress)
-      console.log("💳 Dirección de facturación:", billingAddress)
-
-      // Crear FormData con la estructura exacta que espera setAddresses
+      // Crear FormData para setAddresses
       const formData = new FormData()
-
-      // Email
       formData.append("email", event.billingDetails?.email ?? cart?.email ?? "")
 
-      // Shipping address
+      // Shipping address - usando la estructura exacta que espera setAddresses
       formData.append("shipping_address.first_name", shippingAddress.first_name)
       formData.append("shipping_address.last_name", shippingAddress.last_name)
       formData.append("shipping_address.address_1", shippingAddress.address_1)
-      formData.append("shipping_address.company", "")
+      formData.append("shipping_address.address_2", shippingAddress.address_2)
+      formData.append("shipping_address.company", "") // ⭐ String vacío, no null
       formData.append(
         "shipping_address.postal_code",
         shippingAddress.postal_code
@@ -392,11 +395,12 @@ const Addresses = ({
       formData.append("shipping_address.province", shippingAddress.province)
       formData.append("shipping_address.phone", shippingAddress.phone)
 
-      // Billing address
+      // Billing address - usando la estructura exacta que espera setAddresses
       formData.append("billing_address.first_name", billingAddress.first_name)
       formData.append("billing_address.last_name", billingAddress.last_name)
       formData.append("billing_address.address_1", billingAddress.address_1)
-      formData.append("billing_address.company", "")
+      formData.append("billing_address.address_2", billingAddress.address_2)
+      formData.append("billing_address.company", "") // ⭐ String vacío, no null
       formData.append("billing_address.postal_code", billingAddress.postal_code)
       formData.append("billing_address.city", billingAddress.city)
       formData.append(
@@ -406,54 +410,157 @@ const Addresses = ({
       formData.append("billing_address.province", billingAddress.province)
       formData.append("billing_address.phone", billingAddress.phone)
 
-      console.log("📦 FormData preparado para setAddresses:")
-      Array.from(formData.entries()).forEach(([key, value]) => {
-        console.log(`${key}: ${value}`)
-      })
+      console.log("🔄 Actualizando direcciones...")
+      const addressResult = await setAddresses(null, formData)
 
-      // Actualizar direcciones en el carrito
-      const result = await setAddresses(null, formData)
-
-      console.log("🔄 Resultado de setAddresses:", result)
-
-      // Verificar si hubo errores
-      if (result && typeof result === "string") {
-        throw new Error(result)
+      if (addressResult && typeof addressResult === "string") {
+        throw new Error(addressResult)
       }
 
-      console.log("✅ Direcciones actualizadas correctamente")
+      console.log("✅ Direcciones actualizadas")
 
-      // 🚚 Guardar método de envío seleccionado
+      // ⭐ CAMBIO PRINCIPAL: Actualizar método de envío ANTES de obtener el cart final
       const selectedShippingRate = event.shippingRate
       console.log("🚚 Método de envío seleccionado:", selectedShippingRate)
 
       if (selectedShippingRate && cart?.id) {
-        try {
-          console.log("💾 Guardando método de envío en Medusa...")
-          console.log("- Cart ID:", cart.id)
-          console.log("- Shipping Option ID:", selectedShippingRate.id)
+        console.log("💾 Guardando método de envío...")
 
-          await setShippingMethod({
-            cartId: cart.id,
-            shippingMethodId: selectedShippingRate.id,
-          })
+        await setShippingMethod({
+          cartId: cart.id,
+          shippingMethodId: selectedShippingRate.id,
+        })
 
-          console.log("✅ Método de envío guardado correctamente")
-        } catch (shippingError) {
-          console.error("❌ Error guardando método de envío:", shippingError)
-          // No fallamos aquí, continuamos con el pago
-        }
+        console.log("✅ Método de envío guardado")
       }
 
-      // 💳 PROCESAR EL PAGO Y COMPLETAR LA ORDEN
-      console.log("💳 Iniciando procesamiento del pago...")
+      // ⭐ CAMBIO PRINCIPAL: Obtener el cart actualizado DESPUÉS de todos los cambios
+      console.log("🔄 Obteniendo cart final con todos los cambios...")
 
-      // Buscar la sesión de pago activa de Stripe
-      const paymentSession = cart?.payment_collection?.payment_sessions?.find(
-        (session) =>
-          session.provider_id === "pp_stripe_stripe" &&
-          session.status === "pending"
-      )
+      // Usar el mismo import/sdk que usas en el resto del componente
+      const finalCartResponse = await sdk.store.cart.retrieve(cart!.id, {
+        fields: "*payment_collection.payment_sessions,*items,*shipping_methods",
+      })
+
+      const finalCart = finalCartResponse.cart // ⭐ AÑADIR .cart aquí
+
+      console.log("📦 Cart final completo:", finalCart)
+      console.log("📦 Cart final resumen:", {
+        id: finalCart.id,
+        total: finalCart.total,
+        subtotal: finalCart.subtotal,
+        shipping_total: finalCart.shipping_total,
+        hasPaymentCollection: !!finalCart.payment_collection,
+        paymentSessionsCount:
+          finalCart.payment_collection?.payment_sessions?.length,
+        hasShippingMethods: !!finalCart.shipping_methods?.length,
+      })
+
+      // ⭐ VERIFICACIÓN CRÍTICA: Comprobar si el cart se obtuvo correctamente
+      if (
+        !finalCart ||
+        finalCart.total === undefined ||
+        finalCart.total === null
+      ) {
+        console.error("❌ Error: No se pudo obtener el cart actualizado")
+        console.log("🔍 Debug cart retrieval:", {
+          cartId: cart!.id,
+          finalCart,
+          hasTotal: finalCart?.total !== undefined,
+        })
+
+        event.paymentFailed({ reason: "fail" })
+        setExpressCheckoutError("Error obteniendo información del carrito")
+        return
+      }
+
+      const cartTotalInCents = Math.round((finalCart.total || 0) * 100)
+      const expectedTotalWithShipping = cartTotalInCents // El cart ya incluye el shipping
+
+      console.log("💰 Verificación de montos:", {
+        cartTotal: finalCart.total,
+        cartTotalInCents,
+        expectedTotal: expectedTotalWithShipping,
+      })
+
+      // ⭐ CAMBIO PRINCIPAL: Recrear payment collection solo si es necesario
+      let paymentSession =
+        finalCart?.payment_collection?.payment_sessions?.find(
+          (session) =>
+            session.provider_id === "pp_stripe_stripe" &&
+            session.status === "pending"
+        )
+
+      console.log("🔍 Estado inicial de payment sessions:", {
+        totalSessions:
+          finalCart?.payment_collection?.payment_sessions?.length || 0,
+        hasStripeSession: !!paymentSession,
+        paymentCollectionAmount: finalCart?.payment_collection?.amount,
+        cartTotal: finalCart.total,
+      })
+
+      // ⭐ Las payment sessions se borran automáticamente cuando cambia el total
+      // SIEMPRE necesitamos recrear después de cambiar shipping
+      if (
+        !paymentSession?.data?.client_secret ||
+        finalCart?.payment_collection?.payment_sessions?.length === 0
+      ) {
+        console.log(
+          "🔄 Recreando payment collection (sessions invalidadas por cambio de total)..."
+        )
+
+        //@ts-ignore
+        await createPaymentCollection(cart.id)
+
+        // ⭐ IMPORTANTE: Inicializar sesiones de pago explícitamente
+        console.log("🔄 Inicializando sesión de pago de Stripe...")
+        if (!cart) {
+          throw new Error("Cart is not available")
+        }
+
+        await initiatePaymentSession(cart, {
+          provider_id: "pp_stripe_stripe",
+        })
+
+        // ⭐ IMPORTANTE: Esperar un poco más para que Medusa procese todo
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+
+        // Obtener el cart OTRA VEZ después de recrear payment collection
+        const refreshedCartResponse = await sdk.store.cart.retrieve(cart!.id, {
+          fields:
+            "*payment_collection.payment_sessions,*items,*shipping_methods",
+        })
+
+        const refreshedCart = refreshedCartResponse.cart // ⭐ AÑADIR .cart aquí
+
+        console.log("🔄 Cart después de recrear payment collection:", {
+          total: refreshedCart.total,
+          paymentCollectionAmount: refreshedCart?.payment_collection?.amount,
+          sessionsCount:
+            refreshedCart?.payment_collection?.payment_sessions?.length,
+        })
+
+        paymentSession =
+          refreshedCart?.payment_collection?.payment_sessions?.find(
+            (session) =>
+              session.provider_id === "pp_stripe_stripe" &&
+              session.status === "pending"
+          )
+
+        if (paymentSession) {
+          console.log("✅ Payment session recreada:", {
+            id: paymentSession.id,
+            status: paymentSession.status,
+            hasClientSecret: !!paymentSession.data?.client_secret,
+          })
+        } else {
+          console.log("❌ No se pudo crear payment session después de recrear")
+          console.log(
+            "🔍 Payment sessions disponibles:",
+            refreshedCart?.payment_collection?.payment_sessions
+          )
+        }
+      }
 
       if (!paymentSession?.data?.client_secret) {
         console.error("❌ No se encontró sesión de pago válida")
@@ -463,30 +570,19 @@ const Addresses = ({
       }
 
       const clientSecret = paymentSession.data.client_secret as string
-      console.log("🔑 Client secret obtenido para confirmar pago")
+      console.log("🔑 Client secret obtenido con monto correcto")
 
-      // Confirmar el pago con Stripe usando el Express Checkout Element
+      // ⭐ CAMBIO PRINCIPAL: Confirmar pago SIN payment_method_data
+      console.log("💳 Confirmando pago...")
+
       const { error: paymentError } = await stripe.confirmPayment({
         elements,
         clientSecret,
         confirmParams: {
-          payment_method_data: {
-            billing_details: {
-              name: `${billingAddress.first_name} ${billingAddress.last_name}`,
-              address: {
-                city: billingAddress.city,
-                country: billingAddress.country_code.toUpperCase(),
-                line1: billingAddress.address_1,
-                line2: billingAddress.address_2 || undefined,
-                postal_code: billingAddress.postal_code,
-                state: billingAddress.province,
-              },
-              email: event.billingDetails?.email,
-              phone: billingAddress.phone,
-            },
-          },
+          // ❌ NO incluir payment_method_data para ExpressCheckout
+          return_url: `${window.location.origin}/order/confirmed`,
         },
-        redirect: "if_required", // No redirigir, manejar aquí
+        redirect: "if_required",
       })
 
       if (paymentError) {
@@ -500,15 +596,10 @@ const Addresses = ({
 
       console.log("✅ Pago confirmado correctamente")
 
-      // 📦 COMPLETAR LA ORDEN USANDO placeOrder()
-      console.log("📦 Completando orden con placeOrder()...")
-
+      // Completar la orden
       try {
-        await placeOrder() // Esto manejará la redirección automática
+        await placeOrder()
         console.log("✅ Orden completada exitosamente")
-
-        // Si llegamos aquí, la orden se completó y ya se redirigió
-        // No necesitamos hacer nada más
       } catch (orderError) {
         console.error("❌ Error completando la orden:", orderError)
         event.paymentFailed({ reason: "fail" })
@@ -525,7 +616,6 @@ const Addresses = ({
       setExpressCheckoutLoading(false)
     }
   }
-
   const onShippingAddressChange = async (event: any) => {
     console.log("📍 Cambio de dirección:", event.address)
 
@@ -736,7 +826,10 @@ const Addresses = ({
       {/* Express Checkout */}
       {shouldShowExpressCheckout && (
         <div className="mb-6">
-          <Heading level="h2" className=" mb-4 font-dmSans text-2xl font-semibold uppercase">
+          <Heading
+            level="h2"
+            className=" mb-4 font-dmSans text-2xl font-semibold uppercase"
+          >
             Pago Express
           </Heading>
 
@@ -761,7 +854,7 @@ const Addresses = ({
                     googlePay: "always",
                     link: "auto",
                     paypal: "never",
-                    klarna: "never"
+                    klarna: "never",
                   },
                   buttonHeight: 48,
                 }}
@@ -784,9 +877,7 @@ const Addresses = ({
 
           <div className="flex items-center my-6">
             <div className="flex-1 border-t border-gray-300"></div>
-            <span className="px-3 text-gray-500 text-sm">
-              O
-            </span>
+            <span className="px-3 text-gray-500 text-sm">O</span>
             <div className="flex-1 border-t border-gray-300"></div>
           </div>
         </div>

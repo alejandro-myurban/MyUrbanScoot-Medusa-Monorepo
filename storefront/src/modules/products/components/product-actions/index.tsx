@@ -14,6 +14,8 @@ import { HttpTypes } from "@medusajs/types"
 import { useColorContext } from "@lib/context/color-content-provider"
 import { useCombinedCart } from "../bought-together/bt-context"
 import { useTranslation } from "react-i18next"
+import Financing from "../financing"
+import CustomNameNumberForm from "../custom-name-number"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
@@ -248,11 +250,17 @@ export default function ProductActions({
                   />
                 </div>
               ))}
+              <CustomNameNumberForm product={product} />
               <Divider />
             </div>
           )}
         </div>
-
+        {product.type?.value === "Patinetes" && (
+          <Financing
+            productName={selectedVariant?.title ?? product.title ?? ""}
+            price={selectedVariant?.calculated_price?.calculated_amount ?? 0}
+          />
+        )}
         <ProductPrice product={product} variant={selectedVariant} />
         <Toaster />
         <div className="w-64">

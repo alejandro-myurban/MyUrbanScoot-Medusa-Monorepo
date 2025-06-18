@@ -8,6 +8,7 @@ import { useElements, useStripe } from "@stripe/react-stripe-js"
 import { useParams } from "next/navigation"
 import React, { useEffect, useState } from "react"
 import ErrorMessage from "../error-message"
+import PayPalPaymentButton from "../paypal-button"
 
 type PaymentButtonProps = {
   cart: HttpTypes.StoreCart
@@ -18,8 +19,16 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
   cart,
   "data-testid": dataTestId,
 }) => {
+  // Validación defensiva del cart
+  if (!cart) {
+    return (
+      <Button disabled data-testid={dataTestId}>
+        Cargando información del carrito...
+      </Button>
+    )
+  }
+
   const notReady =
-    !cart ||
     !cart.shipping_address ||
     !cart.billing_address ||
     !cart.email ||
@@ -30,11 +39,37 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
     (session) => session.status === "pending"
   )
 
+  // Si no hay payment_collection
+  if (!cart.payment_collection) {
+    return (
+      <Button disabled data-testid={dataTestId}>
+        Inicializando método de pago...
+      </Button>
+    )
+  }
+
+  // Si no hay sesión de pago activa
+  if (!paymentSession) {
+    return (
+      <Button disabled data-testid={dataTestId}>
+        Selecciona un método de pago
+      </Button>
+    )
+  }
+
   // Determinar qué componente de pago mostrar
   switch (true) {
     case isStripe(paymentSession?.provider_id):
       return (
         <StripePaymentButton
+          notReady={notReady}
+          cart={cart}
+          data-testid={dataTestId}
+        />
+      )
+    case paymentSession?.provider_id === "pp_paypal-payment_paypal-payment":
+      return (
+        <PayPalPaymentButton
           notReady={notReady}
           cart={cart}
           data-testid={dataTestId}
@@ -49,7 +84,7 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
         />
       )
     default:
-      return <Button disabled>Select a payment method</Button>
+      return <Button disabled>Selecciona un método de pago</Button>
   }
 }
 
@@ -73,7 +108,6 @@ const CashOnDeliveryButton = ({
     try {
       console.log("Procesando orden con contrareembolso...")
       
-      // Verificar que hay una sesión de pago activa para COD
       const codSession = cart.payment_collection?.payment_sessions?.find(
         (session) => session.provider_id === "pp_system_default" && session.status === "pending"
       )
@@ -128,7 +162,6 @@ const StripePaymentButton = ({
   const stripe = useStripe()
   const elements = useElements()
 
-  // Buscar la sesión de pago de Stripe
   const paymentSession = cart.payment_collection?.payment_sessions?.find(
     (session) => session.provider_id === "pp_stripe_stripe" && session.status === "pending"
   )
@@ -149,7 +182,6 @@ const StripePaymentButton = ({
   const disabled = !stripe || !elements || notReady || submitting
 
   const handlePayment = async () => {
-    // Validaciones iniciales
     if (!stripe || !elements || !cart) {
       console.error("Stripe, elements o cart no disponibles")
       setErrorMessage("Servicio de pago no disponible. Intenta de nuevo.")
@@ -169,7 +201,6 @@ const StripePaymentButton = ({
       const clientSecret = paymentSession.data.client_secret as string
       console.log("Iniciando confirmación de pago con Stripe...")
 
-      // Primero, verificar si el PaymentElement está completo
       const { error: submitError } = await elements.submit()
       if (submitError) {
         console.error("Error al enviar elements:", submitError)
@@ -204,14 +235,11 @@ const StripePaymentButton = ({
         redirect: "if_required",
       })
 
-      console.log("Resultado de confirmPayment:", result)
-
       if (result.error) {
         console.error("Error en confirmPayment:", result.error)
         
         const pi = result.error.payment_intent
 
-        // Verificar si el pago fue exitoso a pesar del error
         if (pi && (pi.status === "requires_capture" || pi.status === "succeeded")) {
           console.log("Pago exitoso a pesar del error, completando orden...")
           await onPaymentCompleted()
@@ -222,7 +250,6 @@ const StripePaymentButton = ({
       } else if (result.paymentIntent) {
         console.log("PaymentIntent exitoso:", result.paymentIntent.status)
         
-        // Verificar el estado del PaymentIntent
         if (result.paymentIntent.status === "succeeded" || 
             result.paymentIntent.status === "requires_capture") {
           await onPaymentCompleted()
@@ -232,8 +259,7 @@ const StripePaymentButton = ({
           setSubmitting(false)
         }
       } else {
-        console.log("No se recibió PaymentIntent, verificando estado de la colección...")
-        // Fallback: verificar el estado de la colección de pagos
+        console.log("No se recibió PaymentIntent, verificando estado...")
         setTimeout(() => {
           if (cart.payment_collection?.status === "authorized") {
             onPaymentCompleted()
@@ -251,7 +277,6 @@ const StripePaymentButton = ({
     }
   }
 
-  // Efecto para verificar el estado autorizado
   useEffect(() => {
     if (cart.payment_collection?.status === "authorized" && !submitting) {
       console.log("Pago ya autorizado, completando orden...")
@@ -268,7 +293,7 @@ const StripePaymentButton = ({
         isLoading={submitting}
         data-testid={dataTestId}
       >
-        {submitting ? "Procesando..." : "Place order"}
+        {submitting ? "Procesando..." : "Procesar pago"}
       </Button>
       <ErrorMessage
         error={errorMessage}
