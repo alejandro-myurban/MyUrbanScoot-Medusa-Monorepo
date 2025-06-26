@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   '@lambdacurry/medusa-product-reviews':
-    hash: 2xevozpzx2kbn4u4mbvr4eq2si
+    hash: agzwbxndzxyz6navwhjudodg5m
     path: patches/@lambdacurry__medusa-product-reviews.patch
 
 importers:
@@ -18,7 +18,7 @@ importers:
         version: 0.0.5(awilix@8.0.1)(ioredis@5.6.1)(vite@5.4.18(@types/node@20.17.31))
       '@lambdacurry/medusa-product-reviews':
         specifier: ^1.1.0
-        version: 1.1.0(patch_hash=2xevozpzx2kbn4u4mbvr4eq2si)(f6gdsjbljcy7hf6iae73qy2hyq)
+        version: 1.1.0(patch_hash=agzwbxndzxyz6navwhjudodg5m)(f6gdsjbljcy7hf6iae73qy2hyq)
       '@medusajs/admin-sdk':
         specifier: latest
         version: 2.7.1
@@ -10233,7 +10233,7 @@ snapshots:
       - ioredis
       - vite
 
-  '@lambdacurry/medusa-product-reviews@1.1.0(patch_hash=2xevozpzx2kbn4u4mbvr4eq2si)(f6gdsjbljcy7hf6iae73qy2hyq)':
+  '@lambdacurry/medusa-product-reviews@1.1.0(patch_hash=agzwbxndzxyz6navwhjudodg5m)(f6gdsjbljcy7hf6iae73qy2hyq)':
     dependencies:
       '@hookform/resolvers': 3.4.2(react-hook-form@7.49.1(react@18.3.1))
       '@lambdacurry/medusa-plugins-sdk': 0.0.5(awilix@8.0.1)(ioredis@5.6.1)(vite@5.4.18(@types/node@20.17.31))
