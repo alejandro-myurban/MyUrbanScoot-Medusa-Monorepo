@@ -261,7 +261,7 @@ const medusaConfig = {
     {
       resolve: "@lambdacurry/medusa-product-reviews",
       options: {
-        defaultReviewStatus: "pending", // OPTIONAL, default is 'approved'
+        defaultReviewStatus: "approved", // OPTIONAL, default is 'approved'
       },
     },
   ],

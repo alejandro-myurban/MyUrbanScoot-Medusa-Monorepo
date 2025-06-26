@@ -2,6 +2,7 @@ import { HttpTypes } from "@medusajs/types"
 import { Heading, Text } from "@medusajs/ui"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { ProductAverageReview } from "@modules/product-reviews/components/ProductAverageReview"
+import ReviewButton from "@modules/product-reviews/components/ReviewButton"
 
 type ProductInfoProps = {
   product: HttpTypes.StoreProduct
@@ -13,7 +14,10 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
   const rawPrices: number[] =
     product.variants
       ?.map((v) => v.calculated_price?.calculated_amount)
-      .filter((amount): amount is number => typeof amount === "number" && !isNaN(amount)) ?? []
+      .filter(
+        (amount): amount is number =>
+          typeof amount === "number" && !isNaN(amount)
+      ) ?? []
 
   // 2. Calcular precio mínimo y máximo (en la misma unidad).
   const minAmount = rawPrices.length > 0 ? Math.min(...rawPrices) : 0
@@ -23,7 +27,6 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
   //    si viene en céntimos, habría que dividir entre 100).
   const minPrice = minAmount.toFixed(2)
   const maxPrice = maxAmount.toFixed(2)
-
 
   const priceText =
     rawPrices.length === 0
@@ -62,6 +65,11 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
 
         {/* Reseñas promedio */}
         <ProductAverageReview productId={product.id} />
+
+        <ReviewButton
+          product={product}
+          className="text-sm"
+        />
 
         {/* Descripción rica */}
         <Text
