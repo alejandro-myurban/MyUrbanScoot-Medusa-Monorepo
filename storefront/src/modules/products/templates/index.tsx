@@ -24,6 +24,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "../../../src/components/ui/breadcrumb"
+import ImageGallerySkeleton from "@modules/skeletons/components/skeleton-image-gallery"
+import ProductInfoSkeleton from "@modules/skeletons/components/skeleton-product-info"
+
+
 
 type ProductTemplateProps = {
   product: HttpTypes.StoreProduct
@@ -115,8 +119,29 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
     return (
       <Suspense
         fallback={
-          <div>
-            <Spinner />
+          <div className="content-container flex flex-col py-6">
+            {/* Breadcrumbs skeleton */}
+            <div className="mb-6 animate-pulse">
+              <div className="flex items-center gap-2">
+                <div className="h-4 bg-gray-200 rounded w-12"></div>
+                <div className="h-4 bg-gray-200 rounded w-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-20"></div>
+                <div className="h-4 bg-gray-200 rounded w-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-32"></div>
+              </div>
+            </div>
+
+            {/* Contenido del producto skeleton */}
+            <div className="flex flex-col small:flex-row small:items-start relative">
+              <div className="block w-full lg:w-1/2 relative">
+                <ImageGallerySkeleton />
+              </div>
+              <div className="flex flex-col small:sticky small:top-48 small:py-0 lg:w-1/2 w-full py-8 gap-y-12">
+                <div className="flex flex-col small:top-48 small:py-0 w-full py-8 gap-y-6">
+                  <ProductInfoSkeleton />
+                </div>
+              </div>
+            </div>
           </div>
         }
       >
@@ -177,11 +202,10 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                 <CombinedCartProvider>
                   <Suspense
                     fallback={
-                      <ProductActions
-                        disabled={true}
-                        product={product}
-                        region={region}
-                      />
+                      <div className="flex flex-col small:top-48 small:py-0 w-full py-8 gap-y-6">
+                        <ProductInfoSkeleton />
+                        <div className="h-12 bg-gray-200 animate-pulse rounded-md w-full"></div>
+                      </div>
                     }
                   >
                     <div className="flex flex-col small:top-48 small:py-0  w-full py-8 gap-y-6">
@@ -204,6 +228,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             className="content-container my-16 small:my-32"
             data-testid="related-products-container"
           >
+            
             <ProductReviewsSummary
               productId={product.id}
               productHandle={product.handle}

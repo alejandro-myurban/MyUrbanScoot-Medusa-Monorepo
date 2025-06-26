@@ -39,9 +39,9 @@ export const ProductReviewsSummary: React.FC<ProductReviewsSummaryProps> = ({
                   {review.rating.toFixed(1)}
                 </span>
               </div>
-              <p className="text-sm text-gray-700 italic">{review.name}</p>
+              <p className="text-sm text-gray-700">{review.name}</p>
 
-              <p className="text-sm text-gray-700">{review.content}</p>
+              <p className="text-sm text-gray-700 italic">{review.content}</p>
             </div>
           ))}
         </div>
