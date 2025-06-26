@@ -10,6 +10,17 @@ const anonymousReviewSchema = z.object({
   name: z.string().optional(),
 });
 
+// Función para generar IDs al estilo Medusa
+function generateMedusaId(): string {
+  // Genera un ID similar al formato de Medusa: 26 caracteres alfanuméricos en mayúsculas
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let result = "";
+  for (let i = 0; i < 26; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
     console.log("🔥 Endpoint anonymous-reviews llamado");
@@ -19,10 +30,8 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     const validatedData = anonymousReviewSchema.parse(req.body);
     console.log("✅ Datos validados:", validatedData);
 
-    // Generar ID único para la reseña
-    const reviewId = `review_${Date.now()}_${Math.random()
-      .toString(36)
-      .substr(2, 9)}`;
+    // Generar ID único para la reseña siguiendo el patrón del plugin
+    const reviewId = `prev_${generateMedusaId()}`;
     console.log("🆔 ID generado:", reviewId);
 
     // Resolver el servicio workflows
@@ -32,7 +41,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     try {
       console.log("🔄 Ejecutando workflow con formato corregido...");
 
-      // Preparar datos con el formato correcto (array directo, no objeto)
+      // Preparar datos con el formato correcto Y campos dummy para el admin
       const productReviewsArray = [
         {
           id: reviewId,
@@ -41,6 +50,23 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
           content: validatedData.content,
           name: validatedData.name || "Cliente anónimo",
           status: "approved",
+          // Campos dummy para evitar errores en el admin
+          order_id: 'dummy-order-id',
+          order_line_item_id: 'dummy-line-item-id',
+          // Objeto order completo que el admin espera
+          order: {
+            id: 'dummy-order-id',
+            display_id: '9999',
+            status: 'completed',
+            email: 'reviews@dummy.com',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          },
+          // Campos adicionales que el admin podría esperar
+          created_at: new Date(),
+          updated_at: new Date(),
+          response: null,
+          images: []
         },
       ];
 
@@ -52,9 +78,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
         { input: { productReviews: productReviewsArray } },
         // Formato 2: Directo
         { productReviews: productReviewsArray },
-        // Formato 3: Solo el array
-        productReviewsArray,
-        // Formato 4: Con key input
+        // Formato 3: Con key input
         { input: productReviewsArray },
       ];
 
@@ -93,7 +117,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       console.log("❌ Error ejecutando workflow:", workflowError.message);
       console.log("❌ Stack del workflow:", workflowError.stack);
 
-      // Como último recurso, intentar ejecutar sin nombre de workflow
+      // Como último recurso, intentar ejecutar sin nombre específico
       try {
         console.log("🔄 Intentando ejecución sin nombre específico...");
         const result = await workflows.run("create-product-reviews-workflow", {
@@ -106,6 +130,22 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
                 content: validatedData.content,
                 name: validatedData.name || "Cliente anónimo",
                 status: "approved",
+                // Campos dummy para evitar errores en el admin
+                order_id: 'dummy-order-id',
+                order_line_item_id: 'dummy-line-item-id',
+                // Objeto order completo que el admin espera
+                order: {
+                  id: 'dummy-order-id',
+                  display_id: '9999',
+                  status: 'completed',
+                  email: 'reviews@dummy.com',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                },
+                created_at: new Date(),
+                updated_at: new Date(),
+                response: null,
+                images: []
               },
             ],
           },
@@ -123,7 +163,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       }
     }
 
-    // Fallback final
+    // Fallback final con campos dummy completos
     console.log("🔄 Fallback a mock review...");
     const mockReview = {
       id: reviewId,
@@ -132,8 +172,22 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       content: validatedData.content,
       name: validatedData.name || "Cliente anónimo",
       status: "approved",
+      // Campos dummy para evitar errores en el admin
+      order_id: 'dummy-order-id',
+      order_line_item_id: 'dummy-line-item-id',
+      // Objeto order completo que el admin espera
+      order: {
+        id: 'dummy-order-id',
+        display_id: '9999',
+        status: 'completed',
+        email: 'reviews@dummy.com',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      response: null,
+      images: []
     };
 
     res.status(201).json({
