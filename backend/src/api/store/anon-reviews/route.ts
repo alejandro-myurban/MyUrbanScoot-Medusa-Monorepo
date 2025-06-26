@@ -64,6 +64,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
           const result = await workflows.run(
             "create-product-reviews-workflow",
+            //@ts-ignore
             inputFormats[i]
           );
 
