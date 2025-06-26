@@ -1,3 +1,65 @@
+diff --git a/.medusa/server/src/admin/index.js b/.medusa/server/src/admin/index.js
+index f2ac755ff554cfd036eb33c6f1aa4c32cef49f50..b59c2f301b2f8f39bb85ecdd50e6f2d83b64d935 100644
+--- a/.medusa/server/src/admin/index.js
++++ b/.medusa/server/src/admin/index.js
+@@ -207,7 +207,8 @@ const ProductReviewDetailsDrawer = ({
+       /* @__PURE__ */ jsxRuntime.jsx(SectionRow, { title: "Status", value: /* @__PURE__ */ jsxRuntime.jsx(StatusValue, {}) }),
+       /* @__PURE__ */ jsxRuntime.jsx(SectionRow, { title: "Created At", value: /* @__PURE__ */ jsxRuntime.jsx(CreatedAtValue, {}) }),
+       /* @__PURE__ */ jsxRuntime.jsx(SectionRow, { title: "Product", value: /* @__PURE__ */ jsxRuntime.jsx(ProductValue, {}) }),
+-      /* @__PURE__ */ jsxRuntime.jsx(SectionRow, { title: "Order", value: /* @__PURE__ */ jsxRuntime.jsx(OrderValue, {}) }),
++      review.order && review.order.id && /* @__PURE__ */ jsxRuntime.jsx(SectionRow, { title: "Order", value: /* @__PURE__ */ jsxRuntime.jsx(OrderValue, {}) }),
++
+       /* @__PURE__ */ jsxRuntime.jsx(
+         SectionRow,
+         {
+@@ -261,10 +262,14 @@ const getColumns = (showColumns, actions) => {
+       }
+     }),
+     columnHelper.accessor("order", {
+-      id: "order",
++      id: "order", 
+       header: "Order",
+       enableSorting: false,
+       cell: ({ row }) => {
++        // Solo mostrar si existe order.id
++        if (!row.original.order?.id) {
++          return /* @__PURE__ */ jsxRuntime.jsx("span", { className: "text-gray-400", children: "No order" });
++        }
+         return /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Link, { to: `/orders/${row.original.order.id}`, children: /* @__PURE__ */ jsxRuntime.jsxs("span", { className: "text-sm whitespace-normal break-words hover:underline", children: [
+           "#",
+           row.original.order.display_id
+diff --git a/.medusa/server/src/admin/index.mjs b/.medusa/server/src/admin/index.mjs
+index 729b34734f4db32ee61c345941a79755edf14b3e..7929597cf00e2dab50cd75915402d61dea8e5ea6 100644
+--- a/.medusa/server/src/admin/index.mjs
++++ b/.medusa/server/src/admin/index.mjs
+@@ -188,7 +188,8 @@ const ProductReviewDetailsDrawer = ({
+       /* @__PURE__ */ jsx(SectionRow, { title: "Status", value: /* @__PURE__ */ jsx(StatusValue, {}) }),
+       /* @__PURE__ */ jsx(SectionRow, { title: "Created At", value: /* @__PURE__ */ jsx(CreatedAtValue, {}) }),
+       /* @__PURE__ */ jsx(SectionRow, { title: "Product", value: /* @__PURE__ */ jsx(ProductValue, {}) }),
+-      /* @__PURE__ */ jsx(SectionRow, { title: "Order", value: /* @__PURE__ */ jsx(OrderValue, {}) }),
++      review.order && review.order.id && /* @__PURE__ */ jsxRuntime.jsx(SectionRow, { title: "Order", value: /* @__PURE__ */ jsxRuntime.jsx(OrderValue, {}) }),
++
+       /* @__PURE__ */ jsx(
+         SectionRow,
+         {
+@@ -242,11 +243,15 @@ const getColumns = (showColumns, actions) => {
+       }
+     }),
+     columnHelper.accessor("order", {
+-      id: "order",
++      id: "order", 
+       header: "Order",
+       enableSorting: false,
+       cell: ({ row }) => {
+-        return /* @__PURE__ */ jsx(Link, { to: `/orders/${row.original.order.id}`, children: /* @__PURE__ */ jsxs("span", { className: "text-sm whitespace-normal break-words hover:underline", children: [
++        // Solo mostrar si existe order.id
++        if (!row.original.order?.id) {
++          return /* @__PURE__ */ jsxRuntime.jsx("span", { className: "text-gray-400", children: "No order" });
++        }
++        return /* @__PURE__ */ jsxRuntime.jsx(reactRouterDom.Link, { to: `/orders/${row.original.order.id}`, children: /* @__PURE__ */ jsxRuntime.jsxs("span", { className: "text-sm whitespace-normal break-words hover:underline", children: [
+           "#",
+           row.original.order.display_id
+         ] }) });
 diff --git a/.medusa/server/src/workflows/upsert-product-reviews.js b/.medusa/server/src/workflows/upsert-product-reviews.js
 index e2ce1b72bcfb05bcbfb8d7d7ee64b47f1965554a..1b98403d9860b66bcbddc0ce3cec611043eef62d 100644
 --- a/.medusa/server/src/workflows/upsert-product-reviews.js
