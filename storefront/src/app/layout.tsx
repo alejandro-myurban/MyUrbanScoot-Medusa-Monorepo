@@ -3,6 +3,8 @@ import { Metadata } from "next"
 import I18nProvider from "../i18n/I18nProvider"
 import { Poppins } from "next/font/google"
 import { DM_Sans } from "next/font/google"
+import { Archivo_Black } from "next/font/google"
+import { Archivo } from "next/font/google"
 import "styles/globals.css"
 
 export const poppins = Poppins({
@@ -20,6 +22,22 @@ export const dmSans = DM_Sans({
   display: "swap", //
 })
 
+export const archivoBlack = Archivo_Black({
+  subsets: ["latin"],
+  variable: "--font-archivoBlack", //
+  weight: "400",
+  display: "swap", //
+})
+
+export const archivo = Archivo({
+  subsets: ["latin"],
+  variable: "--font-archivo", //
+  weight: "400",
+  display: "swap", //
+})
+
+
+
 export const metadata: Metadata = {
   metadataBase: new URL(getBaseURL()),
 }
@@ -32,7 +50,7 @@ export default function RootLayout(props: {
 
   return (
     <html lang={countryCode} data-mode="light">
-      <body className={`${poppins.variable} ${dmSans.variable} font-dmSans`}>
+      <body className={`${poppins.variable} ${dmSans.variable} ${archivoBlack.variable} ${archivo.variable} font-dmSans`}>
         <I18nProvider countryCode={countryCode}>
           <main className="relative">{props.children}</main>
         </I18nProvider>

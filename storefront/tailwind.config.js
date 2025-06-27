@@ -68,6 +68,8 @@ module.exports = {
       fontFamily: {
         poppins: ["var(--font-poppins)", "sans-serif"],
         dmSans: ["var(--font-dmSans)", "sans-serif"],
+        archivoBlack : ["var(--font-archivoBlack)", "sans-serif"],
+        archivo : ["var(--font-archivo)", "sans-serif"],
         sans: [
           "Poppins",
           "Inter",

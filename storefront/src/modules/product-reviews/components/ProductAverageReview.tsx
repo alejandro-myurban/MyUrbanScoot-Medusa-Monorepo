@@ -30,8 +30,11 @@ export const ProductAverageReview = ({
       )}
 
       {hasRating ? (
-        <span className="text-sm text-gray-600">
-          {averageRating!.toFixed(1)} ({totalReviews})
+        <span className="text-sm font-semibold text-ui-fg-base">
+          {averageRating!.toFixed(1)}
+          <span className="ml-1 ">
+            (  <span className="underline">{totalReviews} opiniones</span> )
+          </span>
         </span>
       ) : (
         " "

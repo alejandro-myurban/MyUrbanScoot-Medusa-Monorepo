@@ -22,25 +22,26 @@ export default function ProductPrice({
   }
 
   return (
-    <div className="flex gap-4 items-center text-ui-fg-base">
+    <div className="flex gap-4 items-center text-ui-fg-base font-archivoBlack">
       <span
-        className={clx("text-xl-semi", {
+        className={clx("text-xl-semi ", {
           "text-gray-900 text-2xl font-semibold": selectedPrice.price_type === "sale",
         })}
       >
         {!variant && "From "}
         <span
+          className="flex flex-col "
           data-testid="product-price"
           data-value={selectedPrice.calculated_price_number}
         >
-          {selectedPrice.calculated_price}
+          {selectedPrice.calculated_price} <span className="text-sm">IVA incluido*</span>
         </span>
       </span>
       {selectedPrice.price_type === "sale" && (
         <>
           <p>
             <span
-              className="line-through text-ui-fg-muted text-2xl"
+              className="line-through font-archiveBlack text-ui-fg-muted text-2xl"
               data-testid="original-product-price"
               data-value={selectedPrice.original_price_number}
             >
