@@ -96,7 +96,7 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false)
   const [openBrands, setOpenBrands] = useState<string[]>([])
-  const {t} = useTranslation()
+  const { t } = useTranslation()
 
   const vinylsCategory = categories[0]
   const brands = vinylsCategory?.category_children || []
@@ -118,7 +118,7 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
   const textColor = isDark ? "text-white" : "text-black"
   const textColorSecondary = isDark ? "text-white/80" : "text-black/80"
   const hoverColor = isDark ? "hover:text-white" : "hover:text-black"
-  const bgColor = isDark ? "bg-black/50" : "bg-white/75"
+  const bgColor = isDark ? "bg-black/50" : "bg-white/50"
   const borderColor = isDark ? "border-gray-800" : "border-gray-200"
 
   return (
@@ -191,8 +191,14 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                 >
                   <SearchModal dark={isDark} />
                 </motion.div>
-                <motion.div className="flex items-center justify-center gap-2" variants={linkVariants}>
-                  <LanguageSwitcher /> <p className="text-white/90 font-semibold">{t("navigation.lang")}</p>
+                <motion.div
+                  className="flex items-center justify-center gap-2"
+                  variants={linkVariants}
+                >
+                  <LanguageSwitcher />{" "}
+                  <p className="text-ui-fg-base font-semibold">
+                    {t("navigation.lang")}
+                  </p>
                 </motion.div>
               </motion.div>
 
@@ -210,7 +216,7 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                   onClick={handleLinkClick}
                   className={`${textColorSecondary} ${hoverColor} block py-3 px-4 rounded-lg transition-all duration-200 hover:bg-gray-100/10`}
                 >
-                  <span className="text-lg font-medium">Blog</span>
+                  <span className="text-lg font-semibold">Blog</span>
                 </LocalizedClientLink>
               </motion.div>
 
@@ -227,7 +233,7 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                 >
                   <LocalizedClientLink
                     href="/categories/vinilos"
-                    className="text-lg font-medium"
+                    className="text-lg font-semibold"
                   >
                     {vinylsCategory?.name || "Vinilos"}
                   </LocalizedClientLink>
@@ -263,7 +269,7 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                                 <LocalizedClientLink
                                   href={`/categories/${brand.handle}`}
                                   onClick={handleLinkClick}
-                                  className={`${textColorSecondary} ${hoverColor} flex-1 py-2 px-4 rounded-md transition-all duration-200 hover:bg-gray-100/5 text-base font-medium`}
+                                  className={`${textColorSecondary} ${hoverColor} font-semibold flex-1 py-2 px-4 rounded-md transition-all duration-200 hover:bg-gray-100/5 text-base`}
                                 >
                                   {brand.name}
                                 </LocalizedClientLink>
@@ -379,7 +385,7 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                   onClick={handleLinkClick}
                   className={`${textColorSecondary} ${hoverColor} block py-3 px-4 rounded-lg transition-all duration-200 hover:bg-gray-100/10`}
                 >
-                  <span className="text-lg font-medium">Recambios</span>
+                  <span className="text-lg font-semibold">Recambios</span>
                 </LocalizedClientLink>
               </motion.div>
             </nav>

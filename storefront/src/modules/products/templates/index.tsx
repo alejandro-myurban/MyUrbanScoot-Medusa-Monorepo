@@ -302,7 +302,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
 
           {/* Sección de reseñas y productos relacionados - común para ambos */}
           <div
-            className="content-container py-4 small:my-32 bg-gray-50"
+            className="content-container py-4 small:my-32 bg-gray-50 lg:bg-white"
             data-testid="related-products-container"
           >
             <ProductReviewsSummary

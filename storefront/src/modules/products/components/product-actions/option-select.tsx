@@ -1,16 +1,16 @@
-import { HttpTypes } from "@medusajs/types"
+import { HttpTypes, StoreProduct } from "@medusajs/types"
 import { clx } from "@medusajs/ui"
 import React from "react"
 import { useTranslation } from "react-i18next"
 import { useColorContext } from "@lib/context/color-content-provider"
-import { PlusCircle, MinusCircle } from "lucide-react"
-import PopularBadge from "../badge-top-seller"
+import { PlusCircle, MinusCircle, Star } from "lucide-react"
 
 type OptionSelectProps = {
   option: HttpTypes.StoreProductOption & {
     values?: Array<{
       value: string
-      label?: string // Añadido label para soportar traducciones
+      label?: string
+      popular?: boolean // Nuevo campo para marcar como popular
     }>
   }
   current: string | undefined
@@ -18,6 +18,8 @@ type OptionSelectProps = {
   title: string
   disabled: boolean
   "data-testid"?: string
+  product: StoreProduct
+  selectedOptions?: Record<string, string> // Opciones actualmente seleccionadas
 }
 
 const OptionSelect: React.FC<OptionSelectProps> = ({
@@ -27,10 +29,41 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
   title,
   "data-testid": dataTestId,
   disabled,
+  product,
+  selectedOptions = {}
 }) => {
   const { t } = useTranslation()
   const { optionTitle } = useColorContext()
   const [showInfo, setShowInfo] = React.useState<boolean>(false)
+
+  // Función para obtener el precio de una variante específica
+  const getVariantPrice = (optionValue: string): number | null => {
+    if (!product.variants) return null
+
+    // Crear un objeto con las opciones que tendría la variante si seleccionamos este valor
+    const potentialOptions = {
+      ...selectedOptions,
+      [option.title]: optionValue
+    }
+
+    // Buscar la variante que coincida con estas opciones
+    const matchingVariant = product.variants.find(variant => {
+      if (!variant.options) return false
+      
+      // Verificar si todas las opciones coinciden
+      return Object.entries(potentialOptions).every(([optionTitle, optionValue]) => {
+        const variantOption = variant.options?.find(opt => opt.option?.title === optionTitle)
+        return variantOption?.value === optionValue
+      })
+    })
+
+    return matchingVariant?.calculated_price?.calculated_amount || null
+  }
+
+  // Función para formatear el precio
+  const formatPrice = (price: number): string => {
+    return `€${price.toFixed(2)}`
+  }
 
   // Información específica según el tipo de opción
   const getInfoContent = (optionTitle: string) => {
@@ -81,15 +114,36 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
     }
   }
 
-  const infoContent = getInfoContent(title)
+  // Función para verificar si un valor es popular (también puede venir de metadata del producto)
+  const isPopular = (value: string) => {
+    // Método 1: Desde el array de values
+    //@ts-ignore
+    if (option.values?.find((v) => v.value === value)?.popular) {
+      return true
+    }
 
+    // Método 2: Hardcodeado para ciertos valores comunes
+    const popularValues = [
+      "con base",
+      "with base",
+      "l",
+      "large",
+      "negro",
+      "black",
+    ]
+    return popularValues.includes(value.toLowerCase())
+  }
+
+  const infoContent = getInfoContent(title)
+  console.log("OPCIONES", option)
+  
   return (
     <div className="flex flex-col gap-y-3">
       <span className="font-semibold flex font-archivoBlack uppercase flex-col sm:flex-row items-start sm:items-center justify-between text-xl sm:text-2xl">
         {getSelectText(title)}
         <button
           onClick={() => setShowInfo(!showInfo)}
-          className="font-normal text-left font-dmSans cursor-pointer text-sm flex justify-center items-center gap-1 underline hover:text-gray-600 transition-colors"
+          className="font-normal text-left font-dmSans cursor-pointer  text-sm flex justify-center items-center gap-1 underline hover:text-gray-600 transition-colors"
         >
           {infoContent.title}
           {showInfo ? (
@@ -121,16 +175,17 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
           // Usa label si está disponible, si no usa value
           //@ts-ignore
           const displayValue = v.translations?.value || v.value
+          const showPopularBadge = isPopular(v.value)
+          const variantPrice = getVariantPrice(v.value)
 
           return (
             <button
               onClick={() => updateOption(option.title, v.value)}
               key={v.value}
               className={clx(
-                "border-[#2C2C2C] flex items-center bg-ui-bg-subtle border-2 font-semibold  rounded-md px-4 py-2 h-20 flex-1",
+                "relative border-gray-300 flex flex-col justify-center bg-ui-bg-subtle  py-6 sm:py-0 border-2 font-semibold rounded-md px-4 h-20 flex-1 transition-all duration-200 overflow-visible",
                 {
-                  "border-[#2C2C2C] bg-[#2C2C2C] text-white border-2 font-semibold":
-                    current === v.value,
+                  "border-black text-ui-fg-base": current === v.value,
                   "hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150":
                     current !== v.value,
                 }
@@ -138,7 +193,25 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
               disabled={disabled}
               data-testid="option-button"
             >
-              {displayValue}
+              {/* Badge Popular */}
+              {showPopularBadge && (
+                <div className="absolute -top-2 -right-2 z-10">
+                  <div className="bg-mysGreen-100 text-black px-2 py-1 border border-black rounded-md text-xs font-bold flex items-center gap-1 shadow-lg">
+                    <Star size={12} fill="currentColor" />
+                    Popular
+                  </div>
+                </div>
+              )}
+
+              {/* Contenido del botón */}
+              <div className="w-full flex justify-between items-center text-left">
+                <div className="font-semibold">{displayValue}</div>
+                {variantPrice && (
+                  <div className="text-sm font-bold text-gray-500 mt-1">
+                    {formatPrice(variantPrice)}
+                  </div>
+                )}
+              </div>
             </button>
           )
         })}
