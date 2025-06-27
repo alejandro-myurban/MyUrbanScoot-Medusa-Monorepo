@@ -126,7 +126,8 @@ export default function ProductReviewModal({
       
     } catch (error) {
       console.error('Error uploading images:', error)
-      toast.error("Error subiendo imágenes: " + error.message)
+      const errorMessage = (error instanceof Error && error.message) ? error.message : String(error)
+      toast.error("Error subiendo imágenes: " + errorMessage)
       return [] // Retornar array vacío si falla
     }
   }

@@ -66,8 +66,13 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     // Transformar el resultado para que sea compatible con el frontend
     const uploadedFiles = result.map(file => ({
       url: file.url,
+      //@ts-ignore
       filename: file.filename,
+      //@ts-ignore
+
       originalName: file.filename,
+      //@ts-ignore
+
       size: file.size || 0
     }));
 
