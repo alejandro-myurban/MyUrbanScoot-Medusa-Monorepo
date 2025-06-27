@@ -68,15 +68,15 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
   }
 
   return (
-    <div className="flex flex-col gap-y-3">
+    <div className="flex flex-col gap-y-4">
       {/* Sección Nombre Personalizado */}
       {product.metadata?.custom_name === "true" && (
         <div className="flex flex-col gap-y-3">
-          <span className="font-semibold text-2xl flex justify-between items-center">
+          <span className="font-semibold font-archivoBlack uppercase text-xl sm:text-2xl flex flex-col sm:flex-row justify-between sm:items-center">
             Nombre personalizado
             <button
               onClick={() => setShowInfo(!showInfo)}
-              className="font-normal cursor-pointer text-sm flex justify-center items-center gap-1 underline hover:text-gray-600 transition-colors ml-4"
+              className="font-normal cursor-pointer font-dmSans text-sm flex sm:justify-center items-center gap-1 underline hover:text-gray-600 transition-colors"
             >
               ¿Dónde irá mi nombre?
               {showInfo ? (
@@ -102,13 +102,13 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-between gap-2">
+          <div className="flex flex-wrap flex-col sm:flex-row justify-between gap-2">
             <button
               onClick={() => handleNameSelection(false)}
-              className={`border-black/80 flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 ${
+              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 transition-all duration-200 ${
                 !showNameForm
-                  ? "border-black/80 bg-black/80 text-white"
-                  : "hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
+                  ? "border-black bg-black text-ui-fg-base"
+                  : "border-gray-300 hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
               }`}
             >
               <div className="text-left w-full">
@@ -118,10 +118,10 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
 
             <button
               onClick={() => handleNameSelection(true)}
-              className={`border-black/80 flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 ${
+              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 transition-all duration-200 ${
                 showNameForm
-                  ? "border-black/80 bg-black/80 text-white"
-                  : "hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
+                  ? "border-black bg-black text-ui-fg-base"
+                  : "border-gray-300 hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
               }`}
             >
               <div className="text-center w-full flex justify-between">
@@ -148,11 +148,11 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
       {/* Sección Número Personalizado */}
       {product.metadata?.custom_number === "true" && (
         <div className="flex flex-col gap-y-3">
-          <span className="font-semibold text-2xl flex justify-between items-center">
+          <span className="font-semibold font-archivoBlack uppercase text-xl sm:text-2xl flex flex-col sm:flex-row justify-between sm:items-center">
             Número personalizado
             <button
               onClick={() => setShowNumberInfo(!showNumberInfo)}
-              className="font-normal cursor-pointer text-sm flex justify-center items-center gap-1 underline hover:text-gray-600 transition-colors ml-4"
+              className="font-normal cursor-pointer font-dmSans text-sm flex sm:justify-center items-center gap-1 underline hover:text-gray-600 transition-colors "
             >
               ¿Cómo funciona el número?
               {showNumberInfo ? (
@@ -177,13 +177,13 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-between gap-2">
+          <div className="flex flex-wrap flex-col sm:flex-row justify-between gap-2">
             <button
               onClick={() => handleNumberSelection(false)}
-              className={`border-black/80 flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 ${
+              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 transition-all duration-200 ${
                 !showNumberForm
-                  ? "border-black/80 bg-black/80 text-white"
-                  : "hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
+                  ? "border-black bg-black text-ui-fg-base"
+                  : "border-gray-300 hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
               }`}
             >
               <div className="text-left w-full">
@@ -193,10 +193,10 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
 
             <button
               onClick={() => handleNumberSelection(true)}
-              className={`border-black/80 flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 ${
+              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 transition-all duration-200 ${
                 showNumberForm
-                  ? "border-black/80 bg-black/80 text-white"
-                  : "hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
+                  ? "border-black bg-black text-ui-fg-base"
+                  : "border-gray-300 hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
               }`}
             >
               <div className="text-center w-full flex justify-between">

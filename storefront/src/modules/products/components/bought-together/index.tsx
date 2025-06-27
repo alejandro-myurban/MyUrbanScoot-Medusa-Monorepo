@@ -57,7 +57,7 @@ export default async function BoughtTogether({
 
   return (
     <div className="w-full">
-    <Heading level="h2" className="mb-4 text-xl font-archivoBlack">
+    <Heading level="h2" className="mb-4 text-xl sm:text-2xl font-archivoBlack">
       COMBINA CON
     </Heading>
 

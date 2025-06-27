@@ -67,7 +67,7 @@ export default async function RelatedProducts({
   return (
     <div className="product-page-constraint font-archiveBlack ">
       <div className="flex flex-col gap-4 py-6">
-        <span className="text-base-regular text-ui-fg-base font-archivoBlack uppercase">
+        <span className="text-xl sm:text-2xl text-ui-fg-base font-archivoBlack uppercase">
           Te puede interesar
         </span>
       </div>

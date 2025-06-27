@@ -232,15 +232,18 @@ export default function ProductActions({
     }
   }
 
+  console.log("PRODUCTOS PRECIO", product)
+
   return (
     <>
       <div className="flex flex-col gap-y-2" ref={actionsRef}>
         <div>
           {(product.variants?.length ?? 0) > 1 && (
-            <div className="flex flex-col gap-y-4">
+            <div className="flex flex-col gap-y-8">
               {(product.options || []).map((option) => (
                 <div key={option.id} className="relative">
                   <OptionSelect
+                    product={product}
                     option={option}
                     current={options[option.title]}
                     updateOption={setOptionValue}
@@ -270,7 +273,7 @@ export default function ProductActions({
             onClick={handleAddToCart}
             disabled={!inStock || !selectedVariant || !!disabled || isAdding}
             variant="primary"
-            className="w-full h-10 font-archivoBlack shadow-none bg-[#2C2C2C] hover:bg-black/80 rounded-md border-none"
+            className="w-full h-10 uppercase font-archivoBlack shadow-none bg-[#2C2C2C] hover:bg-black/80 rounded-md border-none"
             isLoading={isAdding}
             data-testid="add-product-button"
           >
