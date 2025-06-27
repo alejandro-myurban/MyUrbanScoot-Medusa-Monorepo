@@ -75,7 +75,7 @@ export default function BoughtTogetherClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {products.map((p) => {
         const variant = findMatchingVariant(p)
         if (!variant) return null
@@ -140,25 +140,15 @@ export default function BoughtTogetherClient({
         return (
           <div
             key={p.id}
-            className={`font-dmSans bg-white overflow-hidden rounded-lg border-2 shadow-sm hover:shadow-md transition-all duration-200 ${
+            className={`font-dmSans bg-white overflow-hidden rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-lg ${
               extras.includes(variant.id) ? "border-black" : "border-gray-300"
             }`}
+            onClick={() => toggleExtra(variant.id)}
           >
-            {/* Card clickeable */}
-            <div
-              className="flex items-start gap-3 p-3 cursor-pointer"
-              onClick={() => toggleExtra(variant.id)}
-            >
-              {/* Checkbox */}
-              <input
-                type="checkbox"
-                checked={extras.includes(variant.id)}
-                onChange={() => toggleExtra(variant.id)}
-                className="h-4 w-4 mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0 pointer-events-none"
-              />
-
-              {/* Imagen pequeña */}
-              <div className="w-32 h-32 flex-shrink-0 overflow-hidden rounded bg-gray-50">
+            {/* Layout desktop */}
+            <div className="hidden md:flex items-center gap-4 p-4">
+              {/* Imagen cuadrada */}
+              <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-50">
                 <Thumbnail
                   thumbnail={p.thumbnail}
                   images={p.images}
@@ -167,73 +157,159 @@ export default function BoughtTogetherClient({
                 />
               </div>
 
-              {/* Contenido compacto */}
+              {/* Contenido desktop */}
               <div className="flex-1 min-w-0">
-                {/* Título - NO clickeable para selección */}
+                {/* Título */}
                 <LocalizedClientLink
                   href={`/producto/${p.handle}`}
-                  className="block group"
-                  //@ts-ignore
-                  onClick={(e) => e.stopPropagation()}
+                  className="block group mb-1"
                 >
-                  <Text className="text-gray-900 font-medium text-sm leading-tight group-hover:underline truncate">
+                  <Text className="text-gray-900 font-bold text-sm leading-tight group-hover:underline uppercase">
                     {p.title}
                   </Text>
                 </LocalizedClientLink>
 
-                {/* Solo precio principal */}
-                <div className="flex items-center gap-2 mt-1">
-                  {displayPrice && (
-                    <div className="text-lg font-bold text-gray-900">
-                      <PreviewPrice price={displayPrice} />
+                {/* Opciones con botones */}
+                {p.options && p.options.length > 0 && p.id && (
+                  <div className="space-y-1 mb-2">
+                    {p.options.map((option) => (
+                      <div key={option.id} className="flex items-center gap-2">
+                        <Text className="text-gray-500 text-xs">
+                          {option.title}:
+                        </Text>
+                        <div className="flex gap-1">
+                          {option.values?.map((value) => (
+                            <button
+                              key={value.id}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                option.id &&
+                                  handleOptionChange(p.id!, option.id, value.value)
+                              }}
+                              type="button"
+                              className={`px-2 py-1 text-xs border rounded transition-colors
+                                ${
+                                  option.id &&
+                                  selectedOptions[p.id!]?.[option.id] === value.value
+                                    ? "bg-black text-white border-black"
+                                    : "border-gray-300 hover:border-gray-500 bg-white text-gray-700"
+                                }
+                              `}
+                            >
+                              {value.value}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Precio a la derecha desktop */}
+              <div className="flex flex-col items-end text-right">
+                {displayPrice && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <div className="text-lg font-bold text-gray-900">
+                        <PreviewPrice price={displayPrice} />
+                      </div>
+                      {/* Badge de descuento */}
+                      {discountPercent !== null && discountPercent > 0 && (
+                        <div className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded">
+                          -{discountPercent}%
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {/* Badge pequeño de descuento */}
-                  {discountPercent !== null && discountPercent > 0 && (
-                    <div className="bg-mysRed-100 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full">
-                      -{discountPercent}%
+                    {/* Precio original tachado debajo */}
+
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Layout mobile */}
+            <div className="md:hidden p-3">
+              <div className="flex gap-3">
+                {/* Imagen mobile */}
+                <div className="w-12 h-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-50">
+                  <Thumbnail
+                    thumbnail={p.thumbnail}
+                    images={p.images}
+                    size="full"
+                    className="!p-0 !bg-transparent !rounded-none w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Contenido mobile con título arriba a la derecha */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-2">
+                    {/* Título mobile */}
+                    <LocalizedClientLink
+                      href={`/producto/${p.handle}`}
+                      className="block group flex-1 mr-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Text className="text-gray-900 font-bold text-xs leading-tight group-hover:underline uppercase">
+                        {p.title}
+                      </Text>
+                    </LocalizedClientLink>
+
+                    {/* Precio arriba a la derecha mobile */}
+                    {displayPrice && (
+                      <div className="flex items-center gap-1">
+                        <div className="text-sm font-bold text-gray-900">
+                          <PreviewPrice price={displayPrice} />
+                        </div>
+                        {/* Badge de descuento mobile */}
+                        {discountPercent !== null && discountPercent > 0 && (
+                          <div className="bg-red-500 text-white text-xs font-bold px-1 py-0.5 rounded">
+                            -{discountPercent}%
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+
+                  {/* Opciones mobile con botones */}
+                  {p.options && p.options.length > 0 && p.id && (
+                    <div className="space-y-1">
+                      {p.options.map((option) => (
+                        <div key={option.id}>
+                          <Text className="text-gray-500 text-xs mb-1 block">
+                            {option.title}:
+                          </Text>
+                          <div className="flex gap-1 flex-wrap">
+                            {option.values?.map((value) => (
+                              <button
+                                key={value.id}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  option.id &&
+                                    handleOptionChange(p.id!, option.id, value.value)
+                                }}
+                                type="button"
+                                className={`px-2 py-1 text-xs border rounded transition-colors
+                                  ${
+                                    option.id &&
+                                    selectedOptions[p.id!]?.[option.id] === value.value
+                                      ? "bg-black text-white border-black"
+                                      : "border-gray-300 hover:border-gray-500 bg-white text-gray-700"
+                                  }
+                                `}
+                              >
+                                {value.value}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
             </div>
-
-            {/* Opciones compactas */}
-            {p.options && p.options.length > 0 && p.id && (
-              <div className="px-3 pb-3 border-t border-gray-100 pt-2">
-                {p.options.map((option) => (
-                  <div key={option.id} className="mb-2 last:mb-0">
-                    <Text size="small" className="text-gray-600 text-xs mb-1">
-                      {option.title}:
-                    </Text>
-                    <div className="flex flex-wrap gap-1">
-                      {option.values?.map((value) => (
-                        <button
-                          key={value.id}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            option.id &&
-                              handleOptionChange(p.id!, option.id, value.value)
-                          }}
-                          type="button"
-                          className={`px-2 py-1 text-xs border rounded transition-colors
-                            ${
-                              option.id &&
-                              selectedOptions[p.id!]?.[option.id] ===
-                                value.value
-                                ? "bg-black/90 text-white border-black/90"
-                                : "border-gray-300 hover:border-gray-500 bg-white"
-                            }
-                          `}
-                        >
-                          {value.value}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )
       })}

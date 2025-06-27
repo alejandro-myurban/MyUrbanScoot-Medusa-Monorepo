@@ -199,7 +199,7 @@ export default async function CategoryTemplate({
         ) : (
           // Mostrar el layout normal con productos
           <div className="flex gap-8 flex-col lg:flex-row">
-            <div className="flex flex-col gap-4 min-w-[250px]">
+            <div className="flex flex-col gap-4 w-full sm:min-w-[250px]">
               <RefinementList sortBy={sort} data-testid="sort-by-container" />
               <PriceFilterWrapper products={allProducts} />
 

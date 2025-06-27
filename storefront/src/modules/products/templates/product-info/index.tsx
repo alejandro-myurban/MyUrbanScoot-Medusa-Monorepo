@@ -3,12 +3,63 @@ import { Heading, Text } from "@medusajs/ui"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { ProductAverageReview } from "@modules/product-reviews/components/ProductAverageReview"
 import ReviewButton from "@modules/product-reviews/components/ReviewButton"
+import Accordion from "@modules/products/components/product-info-accordion"
 
 type ProductInfoProps = {
   product: HttpTypes.StoreProduct
 }
 
 const ProductInfo = ({ product }: ProductInfoProps) => {
+  const accordionItems = [
+    {
+      id: "modelos-compatibles",
+      title: "MODELOS COMPATIBLES",
+      content: (
+        <div>
+          <p>Compatible con los siguientes modelos:</p>
+          <ul className="list-disc list-inside mt-2 space-y-1">
+            <li>Modelo A</li>
+            <li>Modelo B</li>
+            <li>Modelo C</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: "ver-detalles",
+      title: "VER DETALLES",
+      content: (
+        <div>
+          <p>
+            <strong>Especificaciones técnicas:</strong>
+          </p>
+          <ul className="mt-2 space-y-1">
+            <li>• Medida: 10×2,75-6,5</li>
+            <li>• Tipo: Tubeless Offroad</li>
+            <li>• Material: Caucho reforzado</li>
+            <li>• Peso: 2.5 kg</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: "envio-devoluciones",
+      title: "ENVÍO Y DEVOLUCIONES",
+      content: (
+        <div>
+          <p>
+            <strong>Información de envío:</strong>
+          </p>
+          <ul className="mt-2 space-y-1">
+            <li>• Envío gratuito en pedidos superiores a 50€</li>
+            <li>• Entrega en 24-48h</li>
+            <li>• Devoluciones gratuitas hasta 30 días</li>
+            <li>• Garantía de 2 años</li>
+          </ul>
+        </div>
+      ),
+    },
+  ]
   // 1. Extraer los precios de las variantes (en céntimos) y filtrar los valores válidos.
   //    Si product.variants es undefined, rawPrices será [].
   const rawPrices: number[] =
@@ -37,7 +88,7 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
 
   return (
     <div id="product-info">
-      <div className="flex flex-col gap-y-4 lg:max-w-[500px]">
+      <div className="flex flex-col gap-y-4">
         {product.collection && (
           <LocalizedClientLink
             href={`/collections/${product.collection.handle}`}
@@ -47,9 +98,12 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
           </LocalizedClientLink>
         )}
 
+        {/* Reseñas promedio */}
+        <ProductAverageReview productId={product.id} />
+
         <Heading
           level="h2"
-          className="text-3xl leading-10 font-dmSans text-ui-fg-base"
+          className="text-3xl leading-10 font-archivoBlack text-ui-fg-base"
           data-testid="product-title"
         >
           {product.title}
@@ -57,19 +111,15 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
 
         {/* Precio mínimo/máximo */}
         <Text
-          className="text-2xl font-semibold font-dmSans text-ui-fg-base"
+          className="text-2xl font-semibold font-archivoBlack text-ui-fg-base"
           data-testid="product-price"
         >
           {priceText}
         </Text>
 
-        {/* Reseñas promedio */}
-        <ProductAverageReview productId={product.id} />
+        <Accordion className="font-archivo  text-gray-500" items={accordionItems} />
 
-        <ReviewButton
-          product={product}
-          className="text-sm"
-        />
+        <ReviewButton product={product} className="text-sm" />
 
         {/* Descripción rica */}
         <Text

@@ -6,7 +6,6 @@ import { SortOptions } from "@modules/store/components/refinement-list/sort-prod
 import { sortProducts } from "@lib/util/sort-products"
 import { StoreProductListResponse } from "@medusajs/types"
 
-
 export const getProductsByTagName = cache(async function ({
   tagName,
 }: {

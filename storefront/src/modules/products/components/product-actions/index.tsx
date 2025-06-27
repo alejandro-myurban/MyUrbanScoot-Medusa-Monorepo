@@ -16,6 +16,7 @@ import { useCombinedCart } from "../bought-together/bt-context"
 import { useTranslation } from "react-i18next"
 import Financing from "../financing"
 import CustomNameNumberForm from "../custom-name-number"
+import PopularBadge from "../badge-top-seller"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
@@ -238,7 +239,7 @@ export default function ProductActions({
           {(product.variants?.length ?? 0) > 1 && (
             <div className="flex flex-col gap-y-4">
               {(product.options || []).map((option) => (
-                <div key={option.id}>
+                <div key={option.id} className="relative">
                   <OptionSelect
                     option={option}
                     current={options[option.title]}
@@ -248,6 +249,7 @@ export default function ProductActions({
                     data-testid="product-options"
                     disabled={!!disabled || isAdding}
                   />
+  
                 </div>
               ))}
               <CustomNameNumberForm product={product} />
@@ -263,12 +265,12 @@ export default function ProductActions({
         )}
         <ProductPrice product={product} variant={selectedVariant} />
         <Toaster />
-        <div className="w-64">
+        <div className="">
           <Button
             onClick={handleAddToCart}
             disabled={!inStock || !selectedVariant || !!disabled || isAdding}
             variant="primary"
-            className="w-full h-10 hover:bg-mysRed-100 rounded-3xl border-none"
+            className="w-full h-10 font-archivoBlack shadow-none bg-[#2C2C2C] hover:bg-black/80 rounded-md border-none"
             isLoading={isAdding}
             data-testid="add-product-button"
           >

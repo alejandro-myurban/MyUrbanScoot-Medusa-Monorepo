@@ -23,7 +23,7 @@
     }
   },
   "actions": {
-    "add_to_cart": "AÑADIR AL CARRO",
+    "add_to_cart": "AÑADIR AL CARRITO",
     "select_variant": "Seleccionar Variante",
     "buy_now": "Comprar Ahora",
     "checkout": "Finalizar Compra",

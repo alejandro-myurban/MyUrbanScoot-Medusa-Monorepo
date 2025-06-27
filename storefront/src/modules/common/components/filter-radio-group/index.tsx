@@ -19,7 +19,7 @@ const FilterRadioGroup = ({
   "data-testid": dataTestId,
 }: FilterRadioGroupProps) => {
   return (
-    <div className="flex gap-x-3 flex-col gap-y-3">
+    <div className="flex gap-x-3 w-full flex-col gap-y-3">
       <h3 className="font-dmSans font-semibold text-gray-900">{title}</h3>
       <RadioGroup data-testid={dataTestId} onValueChange={handleChange}>
         {items?.map((i) => (

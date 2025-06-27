@@ -21,7 +21,7 @@ export default function BoughtTogetherFallback({
   const isAdding = false
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {products.map((p) => {
         const variant = p.variants?.[0]
         if (!variant) return null
@@ -70,7 +70,6 @@ export default function BoughtTogetherFallback({
               original_price: cheapestPrice.calculated_price,
               price_type: "sale",
             }
-            // Calcular porcentaje de descuento
             discountPercent = Math.round((1 - discountedPriceNumber / originalPriceNumber) * 100)
           }
         }
@@ -90,87 +89,155 @@ export default function BoughtTogetherFallback({
         return (
           <div
             key={p.id}
-            className="font-dmSans bg-white overflow-hidden rounded-lg border-2 border-gray-300 shadow-sm opacity-75"
+            className="font-dmSans bg-white overflow-hidden rounded-xl border-2 border-gray-300 transition-all duration-200 opacity-75"
           >
-            {/* Card con skeleton loading */}
-            <div className="flex items-start gap-3 p-3">
-              {/* Checkbox deshabilitado */}
-              <input
-                type="checkbox"
-                defaultChecked={false}
-                disabled={true}
-                className="h-4 w-4 mt-1 rounded border-gray-300 text-blue-600 flex-shrink-0 opacity-50"
-              />
-
-              {/* Imagen pequeña */}
-              <div className="w-32 h-32 flex-shrink-0 overflow-hidden rounded bg-gray-50">
-                <Thumbnail 
-                  thumbnail={p.thumbnail} 
-                  images={p.images} 
+            {/* Layout desktop */}
+            <div className="hidden md:flex items-center gap-4 p-4">
+              {/* Imagen cuadrada */}
+              <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-50">
+                <Thumbnail
+                  thumbnail={p.thumbnail}
+                  images={p.images}
                   size="full"
-                  className="!p-0 !bg-transparent !rounded-none w-full h-full object-cover opacity-50" 
+                  className="!p-0 !bg-transparent !rounded-none w-full h-full object-cover opacity-50"
                 />
               </div>
 
-              {/* Contenido compacto */}
+              {/* Contenido desktop */}
               <div className="flex-1 min-w-0">
                 {/* Título */}
                 <LocalizedClientLink
-                  href={`/products/${p.handle}`}
-                  className="block group pointer-events-none"
+                  href={`/producto/${p.handle}`}
+                  className="block group mb-1 pointer-events-none"
                 >
-                  <Text
-                    className="text-gray-900 font-medium text-sm leading-tight truncate opacity-50"
-                  >
+                  <Text className="text-gray-900 font-bold text-sm leading-tight uppercase opacity-50">
                     {p.title}
                   </Text>
                 </LocalizedClientLink>
 
-                {/* Precio con loading */}
-                <div className="flex items-center gap-2 mt-1">
-                  {displayPrice && (
-                    <div className="text-lg font-bold text-gray-900 opacity-50">
-                      <PreviewPrice price={displayPrice} />
+                {/* Opciones con spinners */}
+                {p.options && p.options.length > 0 && p.id && (
+                  <div className="space-y-1 mb-2">
+                    {p.options.map((option) => (
+                      <div key={option.id} className="flex items-center gap-2">
+                        <Text className="text-gray-500 text-xs opacity-50">
+                          {option.title}:
+                        </Text>
+                        <div className="flex gap-1">
+                          {option.values?.map((value, idx) => (
+                            <button
+                              key={value.id}
+                              disabled={true}
+                              type="button"
+                              className={`px-2 py-1 text-xs border rounded transition-colors flex items-center justify-center min-w-[40px] h-[24px] ${
+                                idx === 0
+                                  ? "bg-gray-900 text-white border-gray-900 opacity-50"
+                                  : "border-gray-300 bg-white opacity-50"
+                              }`}
+                            >
+                              <Spinner className="w-3 h-3" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Precio a la derecha desktop */}
+              <div className="flex flex-col items-end text-right">
+                {displayPrice && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <div className="text-lg font-bold text-gray-900 opacity-50">
+                        <PreviewPrice price={displayPrice} />
+                      </div>
+                      {/* Badge de descuento */}
+                      {discountPercent !== null && discountPercent > 0 && (
+                        <div className="bg-gray-300 text-gray-500 text-xs font-bold px-1.5 py-0.5 rounded">
+                          -{discountPercent}%
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {/* Badge de descuento deshabilitado */}
-                  {discountPercent !== null && discountPercent > 0 && (
-                    <div className="bg-gray-300 text-gray-500 text-xs font-semibold px-1.5 py-0.5 rounded-full">
-                      -{discountPercent}%
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Layout mobile */}
+            <div className="md:hidden p-3">
+              <div className="flex gap-3">
+                {/* Imagen mobile */}
+                <div className="w-12 h-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-50">
+                  <Thumbnail
+                    thumbnail={p.thumbnail}
+                    images={p.images}
+                    size="full"
+                    className="!p-0 !bg-transparent !rounded-none w-full h-full object-cover opacity-50"
+                  />
+                </div>
+
+                {/* Contenido mobile con título arriba a la derecha */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-2">
+                    {/* Título mobile */}
+                    <LocalizedClientLink
+                      href={`/producto/${p.handle}`}
+                      className="block group flex-1 mr-2 pointer-events-none"
+                    >
+                      <Text className="text-gray-900 font-bold text-xs leading-tight uppercase opacity-50">
+                        {p.title}
+                      </Text>
+                    </LocalizedClientLink>
+
+                    {/* Precio arriba a la derecha mobile */}
+                    {displayPrice && (
+                      <div className="flex items-center gap-1">
+                        <div className="text-sm font-bold text-gray-900 opacity-50">
+                          <PreviewPrice price={displayPrice} />
+                        </div>
+                        {/* Badge de descuento mobile */}
+                        {discountPercent !== null && discountPercent > 0 && (
+                          <div className="bg-gray-300 text-gray-500 text-xs font-bold px-1 py-0.5 rounded">
+                            -{discountPercent}%
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Opciones mobile con spinners */}
+                  {p.options && p.options.length > 0 && p.id && (
+                    <div className="space-y-1">
+                      {p.options.map((option) => (
+                        <div key={option.id}>
+                          <Text className="text-gray-500 text-xs mb-1 block opacity-50">
+                            {option.title}:
+                          </Text>
+                          <div className="flex gap-1 flex-wrap">
+                            {option.values?.map((value, idx) => (
+                              <button
+                                key={value.id}
+                                disabled={true}
+                                type="button"
+                                className={`px-2 py-1 text-xs border rounded transition-colors flex items-center justify-center min-w-[40px] h-[24px] ${
+                                  idx === 0
+                                    ? "bg-gray-900 text-white border-gray-900 opacity-50"
+                                    : "border-gray-300 bg-white opacity-50"
+                                }`}
+                              >
+                                <Spinner className="w-3 h-3" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
             </div>
-
-            {/* Opciones con spinners */}
-            {p.options && p.options.length > 0 && (
-              <div className="px-3 pb-3 border-t border-gray-100 pt-2">
-                {p.options.map((option) => (
-                  <div key={option.id} className="mb-2 last:mb-0">
-                    <Text size="small" className="text-gray-600 text-xs mb-1 opacity-50">
-                      {option.title}:
-                    </Text>
-                    <div className="flex flex-wrap gap-1">
-                      {option.values?.map((value, idx) => (
-                        <button
-                          key={value.id}
-                          disabled={true}
-                          type="button"
-                          className={`px-2 py-1 text-xs border rounded transition-colors flex items-center justify-center min-w-[40px] h-[24px] ${
-                            idx === 0
-                              ? 'bg-gray-900 text-white border-gray-900 opacity-50'
-                              : 'border-gray-300 bg-white opacity-50'
-                          }`}
-                        >
-                          <Spinner className="w-3 h-3" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )
       })}

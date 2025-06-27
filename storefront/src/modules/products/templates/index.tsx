@@ -27,8 +27,6 @@ import {
 import ImageGallerySkeleton from "@modules/skeletons/components/skeleton-image-gallery"
 import ProductInfoSkeleton from "@modules/skeletons/components/skeleton-product-info"
 
-
-
 type ProductTemplateProps = {
   product: HttpTypes.StoreProduct
   region: HttpTypes.StoreRegion
@@ -149,9 +147,10 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           initialColor={initialValue}
           optionTitle={optionTitle}
         >
-          <div className="content-container flex flex-col py-6">
-            {/* Breadcrumbs */}
-            <div className="mb-6">
+          {/* MOBILE LAYOUT - Imagen arriba con fondo gris */}
+          <div className="block lg:hidden">
+            {/* Breadcrumbs Mobile */}
+            <div className="mb-6 px-6 py-4">
               <Breadcrumb>
                 <BreadcrumbList>
                   {/* Home link */}
@@ -189,28 +188,26 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
               </Breadcrumb>
             </div>
 
-            {/* Contenido del producto */}
-            <div
-              className="flex flex-col small:flex-row small:items-start relative"
-              data-testid="product-container"
-            >
-              <div className="block w-full lg:w-1/2 relative">
-                <ClientImageGallery images={product.images || []} />
-              </div>
-              <div className="flex flex-col small:sticky small:top-48 small:py-0  lg:w-1/2 w-full py-8 gap-y-12">
+            {/* Imagen Mobile */}
+            <div className="block w-full relative">
+              <ClientImageGallery images={product.images || []} />
+            </div>
+
+            {/* Contenido Mobile con fondo gris */}
+            <div className="content-container flex flex-col py-6 bg-gray-50">
+              <div className="flex flex-col w-full sm gap-y-12">
                 <ProductOnboardingCta />
                 <CombinedCartProvider>
                   <Suspense
                     fallback={
-                      <div className="flex flex-col small:top-48 small:py-0 w-full py-8 gap-y-6">
+                      <div className="flex flex-col w-full py-8 gap-y-6">
                         <ProductInfoSkeleton />
                         <div className="h-12 bg-gray-200 animate-pulse rounded-md w-full"></div>
                       </div>
                     }
                   >
-                    <div className="flex flex-col small:top-48 small:py-0  w-full py-8 gap-y-6">
+                    <div className="flex flex-col w-full gap-y-6">
                       <ProductInfo product={product} />
-                      {/* <ProductTabs product={product} /> */}
                     </div>
 
                     <ProductActionsWrapper
@@ -224,11 +221,90 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
               </div>
             </div>
           </div>
+
+          {/* DESKTOP LAYOUT - Layout lado a lado */}
+          <div className="hidden lg:block">
+            <div className="content-container flex flex-col py-6">
+              {/* Breadcrumbs Desktop */}
+              <div className="mb-6">
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    {/* Home link */}
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild>
+                        <LocalizedClientLink href="/">Inicio</LocalizedClientLink>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+
+                    {/* Categorías */}
+                    {categoryHierarchy.map((category, index) => (
+                      <React.Fragment key={category.id}>
+                        <BreadcrumbSeparator className="flex-none text-black [&>svg]:w-4 [&>svg]:h-4" />
+                        <BreadcrumbItem>
+                          <BreadcrumbLink asChild>
+                            <LocalizedClientLink
+                              href={`/categories/${category.handle}`}
+                              className="hover:text-black"
+                            >
+                              {category.name}
+                            </LocalizedClientLink>
+                          </BreadcrumbLink>
+                        </BreadcrumbItem>
+                      </React.Fragment>
+                    ))}
+
+                    {/* Producto actual */}
+                    <BreadcrumbSeparator className="flex-none text-black [&>svg]:w-4 [&>svg]:h-4" />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="font-semibold">
+                        {product.title}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+              </div>
+
+              {/* Contenido del producto Desktop - lado a lado */}
+              <div
+                className="flex flex-row items-start relative"
+                data-testid="product-container"
+              >
+                <div className="block w-1/2 relative">
+                  <ClientImageGallery images={product.images || []} />
+                </div>
+                <div className="flex flex-col sticky top-48 w-1/2 py-4 gap-y-12">
+                  <ProductOnboardingCta />
+                  <CombinedCartProvider>
+                    <Suspense
+                      fallback={
+                        <div className="flex flex-col w-full py-8 gap-y-6">
+                          <ProductInfoSkeleton />
+                          <div className="h-12 bg-gray-200 animate-pulse rounded-md w-full"></div>
+                        </div>
+                      }
+                    >
+                      <div className="flex flex-col w-full gap-y-6">
+                        <ProductInfo product={product} />
+                      </div>
+
+                      <ProductActionsWrapper
+                        id={product.id}
+                        region={region}
+                        countryCode={countryCode}
+                      />
+                      <BoughtTogether product={product} region={region} />
+                    </Suspense>
+                  </CombinedCartProvider>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sección de reseñas y productos relacionados - común para ambos */}
           <div
-            className="content-container my-16 small:my-32"
+            className="content-container small:my-32 bg-gray-50"
             data-testid="related-products-container"
           >
-            
             <ProductReviewsSummary
               productId={product.id}
               productHandle={product.handle}
