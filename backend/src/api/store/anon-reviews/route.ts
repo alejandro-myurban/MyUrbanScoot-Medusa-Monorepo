@@ -2,12 +2,13 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { z } from "zod";
 
-// Schema más simple para reseñas anónimas
+// Schema actualizado para incluir imágenes
 const anonymousReviewSchema = z.object({
   product_id: z.string(),
   rating: z.number().min(1).max(5),
   content: z.string().min(1),
   name: z.string().optional(),
+  images: z.array(z.string().url()).optional(), // Array de URLs de imágenes
 });
 
 // Función para generar IDs al estilo Medusa
@@ -29,127 +30,178 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     // Validar el body manualmente
     const validatedData = anonymousReviewSchema.parse(req.body);
     console.log("✅ Datos validados:", validatedData);
+    console.log("🖼️ Imágenes recibidas:", validatedData.images);
 
     // Generar ID único para la reseña siguiendo el patrón del plugin
     const reviewId = `prev_${generateMedusaId()}`;
     console.log("🆔 ID generado:", reviewId);
 
-    // Resolver el servicio workflows
+    // Resolver servicios
     const workflows = req.scope.resolve("workflows");
-    console.log("✅ Servicio workflows resuelto");
+    const query = req.scope.resolve("query");
+    console.log("✅ Servicios resueltos");
 
     try {
-      console.log("🔄 Ejecutando workflow con formato corregido...");
+      console.log("🔄 Intentando con imágenes incluidas en el workflow...");
 
-      // Preparar datos con el formato correcto (array directo, no objeto)
-      const productReviewsArray = [
+      // INTENTAR INCLUIR IMÁGENES con el formato correcto del plugin
+      const productReviewData = {
+        id: reviewId,
+        name: validatedData.name || "Cliente anónimo",
+        email: null,
+        product_id: validatedData.product_id,
+        rating: validatedData.rating,
+        content: validatedData.content,
+        order_id: null,
+        order_line_item_id: null,
+        status: "approved",
+        // Formato de imágenes que podría esperar el plugin
+        images: validatedData.images?.map((imageUrl, index) => ({
+          id: `pri_${generateMedusaId()}`,
+          url: imageUrl,
+          alt_text: `Review image ${index + 1}`,
+          order: index
+        })) || []
+      };
+
+      console.log("📊 Datos completos incluyendo imágenes:", productReviewData);
+
+      const result = await workflows.run(
+        "create-product-reviews-workflow",
         {
-          id: reviewId,
-          product_id: validatedData.product_id,
-          rating: validatedData.rating,
-          content: validatedData.content,
-          name: validatedData.name || "Cliente anónimo",
-          status: "approved",
-        },
-      ];
+          input: {
+            productReviews: [productReviewData]
+          }
+        }
+      );
 
-      console.log("📊 Array de reseñas:", productReviewsArray);
+      const createdReview = result.result?.[0];
+      console.log("✅ Workflow ejecutado - revisando resultado...");
+      console.log("📋 Reseña creada:", createdReview?.id);
+      console.log("🖼️ Imágenes en resultado del workflow:", createdReview?.images?.length || 0);
+      console.log("📋 Detalle de imágenes del workflow:", JSON.stringify(createdReview?.images, null, 2));
 
-      // Intentar diferentes formatos de input
-      const inputFormats = [
-        // Formato 1: Como vimos en el código original
-        { input: { productReviews: productReviewsArray } },
-        // Formato 2: Directo
-        { productReviews: productReviewsArray },
-        // Formato 3: Solo el array
-        productReviewsArray,
-        // Formato 4: Con key input
-        { input: productReviewsArray },
-      ];
-
-      for (let i = 0; i < inputFormats.length; i++) {
+      // IMPORTANTE: Si el workflow ya creó las imágenes, NO ejecutar código manual
+      if (createdReview?.images && createdReview.images.length > 0) {
+        console.log("✅ El workflow ya procesó las imágenes correctamente");
+        
+        // Obtener la reseña completa final
         try {
-          console.log(`🔄 Probando formato ${i + 1}:`, inputFormats[i]);
+          const reviewWithImages = await query.graph({
+            entity: "product_review",
+            fields: [
+              "id", "name", "email", "rating", "content", 
+              "product_id", "status", "created_at", "updated_at",
+              "images.*"
+            ],
+            filters: { id: createdReview.id }
+          });
+          
+          const finalReview = reviewWithImages.data?.[0];
+          console.log("✅ Reseña final desde BD:", {
+            id: finalReview?.id,
+            images_count: finalReview?.images?.length || 0
+          });
+          console.log("📋 Imágenes finales desde BD:", JSON.stringify(finalReview?.images, null, 2));
 
-          const result = await workflows.run(
-            "create-product-reviews-workflow",
-            //@ts-ignore
-            inputFormats[i]
-          );
+          // SOLUCIÓN TEMPORAL: Eliminar imágenes duplicadas
+          if (finalReview?.images && finalReview.images.length > 0) {
+            console.log("🔧 Aplicando filtro de duplicados...");
+            
+            // Agrupar por URL para detectar duplicados
+            const imagesByUrl = finalReview.images.reduce((acc, img) => {
+              if (!acc[img.url]) {
+                acc[img.url] = [];
+              }
+              acc[img.url].push(img);
+              return acc;
+            }, {});
 
-          console.log(`✅ Formato ${i + 1} funcionó! Resultado:`, result);
-
-          const createdReview =
-            result?.productReviews?.[0] ||
-            result?.[0] ||
-            result?.result?.[0] ||
-            result?.data?.[0] ||
-            result;
+            // Para cada URL, quedarse solo con la primera imagen
+            const uniqueImages = Object.values(imagesByUrl).map(imagesGroup => imagesGroup[0]);
+            
+            console.log(`🔧 Duplicados filtrados: ${finalReview.images.length} → ${uniqueImages.length}`);
+            
+            // Actualizar la reseña con imágenes únicas
+            finalReview.images = uniqueImages;
+          }
 
           return res.status(201).json({
             success: true,
-            product_review: createdReview,
-            workflow_result: result,
+            product_review: finalReview || createdReview,
+            images_sent: validatedData.images?.length || 0,
+            images_created: finalReview?.images?.length || 0,
+            workflow_result: createdReview,
+            debug_info: {
+              workflow_images: createdReview?.images?.length || 0,
+              final_images: finalReview?.images?.length || 0,
+              images_match: (createdReview?.images?.length || 0) === (finalReview?.images?.length || 0)
+            }
           });
-        } catch (formatError) {
-          console.log(`❌ Formato ${i + 1} falló:`, formatError.message);
-          continue;
+          
+        } catch (fetchError) {
+          console.log("❌ Error obteniendo reseña final:", fetchError.message);
+          
+          return res.status(201).json({
+            success: true,
+            product_review: createdReview,
+            images_sent: validatedData.images?.length || 0,
+            images_created: createdReview?.images?.length || 0,
+            note: "Workflow procesó imágenes pero error al verificar BD"
+          });
         }
       }
 
-      throw new Error("Todos los formatos de input fallaron");
+      // Si las imágenes no se crearon en el workflow, intentar método alternativo
+      else if (validatedData.images?.length > 0) {
+        console.log("⚠️ Workflow NO procesó imágenes - saltando método manual para evitar duplicados");
+        console.log("🔄 Solo obteniendo reseña desde BD...");
+        
+        try {
+          const reviewWithImages = await query.graph({
+            entity: "product_review",
+            fields: [
+              "id", "name", "email", "rating", "content", 
+              "product_id", "status", "created_at", "updated_at",
+              "images.*"
+            ],
+            filters: { id: createdReview.id }
+          });
+          
+          const finalReview = reviewWithImages.data?.[0];
+          console.log("✅ Reseña desde BD (sin método manual):", {
+            id: finalReview?.id,
+            images_count: finalReview?.images?.length || 0
+          });
+
+          return res.status(201).json({
+            success: true,
+            product_review: finalReview || createdReview,
+            images_sent: validatedData.images?.length || 0,
+            images_created: finalReview?.images?.length || 0,
+            workflow_result: createdReview,
+            note: "Workflow no procesó imágenes, método manual deshabilitado para evitar duplicados"
+          });
+          
+        } catch (fetchError) {
+          console.log("❌ Error obteniendo reseña final:", fetchError.message);
+          
+          return res.status(201).json({
+            success: true,
+            product_review: createdReview,
+            images_sent: validatedData.images?.length || 0,
+            images_created: "unknown",
+            note: "Sin método manual - verificar por qué el workflow no procesó imágenes"
+          });
+        }
+      }
+
     } catch (workflowError) {
       console.log("❌ Error ejecutando workflow:", workflowError.message);
       console.log("❌ Stack del workflow:", workflowError.stack);
-
-      // Como último recurso, intentar ejecutar sin nombre de workflow
-      try {
-        console.log("🔄 Intentando ejecución sin nombre específico...");
-        const result = await workflows.run("create-product-reviews-workflow", {
-          input: {
-            productReviews: [
-              {
-                id: reviewId,
-                product_id: validatedData.product_id,
-                rating: validatedData.rating,
-                content: validatedData.content,
-                name: validatedData.name || "Cliente anónimo",
-                status: "approved",
-              },
-            ],
-          },
-        });
-
-        console.log("✅ Ejecución alternativa funcionó:", result);
-
-        return res.status(201).json({
-          success: true,
-          product_review: result,
-          note: "Creado con ejecución alternativa",
-        });
-      } catch (altError) {
-        console.log("❌ Ejecución alternativa falló:", altError.message);
-      }
+      throw workflowError;
     }
 
-    // Fallback final
-    console.log("🔄 Fallback a mock review...");
-    const mockReview = {
-      id: reviewId,
-      product_id: validatedData.product_id,
-      rating: validatedData.rating,
-      content: validatedData.content,
-      name: validatedData.name || "Cliente anónimo",
-      status: "approved",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    res.status(201).json({
-      success: true,
-      product_review: mockReview,
-      note: "Mock review - investigar formato correcto de workflow",
-    });
   } catch (error) {
     console.error("❌ Error completo:", error);
 

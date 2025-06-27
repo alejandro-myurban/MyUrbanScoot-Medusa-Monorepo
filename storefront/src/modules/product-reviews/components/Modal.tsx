@@ -5,7 +5,7 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { HttpTypes } from "@medusajs/types"
 import { sdk } from "@lib/config"
-import { X } from "lucide-react"
+import { X, Upload, Trash2 } from "lucide-react"
 import { toast } from "@medusajs/ui"
 
 interface Props {
@@ -23,9 +23,113 @@ export default function ProductReviewModal({
 
   const [rating, setRating] = useState<number>(5)
   const [comment, setComment] = useState<string>("")
-  const [name, setName] = useState<string>("") // Nuevo estado para el nombre
+  const [name, setName] = useState<string>("")
+  const [images, setImages] = useState<File[]>([]) // Nuevo estado para las imágenes
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Función para manejar la selección de archivos
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    
+    // Validaciones
+    const validFiles = files.filter(file => {
+      // Solo imágenes
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} no es una imagen válida`)
+        return false
+      }
+      
+      // Máximo 5MB por imagen
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} es muy grande (máximo 5MB)`)
+        return false
+      }
+      
+      return true
+    })
+
+    // Máximo 3 imágenes total
+    const totalImages = images.length + validFiles.length
+    if (totalImages > 3) {
+      toast.error("Máximo 3 imágenes permitidas")
+      const allowedFiles = validFiles.slice(0, 3 - images.length)
+      setImages(prev => [...prev, ...allowedFiles])
+    } else {
+      setImages(prev => [...prev, ...validFiles])
+    }
+
+    // Limpiar el input para permitir seleccionar el mismo archivo otra vez
+    e.target.value = ''
+  }
+
+  // Función para eliminar una imagen
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // Función para subir imágenes usando el workflow de Medusa
+  const uploadImages = async (files: File[]): Promise<string[]> => {
+    try {
+      const formData = new FormData()
+      
+      // Añadir todas las imágenes con el nombre 'files'
+      files.forEach((file, index) => {
+        console.log(`📎 Añadiendo archivo ${index}:`, {
+          name: file.name,
+          type: file.type,
+          size: file.size
+        })
+        formData.append('files', file)
+      })
+      
+      // Debug FormData
+      console.log("📤 FormData entries:")
+      Array.from(formData.entries()).forEach(([key, value]) => {
+        console.log(`  ${key}:`, value)
+      })
+      
+      console.log("📤 Subiendo", files.length, "imágenes...")
+      
+      // Usar fetch directo sin el SDK para asegurar que se envía como multipart/form-data
+      const response = await fetch(`http://localhost:9000/store/upload-image`, {
+        headers: {
+          "x-publishable-api-key" : "pk_14db1a49297371bf3f8d345db0cf016616d4244f1d593db1050907c88333cd21"
+        },
+        method: "POST",
+        body: formData,
+        // NO incluir Content-Type header, el browser lo establece automáticamente
+        // con el boundary correcto para multipart/form-data
+      })
+      
+      console.log("📥 Response status:", response.status)
+      console.log("📥 Response headers:", Object.fromEntries(response.headers.entries()))
+      
+      const result = await response.json()
+      console.log("📥 Respuesta del upload:", result)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${result.error || result.details || 'Error desconocido'}`)
+      }
+      
+      if (result.success && result.files) {
+        // Extraer las URLs de los archivos subidos
+        return result.files.map((file: any) => file.url)
+      }
+      
+      if (result.url) {
+        // Fallback para compatibilidad con respuesta de una sola imagen
+        return [result.url]
+      }
+      
+      throw new Error("No se recibieron URLs de las imágenes")
+      
+    } catch (error) {
+      console.error('Error uploading images:', error)
+      toast.error("Error subiendo imágenes: " + error.message)
+      return [] // Retornar array vacío si falla
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,15 +137,23 @@ export default function ProductReviewModal({
     setError(null)
 
     try {
-      console.log("🔥 MODAL: Enviando a /store/anonymous-reviews")
-      // Usar nuestro endpoint personalizado en lugar del SDK
+      console.log("🔥 MODAL: Enviando a /store/anon-reviews")
+      
+      // Subir imágenes primero si hay alguna
+      let imageUrls: string[] = []
+      if (images.length > 0) {
+        imageUrls = await uploadImages(images)
+      }
+
+      // Usar nuestro endpoint personalizado
       const response = await sdk.client.fetch("/store/anon-reviews", {
         method: "POST",
         body: {
           product_id: product.id,
           rating,
           content: comment,
-          name: name.trim() || undefined, // Enviar el nombre si no está vacío
+          name: name.trim() || undefined,
+          images: imageUrls, // Enviar las URLs de las imágenes
         },
       })
 
@@ -50,8 +162,9 @@ export default function ProductReviewModal({
       // Limpiar formulario y cerrar modal
       toast.success("Reseña creada con éxito")
       setComment("")
-      setName("") // Limpiar también el nombre
+      setName("")
       setRating(5)
+      setImages([]) // Limpiar imágenes
       onClose()
 
       // Refrescar para mostrar la nueva reseña
@@ -127,6 +240,61 @@ export default function ProductReviewModal({
               required
             />
           </label>
+
+          {/* Upload de imágenes */}
+          <div className="block">
+            <span className="font-medium">Imágenes (opcional)</span>
+            <p className="text-sm text-gray-500 mb-2">
+              Máximo 3 imágenes, 5MB cada una
+            </p>
+            
+            {/* Input de archivo oculto */}
+            <input
+              type="file"
+              id="image-upload"
+              multiple
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+              disabled={images.length >= 3}
+            />
+            
+            {/* Botón de upload personalizado */}
+            <label
+              htmlFor="image-upload"
+              className={`inline-flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors ${
+                images.length >= 3 ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <Upload size={16} />
+              {images.length >= 3 ? 'Máximo alcanzado' : 'Subir imágenes'}
+            </label>
+
+            {/* Preview de imágenes seleccionadas */}
+            {images.length > 0 && (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {images.map((file, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-20 object-cover rounded border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b truncate">
+                      {file.name}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded p-3">
