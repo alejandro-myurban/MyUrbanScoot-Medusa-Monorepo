@@ -119,7 +119,7 @@ export default async function ProductPreview({
           <div className="p-4 ">
             {/* Título del producto */}
             <Text
-              className="text-gray-900 font-dmSans font-medium text-base leading-tight"
+              className="text-gray-900 font-dmSans mb-2 font-medium text-base leading-tight"
               data-testid="product-title"
             >
               {product.title}
