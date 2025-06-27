@@ -175,7 +175,7 @@ export default async function CategoryTemplate({
 
       <div className="w-full">
         <div className="">
-          <h1 className="text-2xl-semi" data-testid="category-page-title">
+          <h1 className="text-2xl-semi font-archivoBlack uppercase" data-testid="category-page-title">
             {category.name}
           </h1>
 
@@ -198,8 +198,8 @@ export default async function CategoryTemplate({
           </div>
         ) : (
           // Mostrar el layout normal con productos
-          <div className="flex gap-8 flex-col lg:flex-row">
-            <div className="flex flex-col gap-4 w-full sm:min-w-[250px]">
+          <div className="flex gap-8 flex-col md:flex-row">
+            <div className="flex flex-col gap-4 w-full md:w-[250px] md:flex-shrink-0">
               <RefinementList sortBy={sort} data-testid="sort-by-container" />
               <PriceFilterWrapper products={allProducts} />
 

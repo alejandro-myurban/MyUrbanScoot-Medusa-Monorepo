@@ -36,7 +36,7 @@ const FilterRadioGroup = ({
             <Label
               htmlFor={i.value}
               className={clx(
-                "!transform-none hover:cursor-pointer w-full text-left px-3 py-2 text-sm rounded transition-colors",
+                "!transform-none hover:cursor-pointer w-full text-left px-2 py-2 text-sm rounded transition-colors",
                 {
                   "bg-mysGreen-100 text-black font-medium": i.value === value,
                   "text-gray-700 hover:bg-gray-100": i.value !== value,
