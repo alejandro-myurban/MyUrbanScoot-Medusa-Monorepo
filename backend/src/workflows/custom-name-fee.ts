@@ -34,6 +34,8 @@ export const addCustomLineItemIfCustomNameWorkflow = createWorkflow(
       ],
     });
 
+    console.log("HOLAAAAAAAAAAAAAAAAAAAAAAAA");
+
     // 2️⃣ Calculamos qué fees faltan y qué variant_id usar para cada uno
     const missingFeeItems = transform(
       { carts, quantity },
@@ -93,6 +95,8 @@ export const addCustomLineItemIfCustomNameWorkflow = createWorkflow(
         return toAdd;
       }
     );
+
+    console.log("HOLAAAAAAAAAAAAAAAAAAAAAAAA");
 
     // 3️⃣ Sólo si hay fees pendientes, lanzamos la adición en bloque
     const shouldAdd = transform(missingFeeItems, (items) => items.length > 0);

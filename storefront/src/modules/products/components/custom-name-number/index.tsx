@@ -7,9 +7,13 @@ import { PlusCircle, MinusCircle } from "lucide-react"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
+  onPriceChange?: (additionalPrice: number) => void // Nueva prop para comunicar el precio
 }
 
-export default function CustomNameNumberForm({ product }: ProductActionsProps) {
+export default function CustomNameNumberForm({ 
+  product, 
+  onPriceChange 
+}: ProductActionsProps) {
   const [customName, setCustomName] = useState("")
   const [customNumber, setCustomNumber] = useState("")
   const [showNameForm, setShowNameForm] = useState<boolean>(false)
@@ -17,6 +21,20 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
   const [showInfo, setShowInfo] = useState<boolean>(false)
   const [showNumberInfo, setShowNumberInfo] = useState<boolean>(false)
   const { setCustomField } = useCombinedCart()
+
+  // Precios de las opciones
+  const NAME_PRICE = 5 // 5€ por nombre
+  const NUMBER_PRICE = 3 // 3€ por número
+
+  // Función para calcular y comunicar el precio adicional
+  const calculateAndNotifyPrice = (hasName: boolean, hasNumber: boolean) => {
+    let additionalPrice = 0
+    if (hasName) additionalPrice += NAME_PRICE
+    if (hasNumber) additionalPrice += NUMBER_PRICE
+    
+    // Comunicar el precio al componente padre
+    onPriceChange?.(additionalPrice)
+  }
 
   const handleNameSelection = (hasName: boolean) => {
     if (hasName) {
@@ -26,6 +44,9 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
       setCustomName("")
       setCustomField("custom_name", "")
     }
+    
+    // Recalcular precio con el nuevo estado del nombre
+    calculateAndNotifyPrice(hasName, showNumberForm)
   }
 
   const handleNumberSelection = (hasNumber: boolean) => {
@@ -36,6 +57,9 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
       setCustomNumber("")
       setCustomField("custom_number", "")
     }
+    
+    // Recalcular precio con el nuevo estado del número
+    calculateAndNotifyPrice(showNameForm, hasNumber)
   }
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,8 +80,15 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
     return () => {
       setCustomName("")
       setCustomNumber("")
+      // Reset precio cuando se desmonta
+      onPriceChange?.(0)
     }
-  }, [product.id])
+  }, [product.id, onPriceChange])
+
+  // Notificar precio inicial cuando el componente se monta
+  useEffect(() => {
+    calculateAndNotifyPrice(showNameForm, showNumberForm)
+  }, []) // Solo al montar
 
   // Solo mostrar si hay campos personalizados para este producto
   if (
@@ -105,7 +136,7 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
           <div className="flex flex-wrap flex-col sm:flex-row justify-between gap-2">
             <button
               onClick={() => handleNameSelection(false)}
-              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 transition-all duration-200 ${
+              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-6 h-20 flex-1 transition-all duration-200 ${
                 !showNameForm
                   ? "border-black bg-black text-ui-fg-base"
                   : "border-gray-300 hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
@@ -118,7 +149,7 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
 
             <button
               onClick={() => handleNameSelection(true)}
-              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 transition-all duration-200 ${
+              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-6 h-20 flex-1 transition-all duration-200 ${
                 showNameForm
                   ? "border-black bg-black text-ui-fg-base"
                   : "border-gray-300 hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
@@ -126,7 +157,7 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
             >
               <div className="text-center w-full flex justify-between">
                 <div className="font-semibold">Añadir mi nombre</div>
-                <div className="text-sm opacity-75">+5,00€</div>
+                <div className="text-sm opacity-75">+{NAME_PRICE},00€</div>
               </div>
             </button>
           </div>
@@ -201,7 +232,7 @@ export default function CustomNameNumberForm({ product }: ProductActionsProps) {
             >
               <div className="text-center w-full flex justify-between">
                 <div className="font-semibold">Añadir número</div>
-                <div className="text-sm opacity-75">+3,00€</div>
+                <div className="text-sm opacity-75">+{NUMBER_PRICE},00€</div>
               </div>
             </button>
           </div>

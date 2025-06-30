@@ -17,11 +17,15 @@ import { useTranslation } from "react-i18next"
 import Financing from "../financing"
 import CustomNameNumberForm from "../custom-name-number"
 import PopularBadge from "../badge-top-seller"
+import BoughtTogether from "../bought-together"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
   region: HttpTypes.StoreRegion
   disabled?: boolean
+  // Nueva prop para controlar si mostrar BoughtTogether
+  showBoughtTogether?: boolean
+  boughtTogether?: React.ReactNode
 }
 
 const optionsAsKeymap = (variantOptions: any) => {
@@ -44,19 +48,26 @@ export default function ProductActions({
   product,
   region,
   disabled,
+  showBoughtTogether = true, // Por defecto mostrar (para compatibilidad)
+  boughtTogether,
 }: ProductActionsProps) {
   const { setSelectedColor, optionTitle } = useColorContext()
   const [options, setOptions] = useState<Record<string, string | undefined>>({})
   const [isAdding, setIsAdding] = useState(false)
+  const [additionalPrice, setAdditionalPrice] = useState(0)
   const countryCode = useParams().countryCode as string
   const searchParams = useSearchParams()
-  const { extras, clearExtras, clearCustomFields, customMetadata } =
-    useCombinedCart()
+  const {
+    extras,
+    clearExtras,
+    clearCustomFields,
+    customMetadata,
+    boughtTogetherPrice, // 👈 Nuevo
+    clearBoughtTogetherPrice, // 👈 Nuevo
+  } = useCombinedCart()
   const { t } = useTranslation()
 
-  // State to track if initial setup has happened
   const initialSetupDone = useRef(false)
-  // Guardar los nombres reales de las opciones
   const realOptionNames = useRef(new Set<string>())
 
   // Collect real option names when component mounts
@@ -72,19 +83,16 @@ export default function ProductActions({
 
   const initialColor = useMemo(() => {
     const urlColor = searchParams?.get("color")
-    // Buscar la opción de color usando los nombres reales
     const colorOption = product.options?.find(
       (opt) =>
         opt.title === "Color" || opt.title === "Base" || opt.title === "Pedana"
     )
     const validColors = colorOption?.values?.map((v) => v.value) || []
 
-    // Validate URL color exists in product options
     if (urlColor && validColors.includes(urlColor)) {
       return urlColor
     }
 
-    // Fallback to first available color
     return validColors[0] || ""
   }, [searchParams, product.options])
 
@@ -94,7 +102,6 @@ export default function ProductActions({
       const variantOptions = optionsAsKeymap(product.variants[0].options)
       setOptions(variantOptions ?? {})
 
-      // Update color context using the REAL option names
       const colorValue =
         variantOptions?.[optionTitle] ||
         variantOptions?.Base ||
@@ -107,11 +114,10 @@ export default function ProductActions({
     }
   }, [product.variants, setSelectedColor, optionTitle])
 
-  // Set initial color option only once, preserving original option names
+  // Set initial color option only once
   useEffect(() => {
     if (initialSetupDone.current) return
 
-    // Get all color-related options with their REAL names
     const colorOptions = product.options?.filter(
       (opt) =>
         opt.title === "Pedana" || opt.title === "Base" || opt.title === "Color"
@@ -121,7 +127,6 @@ export default function ProductActions({
       const newOptions = { ...options }
       let updated = false
 
-      // Set the color value using the REAL option name
       colorOptions.forEach((option) => {
         if (option.title && option.values?.length && !options[option.title]) {
           newOptions[option.title] = initialColor
@@ -147,16 +152,13 @@ export default function ProductActions({
     })
   }, [product.variants, options])
 
-  // Update options when a variant is selected, preserving original option names
   const setOptionValue = (title: string, value: string) => {
     try {
-      // Usar el título real de la opción
       setOptions((prev) => ({
         ...prev,
         [title]: value,
       }))
 
-      // Update color context if it's a color-related option
       if (title === "Pedana" || title === "Base" || title === "Color") {
         setSelectedColor(value)
       }
@@ -165,19 +167,15 @@ export default function ProductActions({
     }
   }
 
-  // check if the selected variant is in stock
   const inStock = useMemo(() => {
-    // If we don't manage inventory, we can always add to cart
     if (selectedVariant && !selectedVariant.manage_inventory) {
       return true
     }
 
-    // If we allow back orders on the variant, we can add to cart
     if (selectedVariant?.allow_backorder) {
       return true
     }
 
-    // If there is inventory available, we can add to cart
     if (
       selectedVariant?.manage_inventory &&
       (selectedVariant?.inventory_quantity || 0) > 0
@@ -185,28 +183,23 @@ export default function ProductActions({
       return true
     }
 
-    // Otherwise, we can't add to cart
     return false
   }, [selectedVariant])
 
   const actionsRef = useRef<HTMLDivElement>(null)
-
   const inView = useIntersection(actionsRef, "0px")
 
-  // add the selected variant to the cart
   const handleAddToCart = async () => {
     if (!selectedVariant?.id) return
     setIsAdding(true)
     try {
-      // 1) añado el producto principal con los metadatos personalizados
       await addToCart({
         variantId: selectedVariant.id,
         quantity: 1,
         countryCode,
-        metadata: customMetadata, // Añadimos los metadatos personalizados aquí
+        metadata: customMetadata,
       })
 
-      // 2) añado los extras marcados
       if (extras.length) {
         await Promise.all(
           extras.map((variantId) =>
@@ -220,8 +213,9 @@ export default function ProductActions({
         clearExtras()
       }
 
-      // 3) Limpiamos los campos personalizados
       clearCustomFields()
+      clearBoughtTogetherPrice()
+      setAdditionalPrice(0)
 
       toast.success("¡Producto añadido al carrito con éxito!")
     } catch (error) {
@@ -231,8 +225,6 @@ export default function ProductActions({
       setIsAdding(false)
     }
   }
-
-  console.log("PRODUCTOS PRECIO", product)
 
   return (
     <>
@@ -252,22 +244,36 @@ export default function ProductActions({
                     data-testid="product-options"
                     disabled={!!disabled || isAdding}
                   />
-  
                 </div>
               ))}
-              <CustomNameNumberForm product={product} />
-              <Divider />
+
+              <CustomNameNumberForm
+                product={product}
+                onPriceChange={setAdditionalPrice}
+              />
             </div>
           )}
         </div>
+
         {product.type?.value === "Patinetes" && (
           <Financing
             productName={selectedVariant?.title ?? product.title ?? ""}
             price={selectedVariant?.calculated_price?.calculated_amount ?? 0}
           />
         )}
-        <ProductPrice product={product} variant={selectedVariant} />
+
+        {boughtTogether}
+        <Divider />
+
+        <ProductPrice
+          product={product} 
+          variant={selectedVariant}
+          additionalPriceCustom={additionalPrice}
+          additionalPriceBoughtTogether={boughtTogetherPrice}
+        />
+
         <Toaster />
+
         <div className="">
           <Button
             onClick={handleAddToCart}
@@ -284,6 +290,7 @@ export default function ProductActions({
               : t("actions.add_to_cart")}
           </Button>
         </div>
+
         <MobileActions
           product={product}
           variant={selectedVariant}

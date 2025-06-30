@@ -38,8 +38,9 @@ export default async function BoughtTogether({
   try {
     const { products } = await sdk.store.product.list({
       id: ids,
-      region_id: region.id, 
-      fields: "id,title,handle,thumbnail,*variants,prices,images,*options,*options.values",
+      region_id: region.id,
+      fields:
+        "id,title,handle,thumbnail,*variants,prices,images,*options,*options.values",
     })
     relatedProducts = products
   } catch (error) {
@@ -57,23 +58,28 @@ export default async function BoughtTogether({
 
   return (
     <div className="w-full">
-    <Heading level="h2" className="mb-4 text-xl sm:text-2xl font-archivoBlack">
-      COMBINA CON
-    </Heading>
+      <Heading
+        level="h2"
+        className="pb-4 pt-2 text-xl sm:text-2xl font-archivoBlack"
+      >
+        COMBINA CON
+      </Heading>
 
-    <Suspense fallback={
-      <BoughtTogetherFallback
-        products={relatedProducts} 
-        region={region} 
-        discount={discountValue}
-      />
-    }>
-      <BoughtTogetherClient
-        products={relatedProducts}
-        region={region}
-        discount={discountValue}
-      />
-    </Suspense>
-  </div>
+      <Suspense
+        fallback={
+          <BoughtTogetherFallback
+            products={relatedProducts}
+            region={region}
+            discount={discountValue}
+          />
+        }
+      >
+        <BoughtTogetherClient
+          products={relatedProducts}
+          region={region}
+          discount={discountValue}
+        />
+      </Suspense>
+    </div>
   )
 }

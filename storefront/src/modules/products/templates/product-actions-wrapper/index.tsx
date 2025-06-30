@@ -10,10 +10,12 @@ export default async function ProductActionsWrapper({
   id,
   region,
   countryCode,
+  children,
 }: {
   id: string
   region: HttpTypes.StoreRegion
   countryCode: string
+  children?: React.ReactNode
 }) {
   const [product] = await getProductsById({
     ids: [id],
@@ -34,6 +36,7 @@ export default async function ProductActionsWrapper({
     <ProductActions
       product={{ ...product, options: product.options || null }}
       region={region}
+      boughtTogether={children}
     />
   )
 }

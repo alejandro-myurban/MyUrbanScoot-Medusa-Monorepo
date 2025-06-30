@@ -30,14 +30,18 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
       title: "VER DETALLES",
       content: (
         <div>
-          <p>
-            <strong>Especificaciones técnicas:</strong>
-          </p>
           <ul className="mt-2 space-y-1">
-            <li>• Medida: 10×2,75-6,5</li>
-            <li>• Tipo: Tubeless Offroad</li>
-            <li>• Material: Caucho reforzado</li>
-            <li>• Peso: 2.5 kg</li>
+            {/* Descripción rica */}
+            <Text
+              className="text-medium text-ui-fg-subtle font-dmSans py-2 max-h-32 overflow-y-auto transition-all duration-200 hover:max-h-48"
+              data-testid="product-description"
+              asChild
+            >
+              <div
+                dangerouslySetInnerHTML={{ __html: product.description || "" }}
+                className="whitespace-pre-line rich-text-content"
+              />
+            </Text>
           </ul>
         </div>
       ),
@@ -117,21 +121,12 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
           {priceText}
         </Text>
 
-        <Accordion className="font-archivo  text-gray-500" items={accordionItems} />
+        <Accordion
+          className="font-archivo  text-gray-500"
+          items={accordionItems}
+        />
 
         <ReviewButton product={product} className="text-sm" />
-
-        {/* Descripción rica */}
-        <Text
-          className="text-medium text-ui-fg-subtle font-dmSans"
-          data-testid="product-description"
-          asChild
-        >
-          <div
-            dangerouslySetInnerHTML={{ __html: product.description || "" }}
-            className="whitespace-pre-line rich-text-content"
-          />
-        </Text>
       </div>
     </div>
   )

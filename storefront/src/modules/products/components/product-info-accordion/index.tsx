@@ -51,7 +51,7 @@ const Accordion = ({ items, allowMultiple = false, className = '' }: AccordionPr
           >
             <button
               onClick={() => toggleItem(item.id)}
-              className="w-full flex items-center justify-between py-1 px-0 text-left hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-opacity-50 rounded-sm"
+              className="w-full flex items-center justify-between py-3 px-0 text-left hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-opacity-50 rounded-sm"
               aria-expanded={isOpen}
               aria-controls={`accordion-content-${item.id}`}
             >

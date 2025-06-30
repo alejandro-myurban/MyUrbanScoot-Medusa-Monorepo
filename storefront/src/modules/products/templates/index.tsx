@@ -214,8 +214,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                       id={product.id}
                       region={region}
                       countryCode={countryCode}
-                    />
-                    <BoughtTogether product={product} region={region} />
+                    >
+                      <BoughtTogether product={product} region={region} />
+                    </ProductActionsWrapper>
                   </Suspense>
                 </CombinedCartProvider>
               </div>
@@ -232,7 +233,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                     {/* Home link */}
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
-                        <LocalizedClientLink href="/">Inicio</LocalizedClientLink>
+                        <LocalizedClientLink href="/">
+                          Inicio
+                        </LocalizedClientLink>
                       </BreadcrumbLink>
                     </BreadcrumbItem>
 
@@ -291,8 +294,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                         id={product.id}
                         region={region}
                         countryCode={countryCode}
-                      />
-                      <BoughtTogether product={product} region={region} />
+                      >
+                        <BoughtTogether product={product} region={region} />
+                      </ProductActionsWrapper>
                     </Suspense>
                   </CombinedCartProvider>
                 </div>
@@ -302,7 +306,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
 
           {/* Sección de reseñas y productos relacionados - común para ambos */}
           <div
-            className="content-container py-4 small:my-32 bg-gray-50 lg:bg-white"
+            className="content-container py-4 small:my-32 bg-gray-50 sm:bg-white lg:"
             data-testid="related-products-container"
           >
             <ProductReviewsSummary
