@@ -16,6 +16,20 @@ export const ProductAverageReview = ({
 
   const hasRating = typeof averageRating === "number" && averageRating > 0
 
+  const scrollToReviews = () => {
+    const element = document.getElementById("product-reviews-section")
+    if (element) {
+      // Calcular offset para header fijo (ajusta según tu diseño)
+      const headerHeight = 80
+      const elementPosition = element.offsetTop - headerHeight
+
+      window.scrollTo({
+        top: elementPosition,
+        behavior: "smooth",
+      })
+    }
+  }
+
   return (
     <div className="flex items-center gap-2">
       {/* Siempre dibujo las 5 estrellas; si no hay rating, rating=0 y color gris */}
@@ -33,7 +47,14 @@ export const ProductAverageReview = ({
         <span className="text-sm font-semibold text-ui-fg-base">
           {averageRating!.toFixed(1)}
           <span className="ml-1 ">
-            (  <span className="underline">{totalReviews} opiniones</span> )
+            ({" "}
+            <button
+              onClick={scrollToReviews}
+              className="underline hover:text-mysRed-100 transition-colors cursor-pointer"
+            >
+              {totalReviews} opiniones
+            </button>{" "}
+            )
           </span>
         </span>
       ) : (

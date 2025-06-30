@@ -59,7 +59,7 @@ export const ProductReviewsSummary: React.FC<ProductReviewsSummaryProps> = ({
   }
 
   return (
-    <div className={`${className} flex flex-col gap-6`}>
+    <div id="product-reviews-section" className={`${className} flex flex-col gap-6`}>
       {/* Header con estadísticas */}
       {totalReviews && totalReviews.length > 0 && (
         <div className="mb-6">

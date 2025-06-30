@@ -242,15 +242,6 @@ export default function BoughtTogetherFallback({
         )
       })}
 
-      {/* Botón principal con spinner */}
-      <Button
-        disabled={true}
-        variant="primary"
-        className="w-full mt-6 flex items-center justify-center opacity-75"
-      >
-        <Spinner className="w-4 h-4 mr-2" />
-        Cargando productos...
-      </Button>
     </div>
   )
 }

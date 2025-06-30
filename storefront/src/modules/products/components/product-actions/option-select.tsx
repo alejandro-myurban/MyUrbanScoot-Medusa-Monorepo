@@ -30,7 +30,7 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
   "data-testid": dataTestId,
   disabled,
   product,
-  selectedOptions = {}
+  selectedOptions = {},
 }) => {
   const { t } = useTranslation()
   const { optionTitle } = useColorContext()
@@ -43,18 +43,22 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
     // Crear un objeto con las opciones que tendría la variante si seleccionamos este valor
     const potentialOptions = {
       ...selectedOptions,
-      [option.title]: optionValue
+      [option.title]: optionValue,
     }
 
     // Buscar la variante que coincida con estas opciones
-    const matchingVariant = product.variants.find(variant => {
+    const matchingVariant = product.variants.find((variant) => {
       if (!variant.options) return false
-      
+
       // Verificar si todas las opciones coinciden
-      return Object.entries(potentialOptions).every(([optionTitle, optionValue]) => {
-        const variantOption = variant.options?.find(opt => opt.option?.title === optionTitle)
-        return variantOption?.value === optionValue
-      })
+      return Object.entries(potentialOptions).every(
+        ([optionTitle, optionValue]) => {
+          const variantOption = variant.options?.find(
+            (opt) => opt.option?.title === optionTitle
+          )
+          return variantOption?.value === optionValue
+        }
+      )
     })
 
     return matchingVariant?.calculated_price?.calculated_amount || null
@@ -134,9 +138,12 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
     return popularValues.includes(value.toLowerCase())
   }
 
+  const shouldShowPrice = (optionTitle: string) => {
+    return optionTitle.toLowerCase() === "base"
+  }
+
   const infoContent = getInfoContent(title)
-  console.log("OPCIONES", option)
-  
+
   return (
     <div className="flex flex-col gap-y-3">
       <span className="font-semibold flex font-archivoBlack uppercase flex-col sm:flex-row items-start sm:items-center justify-between text-xl sm:text-2xl">
@@ -206,7 +213,8 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
               {/* Contenido del botón */}
               <div className="w-full flex justify-between items-center text-left">
                 <div className="font-semibold">{displayValue}</div>
-                {variantPrice && (
+                {/* Solo mostrar precio para opciones de tipo "base" */}
+                {shouldShowPrice(option.title) && variantPrice && (
                   <div className="text-sm font-bold text-gray-500 mt-1">
                     {formatPrice(variantPrice)}
                   </div>
