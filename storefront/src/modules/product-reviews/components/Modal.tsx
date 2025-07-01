@@ -92,7 +92,7 @@ export default function ProductReviewModal({
       console.log("📤 Subiendo", files.length, "imágenes...")
       
       // Usar fetch directo sin el SDK para asegurar que se envía como multipart/form-data
-      const response = await fetch(`http://localhost:9000/store/upload-image`, {
+      const response = await fetch(`https://backend-production-9e9f.up.railway.app/store/upload-image`, {
         headers: {
           "x-publishable-api-key" : "pk_14db1a49297371bf3f8d345db0cf016616d4244f1d593db1050907c88333cd21"
         },

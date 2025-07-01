@@ -36,7 +36,7 @@ export const ProductAverageReview = ({
       {hasRating ? (
         <StarRating
           rating={averageRating ?? 0}
-          size={16}
+          size={18}
           color={hasRating ? "#ff2c46" : "#ccc"}
         />
       ) : (

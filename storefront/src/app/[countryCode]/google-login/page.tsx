@@ -32,8 +32,10 @@ export default function GoogleCallback() {
       )
     } catch (error) {
       console.log("❌ Error en callback:", error)
-      console.log("❌ Detalles del error:", error.message)
-      console.log("❌ Stack trace:", error.stack)
+      if (error instanceof Error) {
+        console.log("❌ Detalles del error:", error.message)
+        console.log("❌ Stack trace:", error.stack)
+      }
     }
 
     return token
@@ -82,8 +84,6 @@ export default function GoogleCallback() {
     console.log("Apellido:", userMetadata.family_name || "No proporcionado")
     console.log("Metadata completo:", userMetadata)
     console.log("=====================================")
-
-    // ¡DESCOMENTAMOS LA CREACIÓN REAL!
     try {
       const result = await sdk.store.customer.create({
         email: userMetadata.email,
@@ -224,8 +224,10 @@ export default function GoogleCallback() {
             console.log("✅ Nuevo token guardado en cookie")
           } catch (refreshError) {
             console.log("❌ Error en refresh:", refreshError)
-            console.log("❌ Refresh error details:", refreshError.message)
-            console.log("❌ Refresh error stack:", refreshError.stack)
+            if (refreshError instanceof Error) {
+              console.log("❌ Refresh error details:", refreshError.message)
+              console.log("❌ Refresh error stack:", refreshError.stack)
+            }
           }
           
           console.log("✅ Datos de usuario obtenidos y procesados correctamente")

@@ -66,7 +66,7 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
 
   // Función para formatear el precio
   const formatPrice = (price: number): string => {
-    return `€${price.toFixed(2)}`
+    return `${price.toFixed(2)}€`
   }
 
   // Información específica según el tipo de opción

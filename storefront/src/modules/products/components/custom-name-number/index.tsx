@@ -157,7 +157,7 @@ export default function CustomNameNumberForm({
             >
               <div className="text-center w-full flex justify-between">
                 <div className="font-semibold">Añadir mi nombre</div>
-                <div className="text-sm opacity-75">+{NAME_PRICE},00€</div>
+                <div className="text-sm  text-gray-500">+{NAME_PRICE},00€</div>
               </div>
             </button>
           </div>
@@ -211,7 +211,7 @@ export default function CustomNameNumberForm({
           <div className="flex flex-wrap flex-col sm:flex-row justify-between gap-2">
             <button
               onClick={() => handleNumberSelection(false)}
-              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 transition-all duration-200 ${
+              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-6 h-20 flex-1 transition-all duration-200 ${
                 !showNumberForm
                   ? "border-black bg-black text-ui-fg-base"
                   : "border-gray-300 hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
@@ -224,7 +224,7 @@ export default function CustomNameNumberForm({
 
             <button
               onClick={() => handleNumberSelection(true)}
-              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-2 h-20 flex-1 transition-all duration-200 ${
+              className={`flex items-center bg-ui-bg-subtle border-2 font-semibold rounded-md px-4 py-6 h-20 flex-1 transition-all duration-200 ${
                 showNumberForm
                   ? "border-black bg-black text-ui-fg-base"
                   : "border-gray-300 hover:shadow-elevation-card-rest transition-shadow ease-in-out duration-150"
@@ -232,7 +232,7 @@ export default function CustomNameNumberForm({
             >
               <div className="text-center w-full flex justify-between">
                 <div className="font-semibold">Añadir número</div>
-                <div className="text-sm opacity-75">+{NUMBER_PRICE},00€</div>
+                <div className="text-sm  text-gray-500">+{NUMBER_PRICE},00€</div>
               </div>
             </button>
           </div>
