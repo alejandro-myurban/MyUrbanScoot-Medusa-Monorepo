@@ -32,12 +32,8 @@ export default function GoogleCallback() {
       )
     } catch (error) {
       console.log("❌ Error en callback:", error)
-      if (error && typeof error === "object" && "message" in error) {
-        console.log("❌ Detalles del error:", (error as { message: string }).message)
-      }
-      if (error && typeof error === "object" && "stack" in error) {
-        console.log("❌ Stack trace:", (error as { stack?: string }).stack)
-      }
+      console.log("❌ Detalles del error:", error.message)
+      console.log("❌ Stack trace:", error.stack)
     }
 
     return token
@@ -87,14 +83,19 @@ export default function GoogleCallback() {
     console.log("Metadata completo:", userMetadata)
     console.log("=====================================")
 
-    // Comentamos la creación real por ahora
-    // await sdk.store.customer.create({
-    //   email: userMetadata.email,
-    //   first_name: userMetadata.given_name || "",
-    //   last_name: userMetadata.family_name || "",
-    // })
-
-    console.log("✅ Customer NO creado (solo logging)")
+    // ¡DESCOMENTAMOS LA CREACIÓN REAL!
+    try {
+      const result = await sdk.store.customer.create({
+        email: userMetadata.email,
+        first_name: userMetadata.given_name || "",
+        last_name: userMetadata.family_name || "",
+      })
+      console.log("✅ Customer creado exitosamente:", result)
+      return result
+    } catch (error) {
+      console.log("❌ Error creando customer:", error)
+      throw error
+    }
   }
 
   const setTokenInCookie = async (token: string) => {
@@ -182,12 +183,49 @@ export default function GoogleCallback() {
           try {
             const newToken = await sdk.auth.refresh()
             console.log("✅ Nuevo token obtenido después de refresh:", !!newToken)
+            console.log("🔍 Nuevo token type:", typeof newToken)
+            console.log("🔍 Nuevo token length:", newToken?.length)
+            console.log("🔍 Nuevo token primeros chars:", newToken?.substring(0, 50) + "...")
+            
+            // Decodificar el nuevo token para verificar su contenido
+            try {
+              const decodedNewToken = decodeToken(newToken)
+              console.log("🔍 Nuevo token decodificado:", decodedNewToken)
+            } catch (decodeError) {
+              console.log("❌ Error decodificando nuevo token:", decodeError)
+            }
+            
+            // FORZAR que el SDK use el nuevo token
+            console.log("🔧 Intentando setear token en SDK...")
+            try {
+              // Solo intentar el método privado con casting
+              if ((sdk.auth as any).setToken_) {
+                (sdk.auth as any).setToken_(newToken)
+                console.log("✅ Token seteado usando setToken_")
+              } else {
+                console.log("❌ setToken_ no disponible")
+              }
+              
+              // Intentar acceso al client
+              if ((sdk.auth as any).client) {
+                (sdk.auth as any).client.token = newToken
+                console.log("✅ Token seteado directamente en client")
+                console.log("🔍 Token verificado en client:", (sdk.auth as any).client?.token?.substring(0, 20) + "...")
+              } else {
+                console.log("❌ Client no accesible")
+              }
+              
+            } catch (setTokenError) {
+              console.log("❌ Error seteando token en SDK:", setTokenError)
+            }
             
             // Guardar el NUEVO token (no el original de Google)
             await setTokenInCookie(newToken)
             console.log("✅ Nuevo token guardado en cookie")
           } catch (refreshError) {
             console.log("❌ Error en refresh:", refreshError)
+            console.log("❌ Refresh error details:", refreshError.message)
+            console.log("❌ Refresh error stack:", refreshError.stack)
           }
           
           console.log("✅ Datos de usuario obtenidos y procesados correctamente")
@@ -210,11 +248,63 @@ export default function GoogleCallback() {
       console.log("✅ Token seteado para customer existente")
     }
 
-    // Ahora SÍ intentamos obtener el customer real con el token refrescado
+    // ENFOQUE ALTERNATIVO: Si el SDK no funciona, hacer petición manual
     try {
       console.log("👤 Intentando obtener customer con token refrescado...")
-      const { customer: customerData } = await sdk.store.customer.retrieve()
-      console.log("✅ Customer obtenido exitosamente:", customerData)
+      
+      // DEBUGGING: Verificar estado del SDK antes de la petición
+      console.log("🔍 DEBUG SDK antes de retrieve:")
+      console.log("🔍 SDK object keys:", Object.keys(sdk))
+      console.log("🔍 SDK auth keys:", Object.keys(sdk.auth))
+      
+      // Intentar acceder a propiedades privadas para debug
+      try {
+        console.log("🔍 SDK auth client token:", (sdk.auth as any).client?.token?.substring(0, 30) + "...")
+        console.log("🔍 SDK auth client token length:", (sdk.auth as any).client?.token?.length)
+      } catch (e) {
+        console.log("❌ No se puede acceder al client token")
+      }
+      
+      // Verificar si hay alguna configuración visible
+      try {
+        console.log("🔍 SDK baseUrl:", (sdk as any).baseUrl || "No disponible")
+        console.log("🔍 SDK config:", (sdk as any).config || "No disponible")
+      } catch (e) {
+        console.log("❌ No se puede acceder a config")
+      }
+      
+      // En producción puede haber latencia, agregar pequeño delay
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Intentar primero con el SDK
+      let customerData
+      try {
+        const result = await sdk.store.customer.retrieve()
+        customerData = result.customer
+        console.log("✅ Customer obtenido exitosamente con SDK:", customerData)
+      } catch (sdkError) {
+        console.log("❌ SDK falló, intentando petición manual...")
+        
+        // Si el SDK falla, hacer petición manual con cookie
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/customers/me`,
+          {
+            headers: {
+              "x-publishable-api-key": process.env.NEXT_PUBLIC_PUBLISHEABLE_KEY || "",
+              "Content-Type": "application/json",
+            },
+            credentials: 'include' // Para incluir cookies
+          }
+        )
+        
+        if (response.ok) {
+          const manualResult = await response.json()
+          customerData = manualResult.customer
+          console.log("✅ Customer obtenido con petición manual:", customerData)
+        } else {
+          throw new Error(`Manual request failed: ${response.status}`)
+        }
+      }
 
       setCustomer(customerData)
       setLoading(false)
@@ -272,7 +362,7 @@ export default function GoogleCallback() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-green-500  to-red-500 bg-[length:400%_400%] animate-gradient-shift flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-green-500 via-yellow-400 to-red-500 bg-[length:400%_400%] animate-gradient-shift flex items-center justify-center p-4">
       <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-md w-full shadow-2xl border border-white/20 relative overflow-hidden">
         {/* Animated background effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-transparent to-green-500/10 animate-pulse"></div>
@@ -286,7 +376,7 @@ export default function GoogleCallback() {
                 <div className="absolute inset-0 border-4 border-transparent border-l-blue-500 border-t-red-500 border-r-yellow-400 border-b-green-500 rounded-full animate-spin"></div>
               </div>
               
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-red-500 to-green-600 bg-clip-text text-transparent mb-3">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-red-500 via-yellow-500 to-green-600 bg-clip-text text-transparent mb-3">
                 Conectando con Google
               </h2>
               
@@ -320,7 +410,7 @@ export default function GoogleCallback() {
               
               {/* Título dinámico basado en si es nuevo o existente */}
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                {isNewCustomer ? "¡Te damos la bienvenida! 🎉" : "¡Nos alegra volver a verte de nuevo! 👋"}
+                {isNewCustomer ? "¡Bienvenido/a! 🎉" : "¡Bienvenido/a de nuevo! 👋"}
               </h2>
               
               <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl p-4 mb-4 border border-green-200">
@@ -354,7 +444,7 @@ export default function GoogleCallback() {
               
               {/* Google-style progress bar */}
               <div className="w-full bg-gray-200 rounded-full h-1 mt-4">
-                <div className="bg-gradient-to-r from-blue-500 via-red-500  to-green-500 h-1 rounded-full animate-pulse" style={{width: '100%'}}></div>
+                <div className="bg-gradient-to-r from-blue-500 via-red-500 via-yellow-400 to-green-500 h-1 rounded-full animate-pulse" style={{width: '100%'}}></div>
               </div>
             </div>
           ) : (
