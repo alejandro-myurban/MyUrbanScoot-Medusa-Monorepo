@@ -79,7 +79,7 @@ export default function CheckoutForm({
     initializeStripeAutomatically()
   }, [cart?.id])
 
-  // Actualizar el carrito cuando cambie initialCart (por ejemplo, después de modificaciones)
+  // Actualizar el carrito cuando cambie initialCart
   useEffect(() => {
     if (!isInitializing && initialCart) {
       setCart(initialCart)
@@ -95,34 +95,54 @@ export default function CheckoutForm({
   }
 
   return (
-    <div>
-      {/* Indicador de inicialización opcional */}
+    <div className="max-w-4xl mx-auto">
+      {/* Indicador de inicialización */}
       {isInitializing && (
-        <div className="mb-4 p-3 rounded-lg">
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <span className="text-blue-700 text-sm">
             🔄 Inicializando métodos de pago...
           </span>
         </div>
       )}
 
-      <div className="w-full grid grid-cols-1 gap-y-8">
-        <div>
-          <Addresses cart={cart} customer={customer} /> 
+      {/* Todas las secciones siempre visibles */}
+      <div className="space-y-8">
+        {/* Sección de Direcciones */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">
+            Información de Envío
+          </h2>
+          <Addresses cart={cart} customer={customer} />
         </div>
 
-        <div>
-          <Shipping cart={cart} availableShippingMethods={shippingMethods} />
-        </div>
-
-        <div>
-          <Payment 
+        {/* Sección de Métodos de Envío */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">
+            Método de Envío
+          </h2>
+          <Shipping 
             cart={cart} 
-            availablePaymentMethods={paymentMethods}
-            onCartUpdate={setCart} // Pasar función para actualizar carrito
+            availableShippingMethods={shippingMethods} 
           />
         </div>
 
-        <div>
+        {/* Sección de Pago */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">
+            Información de Pago
+          </h2>
+          <Payment 
+            cart={cart} 
+            availablePaymentMethods={paymentMethods}
+            onCartUpdate={setCart}
+          />
+        </div>
+
+        {/* Sección de Revisión */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">
+            Resumen del Pedido
+          </h2>
           <Review cart={cart} />
         </div>
       </div>

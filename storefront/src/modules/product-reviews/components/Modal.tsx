@@ -24,7 +24,7 @@ export default function ProductReviewModal({
   const [rating, setRating] = useState<number>(5)
   const [comment, setComment] = useState<string>("")
   const [name, setName] = useState<string>("")
-  const [images, setImages] = useState<File[]>([]) // Nuevo estado para las imágenes
+  const [images, setImages] = useState<File[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -128,7 +128,7 @@ export default function ProductReviewModal({
       console.error('Error uploading images:', error)
       const errorMessage = (error instanceof Error && error.message) ? error.message : String(error)
       toast.error("Error subiendo imágenes: " + errorMessage)
-      return [] // Retornar array vacío si falla
+      throw error // ← IMPORTANTE: Re-lanzar el error para que el caller lo maneje
     }
   }
 
@@ -140,11 +140,30 @@ export default function ProductReviewModal({
     try {
       console.log("🔥 MODAL: Enviando a /store/anon-reviews")
       
-      // Subir imágenes primero si hay alguna
+      // Subir imágenes primero si hay alguna - CON MANEJO DE ERRORES MEJORADO
       let imageUrls: string[] = []
       if (images.length > 0) {
-        imageUrls = await uploadImages(images)
+        console.log("📸 Subiendo", images.length, "imágenes...")
+        try {
+          imageUrls = await uploadImages(images)
+          console.log("✅ Imágenes subidas exitosamente:", imageUrls)
+        } catch (uploadError) {
+          console.error("❌ Error subiendo imágenes:", uploadError)
+          // Si falla el upload, mostrar error pero permitir continuar sin imágenes
+          const shouldContinue = confirm(
+            "Error subiendo las imágenes. ¿Deseas enviar la reseña sin imágenes?"
+          )
+          if (!shouldContinue) {
+            return // Salir del función, setSubmitting se ejecutará en finally
+          }
+          // Si decide continuar, imageUrls queda como array vacío
+          console.log("⚠️ Continuando sin imágenes...")
+        }
+      } else {
+        console.log("📝 Sin imágenes para subir")
       }
+
+      console.log("🚀 Enviando reseña con", imageUrls.length, "imágenes")
 
       // Usar nuestro endpoint personalizado
       const response = await sdk.client.fetch("/store/anon-reviews", {
@@ -154,26 +173,31 @@ export default function ProductReviewModal({
           rating,
           content: comment,
           name: name.trim() || undefined,
-          images: imageUrls, // Enviar las URLs de las imágenes
+          images: imageUrls, // Enviar las URLs de las imágenes (puede estar vacío)
         },
       })
 
-      console.log("Review created:", response)
+      console.log("✅ Review created:", response)
 
       // Limpiar formulario y cerrar modal
       toast.success("Reseña creada con éxito")
       setComment("")
       setName("")
       setRating(5)
-      setImages([]) // Limpiar imágenes
+      setImages([])
       onClose()
 
       // Refrescar para mostrar la nueva reseña
       router.refresh()
+
     } catch (err: any) {
-      console.error(err)
-      setError(err.message || "Error enviando la reseña")
+      console.error("❌ Error en handleSubmit:", err)
+      const errorMessage = err?.message || "Error enviando la reseña"
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
+      // ✅ CRÍTICO: Siempre resetear submitting, sin importar qué pase
+      console.log("🏁 Finalizando submit...")
       setSubmitting(false)
     }
   }
@@ -308,6 +332,7 @@ export default function ProductReviewModal({
               type="button"
               onClick={onClose}
               className="flex-1 bg-gray-200 text-gray-800 py-2 rounded hover:bg-gray-300 transition-colors"
+              disabled={submitting} // ← Deshabilitar también el cancelar mientras envía
             >
               Cancelar
             </button>
