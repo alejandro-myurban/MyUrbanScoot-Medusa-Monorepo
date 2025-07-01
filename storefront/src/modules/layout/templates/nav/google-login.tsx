@@ -29,7 +29,7 @@ export default function GoogleLogin() {
   }
 
   return (
-    <div className="p-[2px] rounded-lg bg-gradient-to-r from-blue-500 via-red-500 to-green-500">
+    <div className="p-[2px] rounded-lg   bg-[linear-gradient(to_right,#3b82f6,#ef4444,#facc15,#10b981)]">
       <button
         type="button"
         onClick={loginWithGoogle}
