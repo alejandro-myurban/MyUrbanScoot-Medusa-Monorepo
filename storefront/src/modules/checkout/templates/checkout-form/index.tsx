@@ -98,7 +98,7 @@ export default function CheckoutForm({
     <div>
       {/* Indicador de inicialización opcional */}
       {isInitializing && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mb-4 p-3 rounded-lg">
           <span className="text-blue-700 text-sm">
             🔄 Inicializando métodos de pago...
           </span>

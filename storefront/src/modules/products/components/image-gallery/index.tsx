@@ -140,7 +140,7 @@ const ImageGallery = ({ images }: ImageGalleryProps) => {
 
                 {/* Contador de imágenes */}
                 {isClient && (
-                  <div className="absolute top-10 right-4 bg-gray-500 font-archivoBlack text-white font-bold px-2 py-1 rounded text-sm">
+                  <div className="absolute top-3 right-4 bg-gray-500 font-archivoBlack text-white font-bold px-2 py-1 rounded text-sm">
                     {currentImageIndex + 1} / {images.length}
                   </div>
                 )}

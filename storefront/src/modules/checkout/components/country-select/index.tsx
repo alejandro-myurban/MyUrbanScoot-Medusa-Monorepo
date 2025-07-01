@@ -23,10 +23,18 @@ const CountrySelect = forwardRef<
       return []
     }
 
-    return region.countries?.map((country) => ({
-      value: country.iso_2,
-      label: country.display_name,
-    }))
+    const options =
+      region.countries?.map((country) => ({
+        value: country.iso_2,
+        label: country.display_name,
+      })) || []
+
+    // Ordenar para que "es" aparezca primero
+    return options.sort((a, b) => {
+      if (a.value === "es") return -1 // España va al principio
+      if (b.value === "es") return 1 // España va al principio
+      return 0 // mantener orden original para los demás
+    })
   }, [region])
 
   return (
