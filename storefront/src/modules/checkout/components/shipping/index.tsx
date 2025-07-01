@@ -58,7 +58,6 @@ const Shipping: React.FC<ShippingProps> = ({
   const pathname = usePathname()
   const { t } = useTranslation()
 
-  const isOpen = searchParams.get("step") === "delivery"
 
   const selectedShippingMethod = availableShippingMethods?.find(
     (method) => method.id === cart.shipping_methods?.at(-1)?.shipping_option_id
@@ -87,9 +86,6 @@ const Shipping: React.FC<ShippingProps> = ({
       })
   }
 
-  useEffect(() => {
-    setError(null)
-  }, [isOpen])
 
   useEffect(() => {
     const ids = (cart.items?.map((i) => i.product_id) || []).filter(
@@ -221,16 +217,13 @@ const Shipping: React.FC<ShippingProps> = ({
             "flex flex-row font-semibold text-2xl gap-x-2 items-baseline uppercase font-dmSans",
             {
               "opacity-50 pointer-events-none select-none":
-                !isOpen && cart.shipping_methods?.length === 0,
+               cart.shipping_methods?.length === 0,
             }
           )}
         >
           {t("checkout.delivery")}
-          {!isOpen && (cart.shipping_methods?.length ?? 0) > 0 && (
-            <CheckCircleSolid />
-          )}
         </Heading>
-        {!isOpen &&
+        { 
           cart?.shipping_address &&
           cart?.billing_address &&
           cart?.email && (
@@ -245,7 +238,6 @@ const Shipping: React.FC<ShippingProps> = ({
             </Text>
           )}
       </div>
-      {isOpen ? (
         <div data-testid="delivery-options-container">
           <div className="pb-8 space-y-4">
             <RadioGroup value={selectedShippingMethod?.id} onChange={set}>
@@ -365,23 +357,11 @@ const Shipping: React.FC<ShippingProps> = ({
             Continue to payment
           </Button>
         </div>
-      ) : (
         <div>
           <div className="text-small-regular">
-            {cart && (cart.shipping_methods?.length ?? 0) > 0 && (
-              <div className="flex flex-col w-1/3">
-                <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                  Method
-                </Text>
-                <Text className="txt-medium text-ui-fg-subtle">
-                  {selectedShippingMethod?.name}{" "}
-                  {getShippingOptionPrice(selectedShippingMethod!)}
-                </Text>
-              </div>
-            )}
+
           </div>
         </div>
-      )}
       <Divider className="mt-8" />
     </div>
   )

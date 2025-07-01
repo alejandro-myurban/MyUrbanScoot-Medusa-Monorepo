@@ -39,7 +39,6 @@ const Addresses = ({
   cart: HttpTypes.StoreCart | null
   customer: HttpTypes.StoreCustomer | null
 }) => {
-  const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
   const formRef = useRef<HTMLFormElement>(null)
@@ -54,9 +53,7 @@ const Addresses = ({
     "first_load" | "available" | "unavailable"
   >("first_load")
 
-  const isOpen =
-    searchParams.get("step") === "address" ||
-    searchParams.get("step") === "delivery"
+
   const [showButton, setShowButton] = useState<boolean>(false)
   const { t } = useTranslation()
 
@@ -889,9 +886,9 @@ const Addresses = ({
           className="flex flex-row text-2xl font-semibold font-dmSans uppercase gap-x-2 items-baseline"
         >
           {t("checkout.shipping_address")}
-          {!isOpen && <CheckCircleSolid />}
+
         </Heading>
-        {!isOpen && cart?.shipping_address && (
+
           <Text>
             <button
               onClick={handleEdit}
@@ -901,10 +898,8 @@ const Addresses = ({
               Edit
             </button>
           </Text>
-        )}
       </div>
 
-      {isOpen ? (
         <form ref={formRef} action={handleSubmit} key={submitCount}>
           <div className="pb-8">
             <ShippingAddress
@@ -937,7 +932,6 @@ const Addresses = ({
             <ErrorMessage error={message} data-testid="address-error-message" />
           </div>
         </form>
-      ) : (
         <div>
           <div className="text-small-regular">
             {cart && cart.shipping_address ? (
@@ -1018,12 +1012,11 @@ const Addresses = ({
               </div>
             ) : (
               <div>
-                <Spinner />
+               
               </div>
             )}
           </div>
         </div>
-      )}
       <Divider className="mt-8" />
     </div>
   )
