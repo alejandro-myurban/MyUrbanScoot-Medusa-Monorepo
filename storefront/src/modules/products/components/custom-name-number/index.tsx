@@ -107,7 +107,7 @@ export default function CustomNameNumberForm({
             Nombre personalizado
             <button
               onClick={() => setShowInfo(!showInfo)}
-              className="font-normal cursor-pointer font-dmSans text-sm flex sm:justify-center items-center gap-1 underline hover:text-gray-600 transition-colors"
+              className="font-normal cursor-pointer font-archivo text-sm flex sm:justify-center items-center gap-1 underline hover:text-gray-600 transition-colors"
             >
               ¿Dónde irá mi nombre?
               {showInfo ? (
@@ -125,7 +125,7 @@ export default function CustomNameNumberForm({
             }`}
           >
             <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
-              <p className="text-sm text-gray-600 leading-relaxed">
+              <p className="text-sm text-gray-600 font-archivo leading-relaxed">
                 Personaliza tu producto con un nombre y número únicos. Los datos
                 se imprimirán directamente en el producto con alta calidad y
                 durabilidad.
@@ -183,7 +183,7 @@ export default function CustomNameNumberForm({
             Número personalizado
             <button
               onClick={() => setShowNumberInfo(!showNumberInfo)}
-              className="font-normal cursor-pointer font-dmSans text-sm flex sm:justify-center items-center gap-1 underline hover:text-gray-600 transition-colors "
+              className="font-normal cursor-pointer font-archivo text-sm flex sm:justify-center items-center gap-1 underline hover:text-gray-600 transition-colors "
             >
               ¿Cómo funciona el número?
               {showNumberInfo ? (
@@ -201,7 +201,7 @@ export default function CustomNameNumberForm({
             }`}
           >
             <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
-              <p className="text-sm text-gray-600 leading-relaxed">
+              <p className="text-sm text-gray-600 leading-relaxed font-archivo">
                 Elige tu número favorito (0-999) que se personalizará en el producto. 
                 Ideal para números de la suerte, fechas especiales o simplemente tu número preferido.
               </p>

@@ -8,7 +8,7 @@ import Divider from "@modules/common/components/divider"
 import Radio from "@modules/common/components/radio"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, useRef } from "react"
 import { setShippingMethod } from "@lib/data/cart"
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
@@ -52,12 +52,16 @@ const Shipping: React.FC<ShippingProps> = ({
   const [itemsWithEstimate, setItemsWithEstimate] = useState<
     ItemWithEstimate[]
   >([])
+  
+  // Estados para el auto-submit
+  const [pendingAutoSubmit, setPendingAutoSubmit] = useState(false)
+  const [hasUserSelectedShipping, setHasUserSelectedShipping] = useState(false)
+  const autoSubmitTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
   const { t } = useTranslation()
-
 
   const selectedShippingMethod = availableShippingMethods?.find(
     (method) => method.id === cart.shipping_methods?.at(-1)?.shipping_option_id
@@ -75,17 +79,52 @@ const Shipping: React.FC<ShippingProps> = ({
     router.push(pathname + "?step=payment", { scroll: false })
   }
 
+  // Función para auto-submit después de seleccionar método de envío
+  const triggerAutoSubmit = useCallback(() => {
+    // Limpiar timeout anterior si existe
+    if (autoSubmitTimeoutRef.current) {
+      clearTimeout(autoSubmitTimeoutRef.current)
+    }
+
+    setPendingAutoSubmit(true)
+    
+    // Esperar un poco para que la UI se actualice y luego hacer submit
+    autoSubmitTimeoutRef.current = setTimeout(() => {
+      console.log('🚀 Auto-submit activado después de seleccionar método de envío')
+      handleSubmit()
+      setPendingAutoSubmit(false)
+    }, 1500) // 1.5 segundos de delay para mostrar feedback visual
+  }, [handleSubmit])
+
+  // Función modificada para incluir auto-submit
   const set = async (id: string) => {
     setIsLoading(true)
-    await setShippingMethod({ cartId: cart.id, shippingMethodId: id })
-      .catch((err) => {
-        setError(err.message)
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
+    setHasUserSelectedShipping(true)
+    
+    try {
+      await setShippingMethod({ cartId: cart.id, shippingMethodId: id })
+      
+      // ✅ Si la selección fue exitosa, activar auto-submit
+      console.log('✅ Método de envío seleccionado exitosamente:', id)
+      triggerAutoSubmit()
+      
+    } catch (err: any) {
+      console.error('❌ Error seleccionando método de envío:', err)
+      setError(err.message)
+      setPendingAutoSubmit(false)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
+  // Limpiar timeouts al desmontar componente
+  useEffect(() => {
+    return () => {
+      if (autoSubmitTimeoutRef.current) {
+        clearTimeout(autoSubmitTimeoutRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const ids = (cart.items?.map((i) => i.product_id) || []).filter(
@@ -208,13 +247,14 @@ const Shipping: React.FC<ShippingProps> = ({
   const deliveryRange = getDeliveryDateRange()
 
   console.log("CARRITO", cart)
+  
   return (
     <div className="bg-white">
       <div className="flex flex-row items-center justify-between mb-6">
         <Heading
           level="h2"
           className={clx(
-            "flex flex-row font-semibold text-2xl gap-x-2 items-baseline uppercase font-dmSans",
+            "flex flex-row font-archivoBlack text-2xl gap-x-2 items-baseline uppercase",
             {
               "opacity-50 pointer-events-none select-none":
                cart.shipping_methods?.length === 0,
@@ -223,7 +263,7 @@ const Shipping: React.FC<ShippingProps> = ({
         >
           {t("checkout.delivery")}
         </Heading>
-        { 
+        {/* { 
           cart?.shipping_address &&
           cart?.billing_address &&
           cart?.email && (
@@ -236,132 +276,141 @@ const Shipping: React.FC<ShippingProps> = ({
                 Edit
               </button>
             </Text>
-          )}
+          )} */}
       </div>
-        <div data-testid="delivery-options-container">
-          <div className="pb-8 space-y-4">
-            <RadioGroup value={selectedShippingMethod?.id} onChange={set}>
-              {availableShippingMethods?.map((option) => {
-                const isSelected = option.id === selectedShippingMethod?.id
-                return (
+      
+      <div data-testid="delivery-options-container ">
+        <div className="space-y-0 ">
+          <RadioGroup value={selectedShippingMethod?.id} onChange={set} >
+            {availableShippingMethods?.map((option, index) => {
+              const isSelected = option.id === selectedShippingMethod?.id
+              const isFirst = index === 0
+              const isLast = index === availableShippingMethods.length - 1
+              
+              return (
+                <div key={option.id} className="relative">
                   <RadioGroup.Option
-                    key={option.id}
                     value={option.id}
                     data-testid="delivery-option-radio"
                     className={clx(
-                      "relative block w-full p-6 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer transition-all duration-200",
+                      "relative block w-full bg-white border border-[#e6e6e6] cursor-pointer transition-all duration-200 ",
                       {
-                        "border-black bg-white shadow-sm": isSelected,
-                        "hover:border-gray-300 hover:bg-gray-100": !isSelected,
+                        // Bordes del acordeón
+                        "rounded-t-lg border-b-0": isFirst,
+                        "border-b-0": !isFirst && !isLast,
+                        "rounded-b-lg": isLast,
+                        // Estados de selección
+                        "bg-gray-50 border-gray-400": isSelected,
+                        "hover:bg-gray-50": !isSelected,
                       }
                     )}
                   >
-                    <div className="flex items-start w-full justify-between">
-                      <div className="flex items-start w-full gap-4">
-                        <div className="flex items-center h-6">
-                          <Radio checked={isSelected} />
-                        </div>
-                        <div className="flex-1 w-full">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-lg font-semibold text-gray-900">
-                              {option.name}
-                            </h4>
-                            <span className="text-lg font-bold text-gray-900">
-                              {getShippingOptionPrice(option)}
-                            </span>
+                    <div className="p-4 font-archivo">
+                      {/* Header de la opción */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-4 h-4">
+                            <div className={clx(
+                              "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                              {
+                                "bg-gray-500": isSelected,
+                                "border-gray-230 bg-white": !isSelected,
+                              }
+                            )}>
+                              {isSelected && (
+                                <div className="w-1 h-1 bg-black rounded-full"></div>
+                              )}
+                            </div>
                           </div>
+                          <span className="font-medium text-gray-900">
+                            {option.name}
+                          </span>
+                        </div>
+                        <span className="font-black text-lg font-archivoBlack text-gray-900">
+                          {getShippingOptionPrice(option)}
+                        </span>
+                      </div>
 
-                          {/* Mostrar información de tiempo si es el método seleccionado y es calculated */}
-                          {isSelected &&
-                            option.price_type === "calculated" &&
-                            deliveryRange && (
-                              <div className="mt-3 space-y-2">
-                                <div className="text-sm text-gray-600">
-                                  <span className="font-medium">
-                                    Tiempo producción:
-                                  </span>{" "}
-                                  {deliveryRange.minDays ===
-                                  deliveryRange.maxDays
+                      {/* Información adicional expandida */}
+                      {isSelected && (
+                        <div className="mt-4 pl-7 space-y-2 border-t border-gray-200 pt-4">
+                          {/* Para métodos calculated */}
+                          {option.price_type === "calculated" && deliveryRange && (
+                            <>
+                              <div className="text-sm text-gray-700">
+                                <span className="font-medium">Tiempo producción:</span>{" "}
+                                <span className="font-semibold">
+                                  {deliveryRange.minDays === deliveryRange.maxDays
                                     ? `${deliveryRange.minDays} días`
                                     : `${deliveryRange.minDays}-${deliveryRange.maxDays} días`}
-                                </div>
-                                <div className="text-sm font-medium text-gray-900">
-                                  Tu pedido llegará entre el{" "}
-                                  <span className="font-bold">
-                                    {deliveryRange.startDate.toLocaleDateString(
-                                      "es-ES",
-                                      {
-                                        day: "numeric",
-                                        month: "long",
-                                        year: "numeric",
-                                      }
-                                    )}
-                                  </span>
-                                  {deliveryRange.minDays !==
-                                    deliveryRange.maxDays && (
-                                    <>
-                                      {" "}
-                                      y el{" "}
-                                      <span className="font-bold">
-                                        {deliveryRange.endDate.toLocaleDateString(
-                                          "es-ES",
-                                          {
-                                            day: "numeric",
-                                            month: "long",
-                                            year: "numeric",
-                                          }
-                                        )}
-                                      </span>
-                                    </>
-                                  )}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  si nadie la lía por el camino
-                                </div>
+                                </span>
                               </div>
-                            )}
+                              
+                              <div className="text-sm text-gray-900 font-medium">
+                                Tu pedido llegará entre el{" "}
+                                <span className="font-black">
+                                  {deliveryRange.startDate.toLocaleDateString("es-ES", {
+                                    day: "numeric",
+                                    month: "long",
+                                    year: "numeric",
+                                  })}
+                                </span>
+                                {deliveryRange.minDays !== deliveryRange.maxDays && (
+                                  <>
+                                    {" y el "}
+                                    <span className="font-black">
+                                      {deliveryRange.endDate.toLocaleDateString("es-ES", {
+                                        day: "numeric",
+                                        month: "long", 
+                                        year: "numeric",
+                                      })}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              
+                              <div className="text-xs text-gray-500 italic">
+                                si nadie la lía por el camino
+                              </div>
+                            </>
+                          )}
 
-                          {/* Para métodos flat rate, mostrar descripción simple */}
-                          {isSelected && option.price_type === "flat" && (
-                            <div className="mt-2 text-sm text-gray-600">
-                              {option.name.includes("Express") &&
-                                "1-2 días laborales"}
-                              {option.name.includes("Standard") &&
-                                "3-5 días laborales"}
-                              {option.name.includes("Recogida") &&
-                                "Disponible para recogida"}
+                          {/* Para métodos flat rate */}
+                          {option.price_type === "flat" && (
+                            <div className="text-sm text-gray-700">
+                              {option.name.includes("Express") && "1-2 días laborales"}
+                              {option.name.includes("Standard") && "3-5 días laborales"}
+                              {option.name.includes("Recogida") && "Disponible para recogida"}
                             </div>
                           )}
                         </div>
-                      </div>
+                      )}
                     </div>
                   </RadioGroup.Option>
-                )
-              })}
-            </RadioGroup>
-          </div>
-
-          <ErrorMessage
-            error={error}
-            data-testid="delivery-option-error-message"
-          />
-
-          <Button
-            size="large"
-            className="mt-6"
-            onClick={handleSubmit}
-            isLoading={isLoading}
-            disabled={!cart.shipping_methods?.[0]}
-            data-testid="submit-delivery-option-button"
-          >
-            Continue to payment
-          </Button>
+                </div>
+              )
+            })}
+          </RadioGroup>
         </div>
-        <div>
-          <div className="text-small-regular">
 
+        {/* Mensaje de feedback cuando se está preparando el auto-submit */}
+        {pendingAutoSubmit && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <Text className="text-sm text-blue-700">
+                ✅ Método de envío seleccionado - continuando al pago...
+              </Text>
+            </div>
           </div>
-        </div>
+        )}
+
+        <ErrorMessage
+          error={error}
+          data-testid="delivery-option-error-message"
+        />
+      </div>
+      
       <Divider className="mt-8" />
     </div>
   )
