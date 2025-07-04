@@ -15,6 +15,29 @@ interface CheckoutFormProps {
   initialPaymentMethods: any[]
 }
 
+// Función para verificar si el carrito ya tiene una sesión de Stripe válida
+const hasValidStripeSession = (cart: any): boolean => {
+  if (!cart?.payment_collection?.payment_sessions) return false
+  
+  return cart.payment_collection.payment_sessions.some(
+    (session: any) => 
+      session.provider_id === "pp_stripe_stripe" && 
+      session.status === "pending" &&
+      session.data?.client_secret // Verificar que tiene client_secret
+  )
+}
+
+// Función para verificar si necesitamos inicializar Stripe
+const needsStripeInitialization = (cart: any): boolean => {
+  // Si no hay payment collection, definitivamente necesitamos inicializar
+  if (!cart?.payment_collection) return true
+  
+  // Si no hay sesión de Stripe válida, necesitamos inicializar
+  if (!hasValidStripeSession(cart)) return true
+  
+  return false
+}
+
 export default function CheckoutForm({
   initialCart,
   customer,
@@ -25,37 +48,47 @@ export default function CheckoutForm({
   const [shippingMethods] = useState(initialShippingMethods)
   const [paymentMethods] = useState(initialPaymentMethods)
   const [isInitializing, setIsInitializing] = useState(false)
-  const isInitialized = useRef(false)
+  const initializationAttempted = useRef(false)
 
-  // Auto-inicializar Stripe al cargar
+  // Auto-inicializar Stripe SOLO si realmente es necesario
   useEffect(() => {
-    const initializeStripeAutomatically = async () => {
-      if (isInitialized.current || !cart || isInitializing) return
+    const initializeStripeIfNeeded = async () => {
+      if (!cart || isInitializing) return
 
+      // Verificar si realmente necesitamos inicializar
+      const needsInit = needsStripeInitialization(cart)
+      
+      if (!needsInit) {
+        console.log("✅ Stripe ya está correctamente inicializado para este carrito")
+        return
+      }
+
+      // Evitar múltiples intentos simultáneos
+      if (initializationAttempted.current) {
+        console.log("⏳ Inicialización de Stripe ya en progreso")
+        return
+      }
+
+      initializationAttempted.current = true
       setIsInitializing(true)
       
       try {
-        isInitialized.current = true
-        console.log("🔄 Inicializando Stripe automáticamente...")
+        console.log("🔄 Inicializando Stripe porque es necesario...")
 
         let updatedCart = cart
 
         // Si no hay payment collection, crearla
         if (!cart.payment_collection) {
-          console.log("🔄 Creando payment collection automáticamente...")
+          console.log("🔄 Creando payment collection...")
           const collectionResult = await createPaymentCollection(cart.id)
           if (collectionResult?.cart) {
             updatedCart = collectionResult.cart
           }
         }
 
-        // Si no hay una sesión de Stripe activa, inicializarla
-        const hasStripeSession = updatedCart.payment_collection?.payment_sessions?.some(
-          (session: any) => session.provider_id === "pp_stripe_stripe" && session.status === "pending"
-        )
-
-        if (!hasStripeSession) {
-          console.log("🔄 Inicializando sesión de Stripe automáticamente...")
+        // Verificar nuevamente si necesitamos la sesión de Stripe
+        if (!hasValidStripeSession(updatedCart)) {
+          console.log("🔄 Creando sesión de Stripe...")
           await initiatePaymentSession(updatedCart, {
             provider_id: "pp_stripe_stripe",
           })
@@ -65,26 +98,47 @@ export default function CheckoutForm({
         const refreshedCart = await retrieveCart(cart.id)
         if (refreshedCart) {
           setCart(refreshedCart)
-          console.log("✅ Stripe inicializado y carrito actualizado")
+          console.log("✅ Stripe inicializado correctamente")
         }
 
       } catch (error) {
-        console.error("❌ Error inicializando Stripe automáticamente:", error)
-        isInitialized.current = false // Permitir reintentos
+        console.error("❌ Error inicializando Stripe:", error)
+        initializationAttempted.current = false // Permitir reintento en caso de error
       } finally {
         setIsInitializing(false)
       }
     }
 
-    initializeStripeAutomatically()
-  }, [cart?.id])
+    initializeStripeIfNeeded()
+  }, [cart?.id, cart?.payment_collection, isInitializing])
 
   // Actualizar el carrito cuando cambie initialCart
   useEffect(() => {
     if (!isInitializing && initialCart) {
+      console.log("🔄 Actualizando carrito:", {
+        cartId: initialCart.id,
+        hasPaymentCollection: !!initialCart.payment_collection,
+        hasStripeSession: hasValidStripeSession(initialCart)
+      })
+      
       setCart(initialCart)
+      
+      // Reset del flag si el carrito cambió significativamente
+      if (initialCart.id !== cart?.id) {
+        initializationAttempted.current = false
+      }
     }
-  }, [initialCart, isInitializing])
+  }, [initialCart?.id, initialCart?.payment_collection, isInitializing])
+
+  // Reset del flag cuando el componente se monta (para debugging)
+  useEffect(() => {
+    console.log("🔄 CheckoutForm montado/re-montado")
+    // No resetear initializationAttempted aquí para evitar re-inicializaciones
+    
+    return () => {
+      console.log("🔄 CheckoutForm desmontado")
+    }
+  }, [])
 
   if (!cart) {
     return null
@@ -95,56 +149,36 @@ export default function CheckoutForm({
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div>
       {/* Indicador de inicialización */}
       {isInitializing && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <span className="text-blue-700 text-sm">
-            🔄 Inicializando métodos de pago...
+            🔄 Configurando métodos de pago...
           </span>
         </div>
       )}
 
-      {/* Todas las secciones siempre visibles */}
-      <div className="space-y-8">
-        {/* Sección de Direcciones */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">
-            Información de Envío
-          </h2>
-          <Addresses cart={cart} customer={customer} />
+      <div className="w-full grid grid-cols-1 gap-y-8">
+        <div>
+          <Addresses cart={cart} customer={customer} /> 
         </div>
 
-        {/* Sección de Métodos de Envío */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">
-            Método de Envío
-          </h2>
-          <Shipping 
-            cart={cart} 
-            availableShippingMethods={shippingMethods} 
-          />
+        <div>
+          <Shipping cart={cart} availableShippingMethods={shippingMethods} />
         </div>
 
-        {/* Sección de Pago */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">
-            Información de Pago
-          </h2>
+        <div>
           <Payment 
             cart={cart} 
             availablePaymentMethods={paymentMethods}
             onCartUpdate={setCart}
           />
         </div>
-
-        {/* Sección de Revisión */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">
-            Resumen del Pedido
-          </h2>
+{/* 
+        <div>
           <Review cart={cart} />
-        </div>
+        </div> */}
       </div>
     </div>
   )

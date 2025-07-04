@@ -46,13 +46,13 @@ const LoyaltyPoints = ({ cart }: LoyaltyPointsProps) => {
     <>
       <div className="h-px w-full border-b border-gray-200 my-4" />
       <div className="flex flex-col">
-        <Heading className="txt-medium mb-2">Loyalty Points</Heading>
+        <Heading className="txt-medium mb-2 font-archivo">Puntos de afiliado</Heading>
         {loyaltyPoints === null && (
           <Link
             href="/account"
             className="txt-medium text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
           >
-            Sign up to get and use loyalty points
+           ¡Regístrate y empieza a ganar puntos!
           </Link>
         )}
         {loyaltyPoints !== null && (
