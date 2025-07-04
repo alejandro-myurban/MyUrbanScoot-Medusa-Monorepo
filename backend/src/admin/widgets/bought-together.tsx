@@ -37,11 +37,16 @@ const BoughtTogetherWidget = ({ data }) => {
     }
   });
 
-  const [discount, setDiscount] = useState<number | "">(
-    data.metadata?.bought_together_discount
-      ? Number(data.metadata.bought_together_discount)
-      : ""
-  );
+  const [discounts, setDiscounts] = useState<Record<string, number>>(() => {
+  const initial: Record<string, number> = {};
+  selectedIds.forEach((id) => {
+    const d = data.metadata?.[`bought_together_discount_${id}`];
+    if (d) initial[id] = Number(d);
+  });
+  return initial;
+  });
+
+
 
   // ─── Query de productos ────────────────────────────────────
   const { data: productsData, isLoading } = useQuery<
@@ -60,15 +65,26 @@ const BoughtTogetherWidget = ({ data }) => {
 
   // ─── Mutación para guardar metadata ────────────────────────
   const mutation = useMutation<any, Error, void>({
-    mutationFn: () =>
-      sdk.admin.product.update(data.id, {
-        metadata: {
-          ...data.metadata,
-          bought_together: JSON.stringify(selectedIds),
-          bought_together_discount:
-            discount !== "" ? discount.toString() : undefined,
-        },
-      }),
+    mutationFn: () => {
+    const metadata: Record<string, any> = {
+      bought_together: JSON.stringify(selectedIds),
+    };
+
+    // Mantener descuentos activos y poner "null" a los eliminados
+    const allKeys = Object.keys(data.metadata || {});
+    allKeys.forEach((key) => {
+      if (key.startsWith("bought_together_discount_")) {
+        const id = key.replace("bought_together_discount_", "");
+        metadata[key] = selectedIds.includes(id)
+          ? (discounts[id]?.toString() ?? "0")
+          : "null";
+      } else if (key !== "bought_together") {
+        metadata[key] = data.metadata[key];
+      }
+    });
+
+    return sdk.admin.product.update(data.id, { metadata });
+    },
     onSuccess: () => {
       toast.success("Configuración guardada correctamente");
     },
@@ -79,7 +95,7 @@ const BoughtTogetherWidget = ({ data }) => {
     },
   });
 
-  // ─── Handlers ─────────────────────────────────────────────
+// ─── Handlers ─────────────────────────────────────────────
   const handleAdd = (id: string) => {
     if (id && !selectedIds.includes(id)) {
       setSelectedIds((prev) => [...prev, id]);
@@ -87,13 +103,18 @@ const BoughtTogetherWidget = ({ data }) => {
   };
   const handleRemove = (id: string) => {
     setSelectedIds((prev) => prev.filter((x) => x !== id));
-  };
-  const handleSave = () => {
-    mutation.mutate();
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
-  };
+    setDiscounts((prev) => {
+    const updated = { ...prev };
+    delete updated[id]; // eliminamos el descuento asociado
+    return updated;
+    });
+    };
+    const handleSave = () => {
+      mutation.mutate();
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    };
 
   return (
     <Container>
@@ -164,22 +185,34 @@ const BoughtTogetherWidget = ({ data }) => {
         </div>
       )}
 
-      {/* Input de descuento */}
-      <div className="mb-4">
-        <label className="block mb-1">Descuento (%)</label>
-        <input
-          type="number"
-          min={0}
-          step={1}
-          placeholder="Ej. 10"
-          value={discount}
-          onChange={(e) => {
-            const v = e.target.value;
-            setDiscount(v === "" ? "" : Math.max(0, Number(v)));
-          }}
-          className="w-24 p-2 border rounded"
-        />
-      </div>
+      {/* Inputs de descuentos individuales */}
+      <div className="mb-4 space-y-2">
+        {selectedIds.map((id) => {
+          const prod = productsData?.products.find((p) => p.id === id);
+          return (
+            <div key={id} className="flex items-center gap-2">
+              <label className="text-sm w-64">
+                Descuento para <strong>{prod?.title ?? id}</strong>:
+              </label>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                placeholder="Ej. 10"
+                value={discounts[id] ?? ""}
+                onChange={(e) => {
+                  const newValue = Number(e.target.value);
+                  setDiscounts((prev) => ({
+                    ...prev,
+                    [id]: isNaN(newValue) ? 0 : newValue,
+                  }));
+                }}
+                className="w-24 p-2 border rounded text-sm"
+              />
+            </div>
+          );
+        })}
+        </div>
 
       {/* Botón de guardar */}
       <Button onClick={handleSave} disabled={mutation.isPending}>
