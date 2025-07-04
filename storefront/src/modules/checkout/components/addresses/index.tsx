@@ -74,9 +74,11 @@ const Addresses = ({
 
   const validateFormCompleteness = useCallback(() => {
     const form = formRef.current
-    if (!form) return false
+    if (!form) {
+      console.log("❌ No hay referencia al formulario")
+      return false
+    }
 
-    // Obtener todos los campos requeridos del formulario
     const requiredFields = [
       "email",
       "shipping_address.first_name",
@@ -88,226 +90,83 @@ const Addresses = ({
       "shipping_address.phone",
     ]
 
-    // Si no es sameAsBilling, también validar billing address
+    // Si billing address es diferente, validar también esos campos
     if (!sameAsBilling) {
-      const billingFields = [
+      requiredFields.push(
         "billing_address.first_name",
         "billing_address.last_name",
         "billing_address.address_1",
         "billing_address.city",
         "billing_address.postal_code",
-        "billing_address.country_code",
-      ]
-      requiredFields.push(...billingFields)
+        "billing_address.country_code"
+      )
     }
 
-    // Verificar que todos los campos tengan valor
-    const isComplete = requiredFields.every((fieldName) => {
+    let allValid = true
+    const missingFields: string[] = []
+
+    for (const fieldName of requiredFields) {
       const field = form.querySelector(
         `[name="${fieldName}"]`
       ) as HTMLInputElement
-      const hasValue = field && field.value.trim() !== ""
-
-      if (!hasValue) {
-        console.log(`❌ Campo incompleto: ${fieldName}`, field?.value)
+      if (!field || !field.value?.trim()) {
+        allValid = false
+        missingFields.push(fieldName)
       }
-
-      return hasValue
-    })
-
-    console.log("🔍 Validación de formulario completo:", {
-      isComplete,
-      sameAsBilling,
-      totalFields: requiredFields.length,
-      requiredFields,
-    })
-
-    return isComplete
-  }, [sameAsBilling])
-
-  const createCompleteFormData = (form: HTMLFormElement): FormData | null => {
-    try {
-      const formData = new FormData()
-
-      // Email (requerido)
-      const emailField = form.querySelector(
-        '[name="email"]'
-      ) as HTMLInputElement
-      if (!emailField?.value?.trim()) {
-        console.log("❌ Email requerido para auto-submit")
-        return null
-      }
-      formData.append("email", emailField.value.trim())
-
-      // Shipping address (todos los campos requeridos)
-      const shippingFields = [
-        "first_name",
-        "last_name",
-        "address_1",
-        "city",
-        "postal_code",
-        "country_code",
-        "phone",
-      ]
-
-      for (const fieldName of shippingFields) {
-        const field = form.querySelector(
-          `[name="shipping_address.${fieldName}"]`
-        ) as HTMLInputElement
-        if (!field?.value?.trim()) {
-          console.log(`❌ Campo shipping requerido faltante: ${fieldName}`)
-          return null
-        }
-        formData.append(`shipping_address.${fieldName}`, field.value.trim())
-      }
-
-      // Campos opcionales de shipping address con valores por defecto
-      const shippingOptionalFields = ["address_2", "company", "province"]
-      for (const fieldName of shippingOptionalFields) {
-        const field = form.querySelector(
-          `[name="shipping_address.${fieldName}"]`
-        ) as HTMLInputElement
-        formData.append(
-          `shipping_address.${fieldName}`,
-          field?.value?.trim() || ""
-        )
-      }
-
-      // Billing address - solo si no es sameAsBilling
-      if (!sameAsBilling) {
-        const billingFields = [
-          "first_name",
-          "last_name",
-          "address_1",
-          "city",
-          "postal_code",
-          "country_code",
-        ]
-
-        for (const fieldName of billingFields) {
-          const field = form.querySelector(
-            `[name="billing_address.${fieldName}"]`
-          ) as HTMLInputElement
-          const safeValue =
-            field && field.value != null ? field.value.trim() : ""
-          if (!safeValue) {
-            console.log(`❌ Campo billing requerido faltante: ${fieldName}`)
-            return null
-          }
-          formData.append(`billing_address.${fieldName}`, safeValue)
-        }
-
-        // Campos opcionales de billing address
-        const billingOptionalFields = [
-          "address_2",
-          "company",
-          "province",
-          "phone",
-        ]
-        for (const fieldName of billingOptionalFields) {
-          const field = form.querySelector(
-            `[name="billing_address.${fieldName}"]`
-          ) as HTMLInputElement
-          const safeValue =
-            field && field.value != null ? field.value.trim() : ""
-          formData.append(`billing_address.${fieldName}`, safeValue)
-        }
-      } else {
-        // Si sameAsBilling es true, copiar datos de shipping a billing
-        console.log(
-          "📋 Copiando datos de shipping a billing (sameAsBilling=true)"
-        )
-
-        const shippingData = {
-          first_name: formData.get("shipping_address.first_name"),
-          last_name: formData.get("shipping_address.last_name"),
-          address_1: formData.get("shipping_address.address_1"),
-          address_2: formData.get("shipping_address.address_2") || "",
-          company: formData.get("shipping_address.company") || "",
-          city: formData.get("shipping_address.city"),
-          postal_code: formData.get("shipping_address.postal_code"),
-          country_code: formData.get("shipping_address.country_code"),
-          province: formData.get("shipping_address.province") || "",
-          phone: formData.get("shipping_address.phone"),
-        }
-
-        Object.entries(shippingData).forEach(([key, value]) => {
-          formData.append(
-            `billing_address.${key}`,
-            value !== undefined && value !== null ? String(value) : ""
-          )
-        })
-      }
-
-      console.log("✅ FormData completo creado para auto-submit")
-
-      // Debug: mostrar todos los campos
-      for (const key of [
-        "billing_address.first_name",
-        "billing_address.last_name",
-        "billing_address.address_1",
-        "billing_address.address_2",
-        "billing_address.company",
-        "billing_address.city",
-        "billing_address.postal_code",
-        "billing_address.country_code",
-        "billing_address.province",
-        "billing_address.phone",
-      ]) {
-        const value = formData.get(key)
-        if (value === null) {
-          console.warn(`⚠️ El campo ${key} es null antes de enviar`)
-        } else if (value === "") {
-          console.warn(`⚠️ El campo ${key} es string vacío antes de enviar`)
-        }
-      }
-
-      return formData
-    } catch (error) {
-      console.error("❌ Error creando FormData completo:", error)
-      return null
     }
-  }
+
+    console.log("🔍 Validación formulario:", {
+      allValid,
+      missingFields,
+      sameAsBilling,
+      totalRequired: requiredFields.length,
+    })
+
+    return allValid
+  }, [sameAsBilling])
 
   useEffect(() => {
     if (!formRef.current) return
 
-    // Función para observar cambios en los campos del formulario
-    const handleInputChange = () => {
+    const handleFormChange = () => {
       const isComplete = validateFormCompleteness()
       setIsFormComplete(isComplete)
+
+      // Auto-submit cuando esté completo y no se haya hecho ya
       if (isComplete && !hasAutoSubmitted) {
+        console.log("✅ Formulario completo - haciendo auto-submit")
         setHasAutoSubmitted(true)
-        // Auto-submit solo si no se ha hecho ya
-        formRef.current?.requestSubmit()
-      } else if (!isComplete && hasAutoSubmitted) {
+
+        // Pequeño delay para asegurar que los valores estén actualizados
+        setTimeout(() => {
+          formRef.current?.requestSubmit()
+        }, 100)
+      }
+
+      // Reset del flag si el formulario se vuelve incompleto
+      if (!isComplete && hasAutoSubmitted) {
         setHasAutoSubmitted(false)
       }
     }
 
-    // Seleccionar todos los inputs relevantes (excepto company)
-    const inputs = Array.from(
-      formRef.current.querySelectorAll("input, select")
-    ) as (HTMLInputElement | HTMLSelectElement)[]
-    const filteredInputs = inputs.filter(
-      (input) =>
-        input.name !== "shipping_address.company" &&
-        input.name !== "billing_address.company"
-    )
+    // Obtener todos los inputs del formulario
+    const form = formRef.current
+    const inputs = form.querySelectorAll("input, select")
 
-    // Añadir listeners
-    filteredInputs.forEach((input) => {
-      input.addEventListener("input", handleInputChange)
+    // Agregar listeners
+    inputs.forEach((input) => {
+      input.addEventListener("input", handleFormChange)
+      input.addEventListener("change", handleFormChange)
     })
 
-    // Limpieza
+    // Cleanup
     return () => {
-      filteredInputs.forEach((input) => {
-        input.removeEventListener("input", handleInputChange)
+      inputs.forEach((input) => {
+        input.removeEventListener("input", handleFormChange)
+        input.removeEventListener("change", handleFormChange)
       })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sameAsBilling, formRef.current])
+  }, [validateFormCompleteness, hasAutoSubmitted])
 
   // Estado para cachear las shipping options
   const [cachedShippingOptions, setCachedShippingOptions] = useState<any[]>([])
@@ -1018,13 +877,18 @@ const Addresses = ({
 
   const [message, formAction] = useFormState(setAddresses, null)
 
-  const handleSubmit = (formData: FormData) => {
-    console.log("📝 Enviando formulario...")
-    setSubmitCount((prev) => prev + 1)
-
-    // Resetear el flag para permitir futuros auto-submits si es necesario
-    setHasAutoSubmitted(false)
-
+ const handleSubmit = (formData: FormData) => {
+    console.log("📝 Enviando formulario manual...")
+    
+    // Debug: mostrar datos que se están enviando
+    console.log("📋 Datos del formulario:")
+    Array.from(formData.entries()).forEach(([key, value]) => {
+      console.log(`  ${key}: ${value}`)
+    })
+    
+    setSubmitCount(prev => prev + 1)
+    setHasAutoSubmitted(false) // Reset para permitir futuros auto-submits
+    
     return formAction(formData)
   }
 
