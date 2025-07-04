@@ -57,7 +57,7 @@ const CheckoutSummary = ({ cart }: { cart: any }) => {
   }
 
   return (
-    <div className="sticky top-0 z-10 order-first lg:order-none">
+    <div className="sticky bg-gray-200 rounded-lg top-0 z-10 order-first lg:order-none">
       {/* Header del acordeón */}
       <div
         className={`bg-gray-200 border border-gray-300 px-4 py-4 font-archivo transition-all duration-200 ${
@@ -95,7 +95,7 @@ const CheckoutSummary = ({ cart }: { cart: any }) => {
 
       {/* Contenido expandible */}
       <div
-        className={`bg-gray-200 border-l border-r border-b border-gray-300 rounded-b-lg overflow-hidden transition-all duration-300 ease-in-out ${
+        className={`bg-gray-200 border-l border-r border-b border-gray-300 rounded-b-lg lg:border-none overflow-hidden transition-all duration-300 ease-in-out ${
           isExpanded ? "max-h-[80vh] opacity-100" : "max-h-0 opacity-0"
         }`}
       >

@@ -68,15 +68,16 @@ const ShippingAddress = ({
   }
 
   useEffect(() => {
-    // Ensure cart is not null and has a shipping_address before setting form data
-    if (cart && cart.shipping_address) {
-      setFormAddress(cart?.shipping_address, cart?.email)
+    // Solo inicializar si formData está vacío (para no sobrescribir lo que escribe el usuario)
+    if (Object.keys(formData).length === 0) {
+      if (cart && cart.shipping_address) {
+        setFormAddress(cart?.shipping_address, cart?.email)
+      }
+      if (cart && !cart.email && customer?.email) {
+        setFormAddress(undefined, customer.email)
+      }
     }
-
-    if (cart && !cart.email && customer?.email) {
-      setFormAddress(undefined, customer.email)
-    }
-  }, [cart]) // Add cart as a dependency
+  }, [cart, customer, formData])
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -198,6 +199,7 @@ const ShippingAddress = ({
           autoComplete="tel"
           value={formData["shipping_address.phone"]}
           onChange={handleChange}
+          required
           data-testid="shipping-phone-input"
         />
       </div>

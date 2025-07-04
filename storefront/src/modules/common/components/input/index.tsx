@@ -44,7 +44,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             name={name}
             placeholder=" "
             required={required}
-            className="pt-4 border border-[#e6e6e6] rounded-lg shadow-[0px_1px_1px_rgba(0,0,0,0.03),0px_3px_6px_rgba(0,0,0,0.02)] pb-1 block w-full h-11 px-4 mt-0 font-archivo bg-white border rounded-md appearance-none focus:outline-none focus:ring-0 focus:shadow-borders-interactive-with-active border-ui-border-base hover:bg-ui-bg-field-hover"
+            className="pt-4 border border-[#e6e6e6] rounded-lg shadow-[0px_1px_1px_rgba(0,0,0,0.03),0px_3px_6px_rgba(0,0,0,0.02)] pb-1 block w-full h-11 px-4 mt-0 font-archivo bg-white appearance-none focus:outline-none focus:ring-0 focus:border-[#e6e6e6] focus:shadow-borders-interactive-with-active border-ui-border-base hover:bg-ui-bg-field-hover !outline-none !ring-0 focus:!outline-none focus:!ring-0 focus:!shadow-none"
+            style={{ 
+              outline: 'none', 
+              boxShadow: 'none',
+              // Sobrescribir cualquier outline del navegador
+              WebkitTapHighlightColor: 'transparent'
+            }}
             {...props}
             ref={inputRef}
           />

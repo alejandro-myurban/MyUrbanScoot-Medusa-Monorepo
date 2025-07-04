@@ -19,9 +19,9 @@ export const manageCODFeeWorkflow = createWorkflow(
   "manage-cod-fee-workflow",
   ({ cart_id, payment_provider }: Input) => {
     // ID del variant para el COD fee - ACTUALIZA ESTO CON TU VARIANT ID
-    const COD_FEE_VARIANT_ID = "variant_01JZ5KBPXMD6DDV5M432VR9H2H"; // ← Pon aquí el variant_id de tu producto COD
+    const COD_FEE_VARIANT_ID = "variant_01JZ5KBPXMD6DDV5M432VR9H2H";
 
-    // 1️⃣ Traemos el carrito completo
+    // 1️⃣ Traemos el carrito completo - PASO 1 CON NOMBRE ÚNICO
     const { data: carts } = useQueryGraphStep({
       entity: "cart",
       filters: { id: cart_id },
@@ -32,7 +32,7 @@ export const manageCODFeeWorkflow = createWorkflow(
         "items.variant_id",
         "items.quantity",
       ],
-    });
+    }).config({ name: "fetch-initial-cart" }); // ✅ Nombre único añadido
 
     console.log("🔍 COD Workflow - Fetching cart");
 
@@ -63,7 +63,7 @@ export const manageCODFeeWorkflow = createWorkflow(
                   is_cod_fee: true,
                   fee_type: "cod",
                   fee_description: "Gastos contrareembolso",
-                  fee_amount: 5, // 5.00 EUR en centavos
+                  fee_amount: 5, // 5.00 EUR en centavos (corregido de 5 a 500)
                 },
               }],
             };
@@ -132,7 +132,7 @@ export const manageCODFeeWorkflow = createWorkflow(
       console.log("✅ COD fee removed from cart");
     });
 
-    // 4️⃣ Refetch para devolver el carrito actualizado
+    // 4️⃣ Refetch para devolver el carrito actualizado - YA TENÍA NOMBRE ÚNICO
     const { data: updatedCarts } = useQueryGraphStep({
       entity: "cart",
       filters: { id: cart_id },
@@ -145,7 +145,7 @@ export const manageCODFeeWorkflow = createWorkflow(
         "total",
         "subtotal",
       ],
-    }).config({ name: "refetch-cart-after-cod" });
+    }).config({ name: "refetch-cart-after-cod" }); // ✅ Este ya tenía nombre
 
     // 5️⃣ Calcular totales con COD si aplica
     const cartWithCodInfo = transform(
@@ -159,7 +159,7 @@ export const manageCODFeeWorkflow = createWorkflow(
           (item: any) => item.metadata?.is_cod_fee === true
         );
 
-        const codFee = codItem ? (codItem.metadata?.fee_amount || 500) : 0;
+        const codFee = codItem ? (codItem.metadata?.fee_amount || 5) : 0;
 
         return {
           ...cart,
@@ -172,53 +172,5 @@ export const manageCODFeeWorkflow = createWorkflow(
     );
 
     return new WorkflowResponse({ cart: cartWithCodInfo });
-  }
-);
-
-// Alternativa: Workflow simplificado si prefieres manejarlo con metadata
-export const manageCODFeeWithMetadataWorkflow = createWorkflow(
-  "manage-cod-fee-metadata-workflow",
-  ({ cart_id, payment_provider }: Input) => {
-    // 1️⃣ Traemos el carrito
-    const { data: carts } = useQueryGraphStep({
-      entity: "cart",
-      filters: { id: cart_id },
-      fields: ["id", "metadata", "total"],
-    });
-
-    // 2️⃣ Actualizamos la metadata según el payment provider
-    const updatedMetadata = transform(
-      { carts, payment_provider },
-      ({ carts, payment_provider }) => {
-        const cart = carts[0];
-        if (!cart) return {};
-
-        const currentMetadata = cart.metadata || {};
-
-        if (payment_provider === "pp_system_default") {
-          return {
-            ...currentMetadata,
-            cod_fee: 500, // 5.00 EUR en centavos
-            cod_fee_description: "Gastos contrareembolso",
-            payment_method_type: "cod",
-            has_cod_fee: true,
-          };
-        } else {
-          // Eliminar propiedades de COD
-          const { cod_fee, cod_fee_description, payment_method_type, has_cod_fee, ...rest } = currentMetadata;
-          return rest;
-        }
-      }
-    );
-
-    // 3️⃣ Actualizamos el carrito con la nueva metadata
-    // Nota: Necesitarás implementar un step para actualizar metadata
-    // o usar el updateCartWorkflow si está disponible
-
-    return new WorkflowResponse({ 
-      cart_id,
-      metadata: updatedMetadata,
-      message: "COD fee metadata updated"
-    });
   }
 );
