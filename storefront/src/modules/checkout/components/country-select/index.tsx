@@ -26,7 +26,7 @@ const CountrySelect = forwardRef<
     const options =
       region.countries?.map((country) => ({
         value: country.iso_2,
-        label: country.display_name,
+        label: country.iso_2 === "es" ? "España" : country.display_name,
       })) || []
 
     // Ordenar para que "es" aparezca primero

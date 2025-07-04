@@ -17,7 +17,7 @@ const ShippingAddress = ({
   cart: HttpTypes.StoreCart | null
   checked: boolean
   onChange: () => void
-}) => { 
+}) => {
   const [formData, setFormData] = useState<Record<string, any>>({})
 
   const countriesInRegion = useMemo(() => {
@@ -107,7 +107,16 @@ const ShippingAddress = ({
           />
         </Container>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <CountrySelect
+          name="shipping_address.country_code"
+          autoComplete="country"
+          region={cart?.region}
+          value={formData["shipping_address.country_code"]}
+          onChange={handleChange}
+          required
+          data-testid="shipping-country-select"
+        />
         <Input
           label="First name"
           name="shipping_address.first_name"
@@ -161,15 +170,6 @@ const ShippingAddress = ({
           required
           data-testid="shipping-city-input"
         />
-        <CountrySelect
-          name="shipping_address.country_code"
-          autoComplete="country"
-          region={cart?.region}
-          value={formData["shipping_address.country_code"]}
-          onChange={handleChange}
-          required
-          data-testid="shipping-country-select"
-        />
         <Input
           label="State / Province"
           name="shipping_address.province"
@@ -178,15 +178,6 @@ const ShippingAddress = ({
           onChange={handleChange}
           required
           data-testid="shipping-province-input"
-        />
-      </div>
-      <div className="my-8">
-        <Checkbox
-          label="Billing address same as shipping address"
-          name="same_as_billing"
-          checked={checked}
-          onChange={onChange}
-          data-testid="billing-address-checkbox"
         />
       </div>
       <div className="grid sm:grid-cols-2 gap-4 mb-4">
@@ -210,6 +201,15 @@ const ShippingAddress = ({
           data-testid="shipping-phone-input"
         />
       </div>
+      {/* <div className="my-8">
+        <Checkbox
+          label="La direccíon de entrega es la misma."
+          name="same_as_billing"
+          checked={checked}
+          onChange={onChange}
+          data-testid="billing-address-checkbox"
+        />
+      </div> */}
     </>
   )
 }

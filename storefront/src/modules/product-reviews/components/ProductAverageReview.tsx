@@ -30,6 +30,7 @@ export const ProductAverageReview = ({
     }
   }
 
+  console.log("AVERAGE", averageRating)
   return (
     <div className="flex items-center gap-2">
       {/* Siempre dibujo las 5 estrellas; si no hay rating, rating=0 y color gris */}

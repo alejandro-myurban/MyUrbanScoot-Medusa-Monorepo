@@ -19,7 +19,7 @@ type DiscountCodeProps = {
 }
 
 const DiscountCode: React.FC<DiscountCodeProps> = ({ cart }) => {
-  const [isOpen, setIsOpen] = React.useState(false)
+  const [isOpen, setIsOpen] = React.useState(true)
 
   const { items = [], promotions = [] } = cart
   const removePromotionCode = async (code: string) => {
@@ -53,18 +53,18 @@ const DiscountCode: React.FC<DiscountCodeProps> = ({ cart }) => {
   const [message, formAction] = useFormState(submitPromotionForm, null)
 
   return (
-    <div className="w-full bg-white flex flex-col">
+    <div className="w-full bg-gray-200 flex flex-col">
       <div className="txt-medium">
         <form action={(a) => addPromotionCode(a)} className="w-full mb-5">
           <Label className="flex gap-x-1 my-2 items-center">
-            <button
+            {/* <button
               onClick={() => setIsOpen(!isOpen)}
               type="button"
               className="txt-medium text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
               data-testid="add-discount-button"
             >
               Add Promotion Code(s)
-            </button>
+            </button> */}
 
             {/* <Tooltip content="You can add multiple promotion codes">
               <InformationCircleSolid color="var(--fg-muted)" />
@@ -73,20 +73,24 @@ const DiscountCode: React.FC<DiscountCodeProps> = ({ cart }) => {
 
           {isOpen && (
             <>
-              <div className="flex w-full gap-x-2">
-                <Input
-                  className="size-full"
-                  id="promotion-input"
-                  name="code"
-                  type="text"
-                  autoFocus={false}
-                  data-testid="discount-input"
-                />
+              <div className="flex w-full gap-x-2 items-stretch">
+                <div className="flex-1">
+                  <Input
+                    className="w-full h-11 font-archivo" // o h-12, h-11, etc.
+                    id="promotion-input"
+                    name="code"
+                    type="text"
+                    autoFocus={false}
+                    data-testid="discount-input"
+                    placeholder="Cupón de descuento"
+                  />
+                </div>
                 <SubmitButton
+                  className="font-archivo"
                   variant="secondary"
                   data-testid="discount-apply-button"
                 >
-                  Apply
+                  Aplicar
                 </SubmitButton>
               </div>
 
@@ -129,6 +133,7 @@ const DiscountCode: React.FC<DiscountCodeProps> = ({ cart }) => {
                               "percentage"
                                 ? `${promotion.application_method.value}%`
                                 : convertToLocale({
+                                   //@ts-ignore
                                     amount: promotion.application_method.value,
                                     currency_code:
                                       promotion.application_method

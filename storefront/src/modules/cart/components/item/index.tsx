@@ -62,56 +62,6 @@ const Item = ({ item, type = "full" }: ItemProps) => {
     }
   }, [productData])
 
-  // const getVariantImage = () => {
-  //   console.log("Ejecutando getVariantImage")
-  //   const product = Array.isArray(productData) ? productData[0] : productData
-
-  //   // Si no hay datos de producto o imágenes, usa el thumbnail
-  //   if (!product || !product.images || !product.images.length) {
-  //     console.log("Usando thumbnail por defecto:", item.thumbnail)
-  //     return item.thumbnail
-  //   }
-
-  //   // Encuentra el valor del color en las opciones de la variante
-  //   const colorOption = item.variant?.options?.find(
-  //     (opt) => opt.option?.title?.toLowerCase() === "color"
-  //   )
-
-  //   console.log("Opción de color encontrada:", colorOption)
-  //   const colorValue = colorOption?.value?.toLowerCase()
-
-  //   // Si no se encuentra un valor de color, usa el thumbnail por defecto
-  //   if (!colorValue) {
-  //     console.log(
-  //       "No se encontró valor de color, usando thumbnail:",
-  //       item.thumbnail
-  //     )
-  //     return item.thumbnail
-  //   }
-
-  //   console.log("Buscando imágenes para color:", colorValue)
-
-  //   // Filtra las imágenes que contengan el color en su URL
-  //   const colorImages = product.images.filter((img: any) =>
-  //     img.url.toLowerCase().includes(colorValue)
-  //   )
-
-  //   console.log("Imágenes encontradas para este color:", colorImages)
-
-  //   // Si se encuentran imágenes para el color, retorna la primera
-  //   if (colorImages.length > 0) {
-  //     console.log("URL de imagen seleccionada:", colorImages[0].url)
-  //     return colorImages[0].url
-  //   }
-
-  //   // Si no se encuentra ninguna imagen para el color, usa el thumbnail
-  //   console.log(
-  //     "Sin imágenes para este color, usando thumbnail:",
-  //     item.thumbnail
-  //   )
-  //   return item.thumbnail
-  // }
-
   const getVariantImage = () => {
     console.log("Ejecutando getVariantImage")
     const product = Array.isArray(productData) ? productData[0] : productData
@@ -184,24 +134,64 @@ const Item = ({ item, type = "full" }: ItemProps) => {
   const maxQuantity = item.variant?.manage_inventory ? 10 : maxQtyFromInventory
 
   return (
-    <Table.Row className="w-full" data-testid="product-row">
-      <Table.Cell className="!pl-0 p-4 w-24">
-        <LocalizedClientLink href={`/products/${handle}`}>
-          {loading ? (
-            <div className="w-16 h-16 flex items-center justify-center">
-              <Spinner />
+    <Table.Row className="w-full bg-gray-200 sm:table-row" data-testid="product-row">
+      {/* Imagen + Precio en móvil, solo imagen en desktop */}
+      <Table.Cell className="!pl-0 p-2 sm:p-4 w-full sm:w-32">
+        {/* Layout móvil: Stack vertical */}
+        <div className="flex flex-col sm:block gap-3">
+          {/* Contenedor de imagen y precio en una fila en móvil */}
+          <div className="flex items-start justify-between gap-3">
+            <LocalizedClientLink href={`/products/${handle}`} className="flex-shrink-0 relative z-10">
+              {loading ? (
+                <div className="w-16 h-16 sm:w-24 sm:h-24 flex items-center justify-center border rounded-lg bg-gray-100">
+                  <Spinner />
+                </div>
+              ) : (
+                <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-lg  border relative">
+                  <Thumbnail
+                    thumbnail={imageUrl}
+                    images={productData?.images || []}
+                    size="square"
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Badge de cantidad */}
+                  <div className="absolute -top-2 -right-2 bg-gray-800 text-white text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-md z-20">
+                    {item.quantity}
+                  </div>
+                </div>
+              )}
+            </LocalizedClientLink>
+            
+            {/* Precio solo en móvil - sin quantity */}
+            <div className="flex sm:hidden flex-col items-end">
+              <span
+                className={clx("text-right", {
+                  "flex flex-col items-end h-full justify-center": type === "preview",
+                })}
+              >
+                {type === "preview" && (
+                  <LineItemUnitPrice item={item} style="tight" />
+                )}
+                <LineItemPrice item={item} style="tight" />
+              </span>
             </div>
-          ) : (
-            <Thumbnail
-              thumbnail={imageUrl}
-              images={productData?.images || []}
-              size="square"
-            />
-          )}
-        </LocalizedClientLink>
+          </div>
+
+          {/* Título y opciones en móvil - debajo de imagen */}
+          <div className="block sm:hidden">
+            <Text
+              className="txt-small text-ui-fg-base mb-1"
+              data-testid="product-title"
+            >
+              {item.product_title}
+            </Text>
+            <LineItemOptions variant={item.variant} data-testid="product-variant" />
+          </div>
+        </div>
       </Table.Cell>
 
-      <Table.Cell className="text-left">
+      {/* Título y opciones solo en desktop */}
+      <Table.Cell className="hidden sm:table-cell text-left p-2 sm:p-4">
         <Text
           className="txt-medium-plus text-ui-fg-base"
           data-testid="product-title"
@@ -212,13 +202,13 @@ const Item = ({ item, type = "full" }: ItemProps) => {
       </Table.Cell>
 
       {type === "full" && (
-        <Table.Cell>
-          <div className="flex gap-2 items-center w-28">
+        <Table.Cell className="p-2 sm:p-4">
+          <div className="flex gap-1 sm:gap-2 items-center w-20 sm:w-28">
             <DeleteButton id={item.id} data-testid="product-delete-button" />
             <CartItemSelect
               value={item.quantity}
               onChange={(value) => changeQuantity(parseInt(value.target.value))}
-              className="w-14 h-10 p-4"
+              className="w-12 sm:w-14 h-8 sm:h-10 p-2 sm:p-4 text-xs sm:text-sm"
               data-testid="product-select-button"
             >
               {/* TODO: Update this with the v2 way of managing inventory */}
@@ -244,23 +234,21 @@ const Item = ({ item, type = "full" }: ItemProps) => {
       )}
 
       {type === "full" && (
-        <Table.Cell className="hidden small:table-cell">
+        <Table.Cell className="hidden sm:table-cell">
           <LineItemUnitPrice item={item} style="tight" />
         </Table.Cell>
       )}
 
-      <Table.Cell className="!pr-0">
+      {/* Precio solo en desktop - sin quantity en preview */}
+      <Table.Cell className="!pr-0 p-2 sm:p-4 hidden sm:table-cell">
         <span
           className={clx("!pr-0", {
             "flex flex-col items-end h-full justify-center": type === "preview",
           })}
         >
-          {type === "preview" && (
-            <span className="flex gap-x-1 ">
-              <Text className="text-ui-fg-muted">{item.quantity}x </Text>
-              <LineItemUnitPrice item={item} style="tight" />
-            </span>
-          )}
+          {/* {type === "preview" && (
+            <LineItemUnitPrice item={item} style="tight" />
+          )} */}
           <LineItemPrice item={item} style="tight" />
         </span>
       </Table.Cell>

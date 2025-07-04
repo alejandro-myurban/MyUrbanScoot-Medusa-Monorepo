@@ -14,8 +14,9 @@ export default function CheckoutLayout({
       <div className="relative" data-testid="checkout-container">
         {children}
       </div>
-      <div className="py-4 w-full flex items-center justify-center">
-        <MedusaCTA />
+      <div className="py-6 w-full flex items-center justify-center flex-col gap-2">
+        <img src="/logomys.png" className=" w-full sm:w-2/6 px-6" />
+        <small className="text-gray-500"> &copy; Todos los derechos reservados. MyUrbanScoot 2025.</small>
       </div>
     </div>
   )

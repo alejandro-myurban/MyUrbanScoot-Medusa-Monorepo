@@ -150,7 +150,7 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
         {getSelectText(title)}
         <button
           onClick={() => setShowInfo(!showInfo)}
-          className="font-normal text-left font-dmSans cursor-pointer  text-sm flex justify-center items-center gap-1 underline hover:text-gray-600 transition-colors"
+          className="font-normal text-left font-archivo cursor-pointer  text-sm flex justify-center items-center gap-1 underline hover:text-gray-600 transition-colors"
         >
           {infoContent.title}
           {showInfo ? (
@@ -168,7 +168,7 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
         }`}
       >
         <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm text-gray-600 leading-relaxed font-archivo">
             {infoContent.content}
           </p>
         </div>
