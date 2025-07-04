@@ -1,4 +1,4 @@
-// src/api/store/carts/[id]/cod/route.ts
+// backend/src/api/store/carts/[id]/cod/route.ts
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { MedusaError } from "@medusajs/framework/utils";
 import { manageCODFeeWorkflow } from "workflows/add-cod-fee-to-cart";
@@ -15,6 +15,10 @@ export async function POST(
     const cart_id = req.params.id;
     const { payment_provider } = req.body as CODRequestBody;
 
+    console.log("🔍 COD Endpoint Debug:");
+    console.log("  - Cart ID:", cart_id);
+    console.log("  - Payment Provider:", payment_provider);
+
     if (!payment_provider) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
@@ -22,11 +26,9 @@ export async function POST(
       );
     }
 
+    // ✅ SOLO ejecutar el workflow - eliminar toda la lógica duplicada
     console.log("🔍 COD Endpoint - Executing workflow");
-    console.log("  - Cart ID:", cart_id);
-    console.log("  - Payment Provider:", payment_provider);
-
-    // Ejecutar el workflow
+    
     const { result } = await manageCODFeeWorkflow.run({
       input: {
         cart_id,
@@ -38,9 +40,9 @@ export async function POST(
     console.log("✅ COD workflow completed successfully");
 
     // Devolver el carrito actualizado
-    res.json({ 
+    res.json({
       cart: result.cart,
-      success: true 
+      success: true
     });
 
   } catch (error) {
@@ -49,9 +51,9 @@ export async function POST(
     if (error instanceof MedusaError) {
       res
         .status(error.type === MedusaError.Types.NOT_FOUND ? 404 : 400)
-        .json({ 
+        .json({
           error: error.message,
-          success: false 
+          success: false
         });
     } else {
       res.status(500).json({
@@ -63,16 +65,25 @@ export async function POST(
   }
 }
 
-// OPCIONAL: GET endpoint para verificar el estado del COD fee
+// GET endpoint para verificar el estado del COD fee
 export async function GET(
   req: MedusaRequest,
   res: MedusaResponse
 ): Promise<void> {
   try {
     const cart_id = req.params.id;
+
+    if (!cart_id) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "cart_id es requerido"
+      );
+    }
+
+    // Usar el servicio de query correctamente
+    const query = req.scope.resolve("query");
     
-    // Usar useQueryGraphStep directamente para obtener el carrito
-    const { data: carts } = await req.scope.resolve("query").graph({
+    const { data: carts } = await query.graph({
       entity: "cart",
       filters: { id: cart_id },
       fields: [
@@ -103,14 +114,26 @@ export async function GET(
       has_cod_fee: !!codItem,
       cod_fee: codFee,
       cod_fee_formatted: codFee > 0 ? `${(codFee / 100).toFixed(2)} EUR` : null,
-      total_without_cod: cart.total,
-      total_with_cod: cart.total + codFee,
+      total_without_cod: cart.total - codFee,
+      total_with_cod: cart.total,
+      success: true
     });
 
   } catch (error) {
     console.error("❌ Error getting COD status:", error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : "Unknown error" 
-    });
+    
+    if (error instanceof MedusaError) {
+      res
+        .status(error.type === MedusaError.Types.NOT_FOUND ? 404 : 400)
+        .json({
+          error: error.message,
+          success: false
+        });
+    } else {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Unknown error",
+        success: false
+      });
+    }
   }
 }
