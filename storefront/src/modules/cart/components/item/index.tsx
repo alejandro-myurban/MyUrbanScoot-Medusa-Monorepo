@@ -134,7 +134,7 @@ const Item = ({ item, type = "full" }: ItemProps) => {
   const maxQuantity = item.variant?.manage_inventory ? 10 : maxQtyFromInventory
 
   return (
-    <Table.Row className="w-full bg-gray-200 sm:table-row" data-testid="product-row">
+    <Table.Row className="w-full bg-gray-200 sm:table-row hover:bg-gray-200" data-testid="product-row">
       {/* Imagen + Precio en móvil, solo imagen en desktop */}
       <Table.Cell className="!pl-0 p-2 sm:p-4 w-full sm:w-32">
         {/* Layout móvil: Stack vertical */}

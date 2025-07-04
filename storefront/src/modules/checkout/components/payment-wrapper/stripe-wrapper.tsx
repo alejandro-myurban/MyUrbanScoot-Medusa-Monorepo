@@ -1,5 +1,4 @@
 "use client"
-
 import { Stripe, StripeElementsOptions } from "@stripe/stripe-js"
 import { Elements } from "@stripe/react-stripe-js"
 import { HttpTypes } from "@medusajs/types"
@@ -25,18 +24,17 @@ const StripeWrapper: React.FC<StripeWrapperProps> = ({
     appearance: {
       theme: 'stripe',
       variables: {
+        // La fontFamily aquí se aplica globalmente a todos los elementos
         fontFamily: '__Archivo_8f8fd9, "Archivo", -apple-system, BlinkMacSystemFont, sans-serif',
         fontSizeBase: '16px',
-        fontWeightNormal: '400',
+        fontWeightNormal: '500',
         fontWeightBold: '600',
+        // Opcional: agregar más variables de fuente para mayor control
+        fontWeightMedium: '500',
+        fontLineHeight: '1.5',
       },
       rules: {
-        // Hover con la clase correcta que encontraste
-        '.p-PaymentAccordionButtonView:hover': {
-          backgroundColor: '#f9fafb',
-        },
-        
-        // También mantener los otros por si acaso
+        // Hover effects - usa solo las clases públicas
         '.Tab:hover': {
           backgroundColor: '#f9fafb',
         },
@@ -45,24 +43,42 @@ const StripeWrapper: React.FC<StripeWrapperProps> = ({
           backgroundColor: '#f9fafb',
         },
         
-        // Fuentes con clases específicas de Stripe
-        '.p-PaymentAccordionButtonView': {
-          fontFamily: '__Archivo_8f8fd9, "Archivo", sans-serif',
+        '.PickerItem:hover': {
+          backgroundColor: '#f9fafb',
+        },
+        
+        // NO uses clases que empiecen con 'p-' ya que son privadas
+        // En su lugar, confía en que la variable fontFamily se aplique globalmente
+        
+        // Si necesitas estilos específicos, usa solo las clases públicas soportadas:
+        '.Input': {
+          fontSize: '16px', // Importante para móvil
+          fontWeight: '400',
         },
         
         '.Label': {
-          fontFamily: '__Archivo_8f8fd9, "Archivo", sans-serif',
+          fontWeight: '500',
+        },
+        
+        '.Tab': {
           fontWeight: '500',
         },
         
         '.TabLabel': {
-          fontFamily: '__Archivo_8f8fd9, "Archivo", sans-serif',
           fontWeight: '500',
         },
         
-        '.Input': {
-          fontFamily: '__Archivo_8f8fd9, "Archivo", sans-serif',
+        '.Button': {
+          fontWeight: '600',
         },
+        
+        '.AccordionItem': {
+          fontWeight: '400',
+        },
+        
+        '.PickerItem': {
+          fontWeight: '400',
+        }
       }
     }
   }

@@ -481,16 +481,17 @@ const Payment = ({
                       )}
                       onClick={handleCODSelection}
                     >
-                      <div className="flex items-center gap-5">
-                        <Mailbox className="w-5 h-5 text-blue-500" />
-
-                        <span className="font-medium text-sm text-[#6d6e78] font-['-apple-system,BlinkMacSystemFont,Segoe_UI,Roboto,Oxygen,Ubuntu,Cantarell,Open_Sans,Helvetica_Neue,sans-serif'] antialiased cursor-pointer leading-[16.1px]">
-                          Contrareembolso
+                      <div className="group flex items-center justify-between w-full hover:bg-gray-50/50 rounded-lg transition-all duration-200 cursor-pointer">
+                        <div className="flex items-center gap-5">
+                          <Mailbox className="w-5 h-5 text-blue-500" />
+                          <span className="text-sm font-[400] text-[#6d6e78] font-archivo antialiased leading-[16.1px] group-hover:text-black/80 transition-colors duration-200">
+                            Contrareembolso
+                          </span>
+                        </div>
+                        <span className="font-medium text-sm text-[#6d6e78] font-archivo antialiased leading-[16.1px] group-hover:text-black/80 transition-colors duration-200">
+                          {hasCodFee ? "+5,00€" : "+5,00€"}
                         </span>
                       </div>
-                      <span className="font-medium text-sm text-[#6d6e78] font-['-apple-system,BlinkMacSystemFont,Segoe_UI,Roboto,Oxygen,Ubuntu,Cantarell,Open_Sans,Helvetica_Neue,sans-serif'] antialiased cursor-pointer leading-[16.1px]">
-                        {hasCodFee ? "+5,00€" : "+5,00€"}
-                      </span>
                     </div>
 
                     {/* Contenido del tab COD cuando está seleccionado */}
