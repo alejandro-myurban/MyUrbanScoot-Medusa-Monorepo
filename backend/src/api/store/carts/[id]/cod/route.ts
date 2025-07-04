@@ -1,7 +1,7 @@
 // backend/src/api/store/carts/[id]/cod/route.ts
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { MedusaError } from "@medusajs/framework/utils";
-import { manageCODFeeWorkflow } from "workflows/add-cod-fee-to-cart";
+import { manageCODFeeWorkflow } from "../../../../../workflows/add-cod-fee-to-cart";
 
 interface CODRequestBody {
   payment_provider: string;
