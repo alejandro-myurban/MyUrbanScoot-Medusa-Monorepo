@@ -195,7 +195,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
 
             {/* Contenido Mobile con fondo gris */}
             <div className="content-container flex flex-col py-6 bg-gray-50">
-              <div className="flex flex-col w-full sm gap-y-12">
+              <div className="flex flex-col w-full sm:gap-y-12 gap-y-4">
                 <ProductOnboardingCta />
                 <CombinedCartProvider>
                   <Suspense

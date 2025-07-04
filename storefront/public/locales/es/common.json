@@ -31,7 +31,7 @@
     "select": "Seleccionar"
   },
   "checkout": {
-    "shipping_address": "Dirección de envío",
+    "shipping_address": "Entrega",
     "delivery": "Envíos",
     "payment": "Pago",
     "review": "Revisión"

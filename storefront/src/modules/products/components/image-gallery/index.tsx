@@ -31,7 +31,7 @@ const ImageGallery = ({ images }: ImageGalleryProps) => {
   }
 
   const currentImage = images[currentImageIndex]
-  
+
   console.log("📸 Current image index:", currentImageIndex, "of", images.length)
   console.log("🎛️ Should show controls?", images.length > 1 && isClient)
   console.log("📱 Is client?", isClient)
@@ -69,7 +69,7 @@ const ImageGallery = ({ images }: ImageGalleryProps) => {
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return
-    
+
     const distance = touchStart - touchEnd
     const isLeftSwipe = distance > minSwipeDistance
     const isRightSwipe = distance < -minSwipeDistance
@@ -112,7 +112,7 @@ const ImageGallery = ({ images }: ImageGalleryProps) => {
                 }}
               />
             )}
-            
+
             {/* Controles de navegación - solo desktop */}
             {isClient && images.length > 1 && (
               <>
@@ -122,19 +122,39 @@ const ImageGallery = ({ images }: ImageGalleryProps) => {
                   className="hidden lg:block absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
                   aria-label="Imagen anterior"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
                   </svg>
                 </button>
-                
+
                 {/* Botón siguiente - solo desktop */}
                 <button
                   onClick={goToNext}
                   className="hidden lg:block absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
                   aria-label="Imagen siguiente"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                 </button>
 
@@ -147,31 +167,31 @@ const ImageGallery = ({ images }: ImageGalleryProps) => {
               </>
             )}
           </Container>
-          
-          {/* INDICADORES FULL WIDTH - AQUÍ ESTÁ EL CAMBIO */}
+
+          {/* INDICADORES FULL WIDTH  */}
           <div className="w-full flex mt-2">
             {isClient && images.length > 1 ? (
               // Múltiples imágenes - cada indicador ocupa su proporción
               images.map((_, index) => {
                 const isActive = index === currentImageIndex
-                console.log(`🔘 Indicator ${index}: ${isActive ? 'active' : 'inactive'}`)
-                
+                console.log(
+                  `🔘 Indicator ${index}: ${isActive ? "active" : "inactive"}`
+                )
+
                 return (
                   <button
                     key={index}
                     onClick={() => goToSlide(index)}
                     className={`h-2 flex-1 transition-all duration-200 ${
-                      isActive 
-                        ? 'bg-gray-500' 
-                        : ' hover:bg-gray-600'
+                      isActive ? "bg-gray-500" : "bg-white hover:bg-gray-600"
                     }`}
                     aria-label={`Ir a la imagen ${index + 1}`}
                   />
                 )
               })
             ) : (
-              // Una sola imagen - línea decorativa completa
-              <div className="w-full h-2 bg-gray-500"></div>
+              // Una sola imagen - línea decorativa blanca
+              <div className="w-full h-2 bg-white"></div>
             )}
           </div>
         </div>

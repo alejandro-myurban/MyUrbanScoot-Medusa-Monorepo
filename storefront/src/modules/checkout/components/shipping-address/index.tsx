@@ -17,23 +17,22 @@ const ShippingAddress = ({
   cart: HttpTypes.StoreCart | null
   checked: boolean
   onChange: () => void
-}) => { 
+}) => {
   const [formData, setFormData] = useState<Record<string, any>>({})
 
   const countriesInRegion = useMemo(() => {
     const countries = cart?.region?.countries?.map((c) => c.iso_2) || []
-
+    
     // Ordenar para que "es" aparezca primero
     return countries.sort((a, b) => {
-      if (a === "es") return -1 // "es" va al principio
-      if (b === "es") return 1 // "es" va al principio
-      return 0 // mantener orden original para los demás
+      if (a === "es") return -1
+      if (b === "es") return 1
+      return 0
     })
   }, [cart?.region])
 
   console.log("REGIONES", countriesInRegion)
 
-  // check if customer has saved addresses that are in the current region
   const addressesInRegion = useMemo(
     () =>
       customer?.addresses.filter(
@@ -46,7 +45,7 @@ const ShippingAddress = ({
     address?: HttpTypes.StoreCartAddress,
     email?: string
   ) => {
-    address &&
+    if (address) {
       setFormData((prevState: Record<string, any>) => ({
         ...prevState,
         "shipping_address.first_name": address?.first_name || "",
@@ -59,34 +58,113 @@ const ShippingAddress = ({
         "shipping_address.province": address?.province || "",
         "shipping_address.phone": address?.phone || "",
       }))
+    }
 
-    email &&
+    if (email) {
       setFormData((prevState: Record<string, any>) => ({
         ...prevState,
         email: email,
       }))
+    }
   }
 
+  // ✅ INICIALIZACIÓN MEJORADA - Solo una vez
   useEffect(() => {
-    // Ensure cart is not null and has a shipping_address before setting form data
-    if (cart && cart.shipping_address) {
-      setFormAddress(cart?.shipping_address, cart?.email)
+    const initializeFormData = () => {
+      const initialData: Record<string, any> = {}
+
+      // Inicializar con datos del cart si existen
+      if (cart?.shipping_address) {
+        initialData["shipping_address.first_name"] = cart.shipping_address.first_name || ""
+        initialData["shipping_address.last_name"] = cart.shipping_address.last_name || ""
+        initialData["shipping_address.address_1"] = cart.shipping_address.address_1 || ""
+        initialData["shipping_address.company"] = cart.shipping_address.company || ""
+        initialData["shipping_address.postal_code"] = cart.shipping_address.postal_code || ""
+        initialData["shipping_address.city"] = cart.shipping_address.city || ""
+        initialData["shipping_address.country_code"] = cart.shipping_address.country_code || ""
+        initialData["shipping_address.province"] = cart.shipping_address.province || ""
+        initialData["shipping_address.phone"] = cart.shipping_address.phone || ""
+      } else {
+        // Valores por defecto si no hay datos del cart
+        initialData["shipping_address.first_name"] = ""
+        initialData["shipping_address.last_name"] = ""
+        initialData["shipping_address.address_1"] = ""
+        initialData["shipping_address.company"] = ""
+        initialData["shipping_address.postal_code"] = ""
+        initialData["shipping_address.city"] = ""
+        initialData["shipping_address.country_code"] = countriesInRegion[0] || ""
+        initialData["shipping_address.province"] = ""
+        initialData["shipping_address.phone"] = ""
+      }
+
+      // Email del cart o del customer
+      initialData.email = cart?.email || customer?.email || ""
+
+      console.log("🔄 Inicializando formulario con:", initialData)
+      setFormData(initialData)
     }
 
-    if (cart && !cart.email && customer?.email) {
-      setFormAddress(undefined, customer.email)
+    // ✅ CAMBIO: Solo inicializar si formData está completamente vacío
+    if (Object.keys(formData).length === 0 || !formData.email) {
+      initializeFormData()
     }
-  }, [cart]) // Add cart as a dependency
+  }, [cart?.id, customer?.id, countriesInRegion]) // ✅ Dependencias más específicas
 
+  // ✅ SINCRONIZACIÓN CON DATOS DEL SERVIDOR (sin sobrescribir lo que el usuario escribe)
+  useEffect(() => {
+    if (cart?.shipping_address && Object.keys(formData).length > 0) {
+      // Solo actualizar campos que están vacíos para no sobrescribir lo que el usuario escribe
+      setFormData(prev => {
+        const updated = { ...prev }
+        let hasChanges = false
+        
+        // Solo actualizar si el campo está vacío
+        const fieldsToSync = [
+          'shipping_address.first_name',
+          'shipping_address.last_name', 
+          'shipping_address.address_1',
+          'shipping_address.city',
+          'shipping_address.postal_code',
+          'shipping_address.country_code',
+          'shipping_address.province',
+          'shipping_address.phone'
+        ]
+        
+        fieldsToSync.forEach(field => {
+          const serverValue = cart.shipping_address?.[field.replace('shipping_address.', '')] || ''
+          if (!prev[field] && serverValue) {
+            updated[field] = serverValue
+            hasChanges = true
+          }
+        })
+        
+        // Email
+        if (!prev.email && cart.email) {
+          updated.email = cart.email
+          hasChanges = true
+        }
+        
+        if (hasChanges) {
+          console.log("🔄 Sincronizando campos vacíos con datos del servidor")
+        }
+        
+        return hasChanges ? updated : prev
+      })
+    }
+  }, [cart?.shipping_address, cart?.email])
+
+  // ✅ MANEJO DE CAMBIOS MEJORADO
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLInputElement | HTMLSelectElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
+    const { name, value } = e.target
+    
+    console.log(`📝 Campo cambiado: ${name} = ${value}`)
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }))
   }
 
   return (
@@ -107,12 +185,22 @@ const ShippingAddress = ({
           />
         </Container>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <CountrySelect
+          name="shipping_address.country_code"
+          autoComplete="country"
+          region={cart?.region}
+          value={formData["shipping_address.country_code"] || ""}
+          onChange={handleChange}
+          required
+          data-testid="shipping-country-select"
+        />
         <Input
           label="First name"
           name="shipping_address.first_name"
           autoComplete="given-name"
-          value={formData["shipping_address.first_name"]}
+          value={formData["shipping_address.first_name"] || ""}
           onChange={handleChange}
           required
           data-testid="shipping-first-name-input"
@@ -121,7 +209,7 @@ const ShippingAddress = ({
           label="Last name"
           name="shipping_address.last_name"
           autoComplete="family-name"
-          value={formData["shipping_address.last_name"]}
+          value={formData["shipping_address.last_name"] || ""}
           onChange={handleChange}
           required
           data-testid="shipping-last-name-input"
@@ -130,7 +218,7 @@ const ShippingAddress = ({
           label="Address"
           name="shipping_address.address_1"
           autoComplete="address-line1"
-          value={formData["shipping_address.address_1"]}
+          value={formData["shipping_address.address_1"] || ""}
           onChange={handleChange}
           required
           data-testid="shipping-address-input"
@@ -138,7 +226,7 @@ const ShippingAddress = ({
         <Input
           label="Company"
           name="shipping_address.company"
-          value={formData["shipping_address.company"]}
+          value={formData["shipping_address.company"] || ""}
           onChange={handleChange}
           autoComplete="organization"
           data-testid="shipping-company-input"
@@ -147,7 +235,7 @@ const ShippingAddress = ({
           label="Postal code"
           name="shipping_address.postal_code"
           autoComplete="postal-code"
-          value={formData["shipping_address.postal_code"]}
+          value={formData["shipping_address.postal_code"] || ""}
           onChange={handleChange}
           required
           data-testid="shipping-postal-code-input"
@@ -156,39 +244,22 @@ const ShippingAddress = ({
           label="City"
           name="shipping_address.city"
           autoComplete="address-level2"
-          value={formData["shipping_address.city"]}
+          value={formData["shipping_address.city"] || ""}
           onChange={handleChange}
           required
           data-testid="shipping-city-input"
-        />
-        <CountrySelect
-          name="shipping_address.country_code"
-          autoComplete="country"
-          region={cart?.region}
-          value={formData["shipping_address.country_code"]}
-          onChange={handleChange}
-          required
-          data-testid="shipping-country-select"
         />
         <Input
           label="State / Province"
           name="shipping_address.province"
           autoComplete="address-level1"
-          value={formData["shipping_address.province"]}
+          value={formData["shipping_address.province"] || ""}
           onChange={handleChange}
           required
           data-testid="shipping-province-input"
         />
       </div>
-      <div className="my-8">
-        <Checkbox
-          label="Billing address same as shipping address"
-          name="same_as_billing"
-          checked={checked}
-          onChange={onChange}
-          data-testid="billing-address-checkbox"
-        />
-      </div>
+      
       <div className="grid sm:grid-cols-2 gap-4 mb-4">
         <Input
           label="Email"
@@ -196,7 +267,7 @@ const ShippingAddress = ({
           type="email"
           title="Enter a valid email address."
           autoComplete="email"
-          value={formData.email}
+          value={formData.email || ""}
           onChange={handleChange}
           required
           data-testid="shipping-email-input"
@@ -205,9 +276,20 @@ const ShippingAddress = ({
           label="Phone"
           name="shipping_address.phone"
           autoComplete="tel"
-          value={formData["shipping_address.phone"]}
+          value={formData["shipping_address.phone"] || ""}
           onChange={handleChange}
+          required
           data-testid="shipping-phone-input"
+        />
+      </div>
+      
+      <div className="my-8">
+        <Checkbox
+          label="Same as billing address"
+          name="same_as_billing"
+          checked={checked}
+          onChange={onChange}
+          data-testid="billing-address-checkbox"
         />
       </div>
     </>
