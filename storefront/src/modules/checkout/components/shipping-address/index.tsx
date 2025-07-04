@@ -84,6 +84,17 @@ const ShippingAddress = ({
         initialData["shipping_address.country_code"] = cart.shipping_address.country_code || ""
         initialData["shipping_address.province"] = cart.shipping_address.province || ""
         initialData["shipping_address.phone"] = cart.shipping_address.phone || ""
+      } else {
+        // Valores por defecto si no hay datos del cart
+        initialData["shipping_address.first_name"] = ""
+        initialData["shipping_address.last_name"] = ""
+        initialData["shipping_address.address_1"] = ""
+        initialData["shipping_address.company"] = ""
+        initialData["shipping_address.postal_code"] = ""
+        initialData["shipping_address.city"] = ""
+        initialData["shipping_address.country_code"] = countriesInRegion[0] || ""
+        initialData["shipping_address.province"] = ""
+        initialData["shipping_address.phone"] = ""
       }
 
       // Email del cart o del customer
@@ -93,11 +104,54 @@ const ShippingAddress = ({
       setFormData(initialData)
     }
 
-    // Solo inicializar si no hay datos ya
-    if (Object.keys(formData).length === 0) {
+    // ✅ CAMBIO: Solo inicializar si formData está completamente vacío
+    if (Object.keys(formData).length === 0 || !formData.email) {
       initializeFormData()
     }
-  }, [cart, customer]) // ✅ Dependencias claras
+  }, [cart?.id, customer?.id, countriesInRegion]) // ✅ Dependencias más específicas
+
+  // ✅ SINCRONIZACIÓN CON DATOS DEL SERVIDOR (sin sobrescribir lo que el usuario escribe)
+  useEffect(() => {
+    if (cart?.shipping_address && Object.keys(formData).length > 0) {
+      // Solo actualizar campos que están vacíos para no sobrescribir lo que el usuario escribe
+      setFormData(prev => {
+        const updated = { ...prev }
+        let hasChanges = false
+        
+        // Solo actualizar si el campo está vacío
+        const fieldsToSync = [
+          'shipping_address.first_name',
+          'shipping_address.last_name', 
+          'shipping_address.address_1',
+          'shipping_address.city',
+          'shipping_address.postal_code',
+          'shipping_address.country_code',
+          'shipping_address.province',
+          'shipping_address.phone'
+        ]
+        
+        fieldsToSync.forEach(field => {
+          const serverValue = cart.shipping_address?.[field.replace('shipping_address.', '')] || ''
+          if (!prev[field] && serverValue) {
+            updated[field] = serverValue
+            hasChanges = true
+          }
+        })
+        
+        // Email
+        if (!prev.email && cart.email) {
+          updated.email = cart.email
+          hasChanges = true
+        }
+        
+        if (hasChanges) {
+          console.log("🔄 Sincronizando campos vacíos con datos del servidor")
+        }
+        
+        return hasChanges ? updated : prev
+      })
+    }
+  }, [cart?.shipping_address, cart?.email])
 
   // ✅ MANEJO DE CAMBIOS MEJORADO
   const handleChange = (
