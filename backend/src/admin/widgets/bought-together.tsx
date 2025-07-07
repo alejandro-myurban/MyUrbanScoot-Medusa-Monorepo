@@ -66,24 +66,33 @@ const BoughtTogetherWidget = ({ data }) => {
   // ─── Mutación para guardar metadata ────────────────────────
   const mutation = useMutation<any, Error, void>({
     mutationFn: () => {
-    const metadata: Record<string, any> = {
-      bought_together: JSON.stringify(selectedIds),
-    };
+      const metadata: Record<string, any> = {
+        bought_together: JSON.stringify(selectedIds),
+      };
 
-    // Mantener descuentos activos y poner "null" a los eliminados
-    const allKeys = Object.keys(data.metadata || {});
-    allKeys.forEach((key) => {
-      if (key.startsWith("bought_together_discount_")) {
-        const id = key.replace("bought_together_discount_", "");
-        metadata[key] = selectedIds.includes(id)
-          ? (discounts[id]?.toString() ?? "0")
-          : "null";
-      } else if (key !== "bought_together") {
-        metadata[key] = data.metadata[key];
-      }
-    });
+      const allKeys = Object.keys(data.metadata || {});
+      
+      // Copiar claves existentes
+      allKeys.forEach((key) => {
+        if (key.startsWith("bought_together_discount_")) {
+          const id = key.replace("bought_together_discount_", "");
+          metadata[key] = selectedIds.includes(id)
+            ? (discounts[id]?.toString() ?? "0")
+            : "null";
+        } else if (key !== "bought_together") {
+          metadata[key] = data.metadata[key];
+        }
+      });
 
-    return sdk.admin.product.update(data.id, { metadata });
+      // 🔥 Agregar descuentos que no existían antes
+      selectedIds.forEach((id) => {
+        const key = `bought_together_discount_${id}`;
+        if (!(key in metadata)) {
+          metadata[key] = discounts[id]?.toString() ?? "0";
+        }
+      });
+
+      return sdk.admin.product.update(data.id, { metadata });
     },
     onSuccess: () => {
       toast.success("Configuración guardada correctamente");
@@ -94,6 +103,7 @@ const BoughtTogetherWidget = ({ data }) => {
       });
     },
   });
+
 
 // ─── Handlers ─────────────────────────────────────────────
   const handleAdd = (id: string) => {
