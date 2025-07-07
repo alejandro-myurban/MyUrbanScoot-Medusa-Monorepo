@@ -33,7 +33,41 @@
     "shipping_address": "Indirizzo di spedizione",
     "delivery": "Consegna",
     "payment": "Pagamento",
-    "review": "Revisione"
+    "review": "Revisione",
+    "express_payment": "Pagamento espresso",
+    "safe_payment": "Tutti i pagamenti sono sicuri e crittografati",
+    "summary": {
+      "title": "Riepilogo dell'ordine",
+      "discount": "Codice sconto",
+      "apply": "Applica",
+      "subtotal": "Subtotale",
+      "shipping": "Spedizione",
+      "total": "Totale",
+      "terms": "Ho letto e accetto i",
+      "terms_link": "termini e condizioni",
+      "free_shipping": "Spedizione gratuita per ordini superiori a",
+      "free_shipping_amount_add": "Aggiungi",
+      "free_shipping_amount": "per la spedizione gratuita",
+      "loyalty": "Punti fedeltà",
+      "loyalty_info": "Registrati e inizia a guadagnare punti con ogni acquisto!"
+    },
+    "shipping_address_form": {
+      "first_name": "Nome",
+      "last_name": "Cognome",
+      "company": "Azienda (opzionale)",
+      "address_1": "Indirizzo",
+      "address_2": "Indirizzo 2 (opzionale)",
+      "city": "Città",
+      "state": "Provincia",
+      "country": "Paese",
+      "postal_code": "Codice postale",
+      "phone_number": "Telefono",
+      "address_info": "Usa questo indirizzo per la spedizione"
+    },
+    "shipping_methods": {
+      "standard": "Consegna a domicilio",
+      "pickup": "Ritiro in negozio"
+    }
   },
   "login": {
     "title": "Accesso",

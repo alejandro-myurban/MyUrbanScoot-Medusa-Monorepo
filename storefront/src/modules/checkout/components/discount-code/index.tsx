@@ -11,6 +11,7 @@ import { HttpTypes } from "@medusajs/types"
 import Trash from "@modules/common/icons/trash"
 import ErrorMessage from "../error-message"
 import { SubmitButton } from "../submit-button"
+import { useTranslation } from "react-i18next"
 
 type DiscountCodeProps = {
   cart: HttpTypes.StoreCart & {
@@ -20,7 +21,7 @@ type DiscountCodeProps = {
 
 const DiscountCode: React.FC<DiscountCodeProps> = ({ cart }) => {
   const [isOpen, setIsOpen] = React.useState(true)
-
+  const { t } = useTranslation()
   const { items = [], promotions = [] } = cart
   const removePromotionCode = async (code: string) => {
     const validPromotions = promotions.filter(
@@ -53,7 +54,7 @@ const DiscountCode: React.FC<DiscountCodeProps> = ({ cart }) => {
   const [message, formAction] = useFormState(submitPromotionForm, null)
 
   return (
-    <div className="w-full bg-gray-200 flex flex-col">
+    <div className="w-full flex flex-col">
       <div className="txt-medium">
         <form action={(a) => addPromotionCode(a)} className="w-full mb-5">
           <Label className="flex gap-x-1 my-2 items-center">
@@ -82,7 +83,7 @@ const DiscountCode: React.FC<DiscountCodeProps> = ({ cart }) => {
                     type="text"
                     autoFocus={false}
                     data-testid="discount-input"
-                    placeholder="Cupón de descuento"
+                    placeholder={t("checkout.summary.discount")}
                   />
                 </div>
                 <SubmitButton
@@ -90,7 +91,7 @@ const DiscountCode: React.FC<DiscountCodeProps> = ({ cart }) => {
                   variant="secondary"
                   data-testid="discount-apply-button"
                 >
-                  Aplicar
+                  {t("checkout.summary.apply")}
                 </SubmitButton>
               </div>
 
@@ -133,7 +134,7 @@ const DiscountCode: React.FC<DiscountCodeProps> = ({ cart }) => {
                               "percentage"
                                 ? `${promotion.application_method.value}%`
                                 : convertToLocale({
-                                   //@ts-ignore
+                                    //@ts-ignore
                                     amount: promotion.application_method.value,
                                     currency_code:
                                       promotion.application_method

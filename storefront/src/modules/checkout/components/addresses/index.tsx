@@ -877,18 +877,18 @@ const Addresses = ({
 
   const [message, formAction] = useFormState(setAddresses, null)
 
- const handleSubmit = (formData: FormData) => {
+  const handleSubmit = (formData: FormData) => {
     console.log("📝 Enviando formulario manual...")
-    
+
     // Debug: mostrar datos que se están enviando
     console.log("📋 Datos del formulario:")
     Array.from(formData.entries()).forEach(([key, value]) => {
       console.log(`  ${key}: ${value}`)
     })
-    
-    setSubmitCount(prev => prev + 1)
+
+    setSubmitCount((prev) => prev + 1)
     setHasAutoSubmitted(false) // Reset para permitir futuros auto-submits
-    
+
     return formAction(formData)
   }
 
@@ -961,6 +961,10 @@ const Addresses = ({
                     klarna: "never",
                   },
                   buttonHeight: 48,
+                  layout: {
+                    maxColumns: 2, // Muestra máximo 2 opciones antes del acordeón
+                    overflow: "auto", // Permite el acordeón para opciones adicionales
+                  },
                 }}
                 onCancel={onCancel}
                 onReady={onReady}
@@ -995,7 +999,7 @@ const Addresses = ({
           {t("checkout.shipping_address")}
         </Heading>
 
-        <Text>
+        {/* <Text>
           <button
             onClick={handleEdit}
             className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
@@ -1003,7 +1007,7 @@ const Addresses = ({
           >
             Edit
           </button>
-        </Text>
+        </Text> */}
       </div>
 
       <form ref={formRef} action={handleSubmit} key={submitCount}>
@@ -1021,7 +1025,7 @@ const Addresses = ({
                 level="h2"
                 className="text-3xl-regular gap-x-4 pb-6 pt-8"
               >
-                Billing address
+                DIRECCIÓN DE ENVÍO
               </Heading>
 
               <BillingAddress cart={cart} />

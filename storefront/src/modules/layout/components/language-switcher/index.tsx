@@ -1,20 +1,26 @@
 "use client"
+
 import React, { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { useRouter, usePathname } from "next/navigation"
 import ReactCountryFlag from "react-country-flag"
 
 export default function LanguageSwitcher() {
   const [open, setOpen] = useState(false)
   const { i18n } = useTranslation()
+  const router = useRouter()
+  const pathname = usePathname()
 
-  // Define available languages with associated country codes
   const languages = [
     { code: "en", label: "EN", country: "GB" },
     { code: "es", label: "ES", country: "ES" },
-    { code: "it", label: "IT", country: "IT" }
+    { code: "it", label: "IT", country: "IT" },
+    { code: "de", label: "DE", country: "DE" },
+    { code: "pt", label: "PT", country: "PT" },
+    { code: "fr", label: "FR", country: "FR" },
+    { code: "nl", label: "NL", country: "NL" }
   ]
 
-  // Track current language and corresponding country code
   const [currentLang, setCurrentLang] = useState(() => {
     // Usar el idioma actual de i18n que viene de la cookie
     return i18n.language.substring(0, 2) // Tomamos solo los primeros 2 caracteres por si viene 'es-ES'
@@ -27,23 +33,38 @@ export default function LanguageSwitcher() {
 
   useEffect(() => {
     // On mount or if user changes language elsewhere, sync state
-    setCurrentLang(i18n.language)
-    const langObj = languages.find(l => l.code === i18n.language)
+    const langCode = i18n.language.substring(0, 2)
+    setCurrentLang(langCode)
+    const langObj = languages.find(l => l.code === langCode)
     if (langObj) {
       setCurrentCountry(langObj.country)
     }
   }, [i18n.language])
 
   const toggle = () => setOpen(prev => !prev)
+  
   const changeLang = (code: string) => {
-    // Change i18n language and update state
+    // Find the selected language object
+    const langObj = languages.find(l => l.code === code)
+    if (!langObj) return
+
+    // Change i18n language
     i18n.changeLanguage(code)
     setOpen(false)
     setCurrentLang(code)
-    const langObj = languages.find(l => l.code === code)
-    if (langObj) {
-      setCurrentCountry(langObj.country)
-    }
+    setCurrentCountry(langObj.country)
+
+    // Extract current country code from pathname
+    const pathSegments = pathname.split('/').filter(Boolean)
+    const currentCountryCode = pathSegments[0] // Primer segmento es el countryCode
+    
+    // Build new pathname with new country code
+    const newCountryCode = langObj.country.toLowerCase() // Convert to lowercase for URL
+    const newPathSegments = [newCountryCode, ...pathSegments.slice(1)]
+    const newPathname = '/' + newPathSegments.join('/')
+    
+    // Navigate to new URL
+    router.push(newPathname)
   }
 
   return (

@@ -4,6 +4,7 @@ import { convertToLocale } from "@lib/util/money"
 import { InformationCircleSolid } from "@medusajs/icons"
 import { Tooltip } from "@medusajs/ui"
 import React from "react"
+import { useTranslation } from "react-i18next"
 
 type CartTotalsProps = {
   totals: {
@@ -30,6 +31,7 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
     item_subtotal
   } = totals
 
+    const { t } = useTranslation()
   console.log("TOTALES", totals)
 
   return (
@@ -37,7 +39,7 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
       <div className="flex flex-col gap-y-2 txt-medium sm:text-xl text-black/90 font-archivo ">
         <div className="flex items-center justify-between">
           <span className="flex gap-x-1 items-center">
-            Subtotal
+            {t("checkout.summary.subtotal")}
           </span>
           <span data-testid="cart-subtotal" data-value={subtotal || 0}>
             {convertToLocale({ amount: item_subtotal ?? 0, currency_code })}
@@ -57,7 +59,7 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
           </div>
         )}
         <div className="flex items-center justify-between">
-          <span>Envío</span>
+          <span>{t("checkout.summary.shipping")}</span>
           <span data-testid="cart-shipping" data-value={shipping_total || 0}>
             {convertToLocale({ amount: shipping_total ?? 0, currency_code })}
           </span>
@@ -84,7 +86,7 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
       </div>
       
       <div className="flex items-center mt-2 justify-between text-black/90 font-bold text-xl sm:text-2xl mb-2 txt-medium font-dmSans ">
-        <span>Total</span>
+        <span>{t("checkout.summary.total")}</span>
         <span
           className="text-xl sm:text-2xl font-archivo font-bold"
           data-testid="cart-total"
