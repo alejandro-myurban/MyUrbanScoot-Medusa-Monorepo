@@ -34,7 +34,41 @@
     "shipping_address": "Entrega",
     "delivery": "Envíos",
     "payment": "Pago",
-    "review": "Revisión"
+    "review": "Revisión",
+    "express_payment": "Pago Express",
+    "safe_payment" : "Todas las transacciones son seguras y están cifradas.",
+    "summary": {
+      "title": "Resumen del Pedido",
+      "discount": "Código de Descuento",
+      "apply": "Aplicar",
+      "subtotal": "Subtotal",
+      "shipping": "Envío",
+      "total": "Total",
+      "terms": "He leído y acepto los",
+      "terms_link": "términos y condiciones",
+      "free_shipping": "Envío gratis en pedidos superiores a",
+      "free_shipping_amount_add": "Añade",
+      "free_shipping_amount": "más para envío gratis",
+      "loyalty": "Puntos de Afiliado",
+      "loyalty_info": "¡Regístrate y empieza a ganar puntos con cada compra!"
+    },
+    "shipping_address_form": {
+      "first_name": "Nombre",
+      "last_name": "Apellidos",
+      "company": "Empresa (opcional)",
+      "address_1": "Dirección",
+      "address_2": "Dirección 2 (opcional)",
+      "city": "Ciudad",
+      "country": "País",
+      "state": "Provincia",
+      "postal_code": "Código Postal",
+      "phone_number": "Teléfono",
+      "address_info" : "Usar esta dirección para el envío."
+    },
+    "shipping_methods": {
+      "standard": "Envío a Domicilio",
+      "pickup": "Recogida en Tienda"
+    }
   },
   "login": {
     "title": "Accede",

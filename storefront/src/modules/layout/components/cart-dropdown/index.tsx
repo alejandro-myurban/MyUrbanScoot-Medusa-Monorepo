@@ -1,10 +1,19 @@
 "use client"
 
 import { Popover, Transition } from "@headlessui/react"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/src/components/ui/enhanced-sheet"
 import { Button } from "@medusajs/ui"
 import { usePathname } from "next/navigation"
 import { Fragment, useEffect, useRef, useState } from "react"
-import { ShoppingBag, ShoppingCart } from "lucide-react"
+import { ShoppingBag, ShoppingCart, Sparkles } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
@@ -13,18 +22,27 @@ import LineItemOptions from "@modules/common/components/line-item-options"
 import LineItemPrice from "@modules/common/components/line-item-price"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Thumbnail from "@modules/products/components/thumbnail"
+import ItemsTemplate from "@modules/cart/templates/items"
+import Summary from "@modules/cart/templates/summary"
+import EmptyCartMessage from "@modules/cart/components/empty-cart-message"
+import SignInPrompt from "@modules/cart/components/sign-in-prompt"
+import Divider from "@modules/common/components/divider"
+import CompactItemsTemplate from "@/modules/cart/templates/items-two"
 
 const CartDropdown = ({
   cart: cartState,
+  customer,
   dark,
 }: {
   cart?: HttpTypes.StoreCart | null
+  customer?: HttpTypes.StoreCustomer | null
   dark?: boolean
 }) => {
   const [activeTimer, setActiveTimer] = useState<NodeJS.Timer | undefined>(
     undefined
   )
   const [cartDropdownOpen, setCartDropdownOpen] = useState(false)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   const open = () => setCartDropdownOpen(true)
   const close = () => setCartDropdownOpen(false)
@@ -39,9 +57,7 @@ const CartDropdown = ({
 
   const timedOpen = () => {
     open()
-
     const timer = setTimeout(close, 5000)
-
     setActiveTimer(timer)
   }
 
@@ -49,11 +65,9 @@ const CartDropdown = ({
     if (activeTimer) {
       clearTimeout(activeTimer)
     }
-
     open()
   }
 
-  // Clean up the timer when the component unmounts
   useEffect(() => {
     return () => {
       if (activeTimer) {
@@ -64,22 +78,18 @@ const CartDropdown = ({
 
   const pathname = usePathname()
 
-  // open cart dropdown when modifying the cart items, but only if we're not on the cart page
   useEffect(() => {
     if (itemRef.current !== totalItems && !pathname.includes("/cart")) {
       timedOpen()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalItems, itemRef.current])
 
   const getVariantImage = (item: HttpTypes.StoreCartLineItem) => {
-    // Extraemos el producto desde la variante
     const product = item.variant?.product
     if (!product || !product.images || !product.images.length) {
       return product?.thumbnail
     }
 
-    // Buscar la opción "color" en las opciones de la variante
     const colorOption = item.variant?.options?.find(
       (opt) => opt.option?.title?.toLowerCase() === "color"
     )
@@ -89,7 +99,6 @@ const CartDropdown = ({
       return product?.thumbnail
     }
 
-    // Filtrar las imágenes que contengan el valor del color en su URL
     const colorImages = product.images.filter((img: any) =>
       img.url.toLowerCase().includes(colorValue)
     )
@@ -101,158 +110,310 @@ const CartDropdown = ({
   }
 
   return (
-    <div
-      className="h-full z-50"
-      onMouseEnter={openAndCancel}
-      onMouseLeave={close}
-    >
-      <Popover className="relative h-full flex justify-center items-center">
-        <Popover.Button className="h-full relative z-10">
-          <LocalizedClientLink
-            className={`hover:text-ui-fg-base flex gap-2 relative ${
-              dark ? "text-white/80 hover:text-white" : "text-black"
-            }`}
-            href="/cart"
-            data-testid="nav-cart-link"
-          >
-            <ShoppingBag />
-            <div className="absolute -top-1.5 -right-2 flex items-center justify-center bg-mysRed-100 rounded-full w-4 h-4 text-xs text-white">
-              {totalItems}
-            </div>
-          </LocalizedClientLink>
-        </Popover.Button>
-        <Transition
-          show={cartDropdownOpen}
-          as={Fragment}
-          enter="transition ease-out duration-200"
-          enterFrom="opacity-0 translate-y-1"
-          enterTo="opacity-100 translate-y-0"
-          leave="transition ease-in duration-150"
-          leaveFrom="opacity-100 translate-y-0"
-          leaveTo="opacity-0 translate-y-1"
+    <div className="h-full z-50">
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <div
+          onMouseEnter={openAndCancel}
+          onMouseLeave={close}
+          className="relative"
         >
-          <Popover.Panel
-            static
-            className="hidden small:block absolute top-[calc(100%+1px)] right-0 bg-white border-x border-b border-gray-200 w-[420px] text-ui-fg-base"
-            data-testid="nav-cart-dropdown"
-          >
-            <div className="p-4 flex items-center justify-center">
-              <h3 className="text-large-semi">Cart</h3>
-            </div>
-            {cartState && cartState.items?.length ? (
-              <>
-                <div className="overflow-y-scroll max-h-[402px] px-4 grid grid-cols-1 gap-y-8 no-scrollbar p-px">
-                  {cartState.items
-                    .sort((a, b) => {
-                      return (a.created_at ?? "") > (b.created_at ?? "")
-                        ? -1
-                        : 1
-                    })
-                    .map((item) => (
-                      <div
-                        className="grid grid-cols-[122px_1fr] gap-x-4"
-                        key={item.id}
-                        data-testid="cart-item"
-                      >
-                        <LocalizedClientLink
-                          href={`/products/${item.variant?.product?.handle}`}
-                          className="w-24"
-                        >
-                          <Thumbnail
-                            thumbnail={getVariantImage(item)}
-                            images={item.variant?.product?.images}
-                            size="square"
-                          />
-                        </LocalizedClientLink>
-                        <div className="flex flex-col justify-between flex-1">
-                          <div className="flex flex-col flex-1">
-                            <div className="flex items-start justify-between">
-                              <div className="flex flex-col overflow-ellipsis whitespace-nowrap mr-4 w-[180px]">
-                                <h3 className="text-base-regular overflow-hidden text-ellipsis">
-                                  <LocalizedClientLink
-                                    href={`/products/${item.variant?.product?.handle}`}
-                                    data-testid="product-link"
-                                  >
-                                    {item.title}
-                                  </LocalizedClientLink>
-                                </h3>
-                                <LineItemOptions
-                                  variant={item.variant}
-                                  data-testid="cart-item-variant"
-                                  data-value={item.variant}
-                                />
-                                <span
-                                  data-testid="cart-item-quantity"
-                                  data-value={item.quantity}
-                                >
-                                  Quantity: {item.quantity}
+          <Popover className="relative h-full flex justify-center items-center">
+            <Popover.Button className="h-full relative z-10">
+              <SheetTrigger asChild>
+                <button
+                  className={`
+                    group relative flex gap-2 items-center justify-center
+                    transition-all duration-300 ease-out
+                    hover:scale-110 active:scale-95
+                    ${
+                      dark
+                        ? "text-white/80 hover:text-white"
+                        : "text-black hover:text-gray-700"
+                    }
+                  `}
+                  data-testid="nav-cart-link"
+                >
+                  <div className="relative">
+                    <ShoppingBag className="w-6 h-6 transition-transform duration-300 group-hover:rotate-12 focus:outline-none focus:ring-0 active:outline-none" />
+
+                    {/* Badge animado */}
+                    <div
+                      className={`
+                      absolute -top-2 -right-2 
+                      flex items-center justify-center 
+                      bg-gradient-to-r from-red-500 to-pink-500
+                      rounded-full w-5 h-5 text-xs text-white font-bold
+                      transition-all duration-300 ease-out
+                      ${totalItems > 0 ? "scale-100" : "scale-0"}
+                      group-hover:scale-110 group-hover:rotate-12
+                      shadow-lg shadow-red-500/30
+                    `}
+                    >
+                      {totalItems}
+                    </div>
+
+                    {/* Sparkle effect cuando hay items */}
+                    {totalItems > 0 && (
+                      <div className="absolute -top-1 -right-1 pointer-events-none opacity-0">
+                        <Sparkles className="w-3 h-3 text-yellow-400" />
+                      </div>
+                    )}
+                  </div>
+                </button>
+              </SheetTrigger>
+            </Popover.Button>
+
+            {/* Popover preview mejorado */}
+            <Transition
+              show={cartDropdownOpen && !isSheetOpen}
+              as={Fragment}
+              enter="transition ease-out duration-300"
+              enterFrom="opacity-0 scale-95 translate-y-1"
+              enterTo="opacity-100 scale-100 translate-y-0"
+              leave="transition ease-in duration-200"
+              leaveFrom="opacity-100 scale-100 translate-y-0"
+              leaveTo="opacity-0 scale-95 translate-y-1"
+            >
+              <Popover.Panel
+                static
+                className={`
+                  hidden small:block absolute top-[calc(100%+8px)] right-0 
+                  bg-white/95 backdrop-blur-xl border border-gray-200/50
+                  rounded-2xl shadow-2xl shadow-black/10
+                  w-[420px] text-ui-fg-base overflow-hidden
+                  ring-1 ring-black/5
+                `}
+                data-testid="nav-cart-dropdown"
+              >
+                {/* Header con gradiente */}
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 border-b border-gray-200/50">
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <ShoppingBag className="w-5 h-5" />
+                    Vista Rápida
+                  </h3>
+                </div>
+
+                {cartState && cartState.items?.length ? (
+                  <>
+                    <div className="max-h-[300px] overflow-y-auto p-4 space-y-4">
+                      {cartState.items
+                        .sort((a, b) => {
+                          return (a.created_at ?? "") > (b.created_at ?? "")
+                            ? -1
+                            : 1
+                        })
+                        .slice(0, 3)
+                        .map((item, index) => (
+                          <div
+                            className={`
+                              flex gap-4 p-3 rounded-xl bg-white/50 border border-gray-100
+                              hover:bg-white/80 transition-all duration-200
+                              hover:shadow-md hover:scale-[1.02]
+                              animate-in slide-in-from-right
+                            `}
+                            style={{ animationDelay: `${index * 100}ms` }}
+                            key={item.id}
+                            data-testid="cart-item"
+                          >
+                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                              <Thumbnail
+                                thumbnail={getVariantImage(item)}
+                                images={item.variant?.product?.images}
+                                size="square"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 truncate text-sm">
+                                {item.title}
+                              </h4>
+                              <LineItemOptions variant={item.variant} />
+                              <div className="flex justify-between items-center mt-1">
+                                <span className="text-xs text-gray-500">
+                                  Qty: {item.quantity}
                                 </span>
-                              </div>
-                              <div className="flex justify-end">
                                 <LineItemPrice item={item} style="tight" />
                               </div>
                             </div>
                           </div>
-                          <DeleteButton
-                            id={item.id}
-                            className="mt-1"
-                            data-testid="cart-item-remove-button"
-                          >
-                            Remove
-                          </DeleteButton>
+                        ))}
+
+                      {cartState.items.length > 3 && (
+                        <div className="text-center py-2">
+                          <span className="text-sm text-gray-500">
+                            +{cartState.items.length - 3} artículos más
+                          </span>
                         </div>
+                      )}
+                    </div>
+
+                    <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="font-semibold text-gray-800">
+                          Subtotal
+                        </span>
+                        <span className="font-bold text-lg text-gray-900">
+                          {convertToLocale({
+                            amount: subtotal,
+                            currency_code: cartState.currency_code,
+                          })}
+                        </span>
                       </div>
-                    ))}
-                </div>
-                <div className="p-4 flex flex-col gap-y-4 text-small-regular">
-                  <div className="flex items-center justify-between">
-                    <span className="text-ui-fg-base font-semibold">
-                      Subtotal{" "}
-                      <span className="font-normal">(excl. taxes)</span>
-                    </span>
-                    <span
-                      className="text-large-semi"
-                      data-testid="cart-subtotal"
-                      data-value={subtotal}
-                    >
-                      {convertToLocale({
-                        amount: subtotal,
-                        currency_code: cartState.currency_code,
-                      })}
-                    </span>
-                  </div>
-                  <LocalizedClientLink href="/cart" passHref>
-                    <Button
-                      className="w-full"
-                      size="large"
-                      data-testid="go-to-cart-button"
-                    >
-                      Go to cart
-                    </Button>
-                  </LocalizedClientLink>
-                </div>
-              </>
-            ) : (
-              <div>
-                <div className="flex py-16 flex-col gap-y-4 items-center justify-center">
-                  <div className="bg-gray-900 text-small-regular flex items-center justify-center w-6 h-6 rounded-full text-white">
-                    <span>0</span>
-                  </div>
-                  <span>Your shopping bag is empty.</span>
-                  <div>
+
+                      <Button
+                        className={`
+                            w-full bg-black/90 mb-4
+                            hover:from-blue-700 hover:to-purple-700
+                            text-white font-semibold py-3 rounded-xl
+                            transition-all duration-300 ease-out
+                            hover:scale-[1.02] hover:shadow-lg
+                            active:scale-[0.98]
+                          `}
+                        size="large"
+                      >
+                        Ir a Pagar
+                      </Button>
+
+                      <SheetTrigger asChild>
+                        <Button
+                          className={`
+                            w-full bg-black/90  
+                            hover:from-blue-700 hover:to-purple-700
+                            text-white font-semibold py-3 rounded-xl
+                            transition-all duration-300 ease-out
+                            hover:scale-[1.02] hover:shadow-lg
+                            active:scale-[0.98]
+                          `}
+                          size="large"
+                        >
+                          Ver Carrito Completo
+                        </Button>
+                      </SheetTrigger>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-8 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                      <ShoppingBag className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 mb-4">Tu carrito está vacío</p>
                     <LocalizedClientLink href="/store">
-                      <>
-                        <span className="sr-only">Go to all products page</span>
-                        <Button onClick={close}>Explore products</Button>
-                      </>
+                      <Button
+                        onClick={close}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Explorar Productos
+                      </Button>
                     </LocalizedClientLink>
                   </div>
+                )}
+              </Popover.Panel>
+            </Transition>
+          </Popover>
+        </div>
+
+        {/* Sheet content con animaciones */}
+        <SheetContent
+          className="w-[90%] sm:max-w-xl border-l border-gray-200/50 bg-white/95 backdrop-blur-xl flex flex-col overflow-hidden"
+          side="right"
+        >
+          <AnimatePresence>
+            {isSheetOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="h-full flex flex-col"
+              >
+                {/* Header animado */}
+                <motion.div
+                  initial={{ y: -50, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
+                  className="pb-2 border-b border-gray-200/50 flex-shrink-0"
+                >
+                  <SheetTitle className="text-2xl text-left font-bold font-archivoBlack uppercase flex items-center gap-2">
+                    <div className="text-black/90 flex items-center gap-2">
+                      Tu Carrito
+                      <motion.div
+                        initial={{ rotate: -180, scale: 0 }}
+                        animate={{ rotate: 0, scale: 1 }}
+                        transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
+                      >
+                        <ShoppingBag className="w-8 h-8 text-black/90" />
+                      </motion.div>
+                    </div>
+                  </SheetTitle>
+                  <SheetDescription className="text-gray-600">
+                    {totalItems > 0 ? (
+                      <span className="flex items-center gap-2">
+                        {/* Comentado como en tu código original */}
+                      </span>
+                    ) : (
+                      "Tu carrito está vacío"
+                    )}
+                  </SheetDescription>
+                </motion.div>
+
+                {/* Contenido principal */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden pt-6">
+                  {cartState?.items?.length ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2, duration: 0.5 }}
+                      className="flex flex-col h-full gap-y-6 px-2 pb-6"
+                    >
+                      <motion.div
+                        initial="hidden"
+                        animate="visible"
+                        variants={{
+                          hidden: { opacity: 0 },
+                          visible: {
+                            opacity: 1,
+                            transition: {
+                              staggerChildren: 0.1,
+                              delayChildren: 0.3,
+                            },
+                          },
+                        }}
+                        className="flex-1"
+                      >
+                        <CompactItemsTemplate
+                          items={cartState?.items}
+                          showQuantityControls={true}
+                        />
+                      </motion.div>
+                      
+                      {cartState && cartState.region && (
+                        <motion.div
+                          initial={{ y: 100, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 0.5, duration: 0.6, ease: "easeOut" }}
+                          className="border-t pt-4 mt-4 bg-white/80 backdrop-blur-sm rounded-t-xl -mx-6 px-6 animate-in slide-in-from-bottom duration-500"
+                        >
+                          <Summary cart={cartState as any} showDiscount={false} />
+                          {/* Botón de checkout */}
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.3, duration: 0.5 }}
+                      className="flex-1 flex items-center justify-center animate-in fade-in duration-500"
+                    >
+                      <EmptyCartMessage />
+                    </motion.div>
+                  )}
                 </div>
-              </div>
+              </motion.div>
             )}
-          </Popover.Panel>
-        </Transition>
-      </Popover>
+          </AnimatePresence>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

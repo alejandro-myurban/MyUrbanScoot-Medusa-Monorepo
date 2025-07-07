@@ -6,6 +6,8 @@ import LanguageDetector from "i18next-browser-languagedetector"
 import itCommon from "../../public/locales/it/common.json"
 import esCommon from "../../public/locales/es/common.json"
 import enCommon from "../../public/locales/en/common.json"
+import deCommon from "../../public/locales/de/common.json"
+import ptCommon from "../../public/locales/pt/common.json"
 
 i18n
   
@@ -26,6 +28,12 @@ i18n
       en: {
         common: enCommon, // Archivo JSON para inglés
       },
+      de: {
+        common: deCommon, // Archivo JSON para alemán 
+      },
+      pt:  {
+        common: ptCommon, // Archivo JSON para portugués
+      }
     },
 
     detection: {

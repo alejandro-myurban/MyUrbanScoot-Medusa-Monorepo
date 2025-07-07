@@ -34,7 +34,41 @@
     "shipping_address": "Shipping Address",
     "delivery": "Delivery",
     "payment": "Payment",
-    "review": "Review"
+    "review": "Review",
+    "express_payment": "Express Payment",
+    "safe_payment": "All transactions are secured and encrypted.",
+    "summary" : {
+      "title": "Order Summary",
+      "discount": "Discount Code",
+      "apply": "Apply",
+      "subtotal": "Subtotal",
+      "shipping": "Shipping",
+      "total": "Total",
+      "terms": "I have read and accept the",
+      "terms_link": "terms and conditions",
+      "free_shipping": "Free shipping in orders that exceed",
+      "free_shipping_amount_add": "Add",
+      "free_shipping_amount": "more for free shipping",
+      "loyalty": "Loyalty Points",
+      "loyalty_info": "Register and start earning loyalty points with every purchase!"
+    },
+    "shipping_address_form": {
+      "first_name": "First Name",
+      "last_name": "Last Name",
+      "company": "Company (optional)",
+      "address_1": "Address",
+      "address_2": "Address 2 (optional)",
+      "city": "City",
+      "country": "Country",
+      "state": "State/Province",
+      "postal_code": "Postal Code",
+      "phone_number": "Phone Number",
+      "address_info": "Use this address for shipping"
+    },
+    "shipping_methods" : {
+      "standard": "Home Delivery",
+      "pickup": "In-Store Pickup"
+    }
   },
   "login": {
     "title": "Login",

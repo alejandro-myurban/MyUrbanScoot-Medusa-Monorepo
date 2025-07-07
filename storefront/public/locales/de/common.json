@@ -1,0 +1,83 @@
+{
+ "store": {
+   "title": "Medusa Store",
+   "tagline": "Ihr One-Stop-Shop"
+ },
+ "navigation": {
+   "home": "Startseite",
+   "vinyls": "Vinyl-Aufkleber",
+   "categories": "Kategorien",
+   "account": "Konto",
+   "cart": "Warenkorb",
+   "lang": "Sprache",
+   "search": "Suchen",
+   "contact": "Kontakt",
+   "spare_parts": "Ersatzteile",
+   "circuit_zone": "Circuit Zone",
+   "scoot": "Scooter",
+   "blog": "Blog",
+   "tooltip": {
+     "shippment": "🚚 Kostenloser Versand bei Bestellungen über 20 €",
+     "gift": "🎁 Kostenloses Geschenk bei Bestellungen über 100 €",
+     "spare_parts": "🛠️ Exklusive Ersatzteile für Ihren Scooter"
+   }
+ },
+ "actions": {
+   "add_to_cart": "In den Warenkorb",
+   "select_variant": "Variante auswählen",
+   "buy_now": "Jetzt kaufen",
+   "checkout": "Zur Kasse",
+   "view_details": "Details anzeigen",
+   "select": "Auswählen"
+ },
+ "checkout": {
+   "shipping_address": "Lieferadresse",
+   "delivery": "Lieferung",
+   "payment": "Zahlung",
+   "review": "Überprüfung",
+   "express_payment": "Express-Zahlung",
+   "safe_payment": "Alle Transaktionen sind gesichert und verschlüsselt.",
+   "summary": {
+     "title": "Bestellübersicht",
+     "discount": "Rabattcode",
+     "apply": "Anwenden",
+     "subtotal": "Zwischensumme",
+     "shipping": "Versand",
+     "total": "Gesamt",
+     "terms": "Ich habe die",
+     "terms_link": "Allgemeinen Geschäftsbedingungen",
+     "free_shipping": "Kostenloser Versand bei Bestellungen über",
+     "free_shipping_amount_add": "Fügen Sie",
+     "free_shipping_amount": "mehr hinzu für kostenlosen Versand",
+     "loyalty": "Treuepunkte",
+     "loyalty_info": "Registrieren Sie sich und sammeln Sie bei jedem Einkauf Treuepunkte!"
+   },
+   "shipping_address_form": {
+     "first_name": "Vorname",
+     "last_name": "Nachname",
+     "company": "Unternehmen (optional)",
+     "address_1": "Adresse",
+     "address_2": "Adresse 2 (optional)",
+     "city": "Stadt",
+     "country": "Land",
+     "state": "Bundesland/Provinz",
+     "postal_code": "Postleitzahl",
+     "phone_number": "Telefonnummer",
+     "address_info": "Diese Adresse für den Versand verwenden"
+   },
+   "shipping_methods": {
+     "standard": "Hauslieferung",
+     "pickup": "Abholung im Geschäft"
+   }
+ },
+ "login": {
+   "title": "Anmelden",
+   "email": "E-Mail",
+   "password": "Passwort",
+   "forgot_password": "Passwort vergessen?",
+   "login_button": "Weiter",
+   "register_link": "Haben Sie noch kein Konto?",
+   "register_button": "Registrieren",
+   "google": "Mit Google anmelden"
+ }
+}

@@ -1,0 +1,83 @@
+{
+  "store": {
+    "title": "Medusa Store",
+    "tagline": "Jouw One-Stop-Shop"
+  },
+  "navigation": {
+    "home": "Home",
+    "vinyls": "Vinyl stickers",
+    "categories": "Categorieën",
+    "account": "Account",
+    "cart": "Winkelwagen",
+    "lang": "Taal",
+    "search": "Zoeken",
+    "contact": "Contact",
+    "spare_parts": "Onderdelen",
+    "circuit_zone": "Circuit Zone",
+    "scoot": "Steps",
+    "blog": "Blog",
+    "tooltip": {
+      "shippment": "🚚 Gratis verzending bij bestellingen boven € 20",
+      "gift": "🎁 Gratis cadeau bij bestellingen boven € 100",
+      "spare_parts": "🛠️ Exclusieve onderdelen voor je step"
+    }
+  },
+  "actions": {
+    "add_to_cart": "Toevoegen aan Winkelwagen",
+    "select_variant": "Variant Selecteren",
+    "buy_now": "Nu Kopen",
+    "checkout": "Afrekenen",
+    "view_details": "Details Bekijken",
+    "select": "Selecteren"
+  },
+  "checkout": {
+    "shipping_address": "Bezorgadres",
+    "delivery": "Bezorging",
+    "payment": "Betaling",
+    "review": "Controleren",
+    "express_payment": "Express Betaling",
+    "safe_payment": "Alle transacties zijn beveiligd en versleuteld.",
+    "summary": {
+      "title": "Besteloverzicht",
+      "discount": "Kortingscode",
+      "apply": "Toepassen",
+      "subtotal": "Subtotaal",
+      "shipping": "Verzending",
+      "total": "Totaal",
+      "terms": "Ik heb de",
+      "terms_link": "algemene voorwaarden",
+      "free_shipping": "Gratis verzending bij bestellingen boven",
+      "free_shipping_amount_add": "Voeg",
+      "free_shipping_amount": "toe voor gratis verzending",
+      "loyalty": "Loyaliteitspunten",
+      "loyalty_info": "Registreer en begin met het verdienen van loyaliteitspunten bij elke aankoop!"
+    },
+    "shipping_address_form": {
+      "first_name": "Voornaam",
+      "last_name": "Achternaam",
+      "company": "Bedrijf (optioneel)",
+      "address_1": "Adres",
+      "address_2": "Adres 2 (optioneel)",
+      "city": "Stad",
+      "country": "Land",
+      "state": "Staat/Provincie",
+      "postal_code": "Postcode",
+      "phone_number": "Telefoonnummer",
+      "address_info": "Dit adres gebruiken voor verzending"
+    },
+    "shipping_methods": {
+      "standard": "Thuisbezorging",
+      "pickup": "Afhalen in de Winkel"
+    }
+  },
+  "login": {
+    "title": "Inloggen",
+    "email": "E-mail",
+    "password": "Wachtwoord",
+    "forgot_password": "Wachtwoord vergeten?",
+    "login_button": "Doorgaan",
+    "register_link": "Geen account?",
+    "register_button": "Registreren",
+    "google": "Inloggen met Google"
+  }
+}

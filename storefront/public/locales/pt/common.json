@@ -1,0 +1,83 @@
+{
+ "store": {
+   "title": "Medusa Store",
+   "tagline": "Sua Loja Completa"
+ },
+ "navigation": {
+   "home": "Início",
+   "vinyls": "Adesivos de vinil",
+   "categories": "Categorias",
+   "account": "Conta",
+   "cart": "Carrinho",
+   "lang": "Idioma",
+   "search": "Pesquisar",
+   "contact": "Contato",
+   "spare_parts": "Peças de Reposição",
+   "circuit_zone": "Zona do Circuito",
+   "scoot": "Scooters",
+   "blog": "Blog",
+   "tooltip": {
+     "shippment": "🚚 Frete grátis em pedidos acima de 20 €",
+     "gift": "🎁 Brinde grátis em pedidos acima de 100 €",
+     "spare_parts": "🛠️ Peças de reposição exclusivas para seu scooter"
+   }
+ },
+ "actions": {
+   "add_to_cart": "Adicionar ao Carrinho",
+   "select_variant": "Selecionar Variante",
+   "buy_now": "Comprar Agora",
+   "checkout": "Finalizar Compra",
+   "view_details": "Ver Detalhes",
+   "select": "Selecionar"
+ },
+ "checkout": {
+   "shipping_address": "Endereço de Entrega",
+   "delivery": "Entrega",
+   "payment": "Pagamento",
+   "review": "Revisão",
+   "express_payment": "Pagamento Expresso",
+   "safe_payment": "Todas as transações são seguras e criptografadas.",
+   "summary": {
+     "title": "Resumo do Pedido",
+     "discount": "Código de Desconto",
+     "apply": "Aplicar",
+     "subtotal": "Subtotal",
+     "shipping": "Frete",
+     "total": "Total",
+     "terms": "Eu li e aceito os",
+     "terms_link": "termos e condições",
+     "free_shipping": "Frete grátis em pedidos que excedem",
+     "free_shipping_amount_add": "Adicione",
+     "free_shipping_amount": "mais para frete grátis",
+     "loyalty": "Pontos de Fidelidade",
+     "loyalty_info": "Registre-se e comece a ganhar pontos de fidelidade a cada compra!"
+   },
+   "shipping_address_form": {
+     "first_name": "Nome",
+     "last_name": "Sobrenome",
+     "company": "Empresa (opcional)",
+     "address_1": "Endereço",
+     "address_2": "Endereço 2 (opcional)",
+     "city": "Cidade",
+     "country": "País",
+     "state": "Estado/Província",
+     "postal_code": "CEP",
+     "phone_number": "Número de Telefone",
+     "address_info": "Usar este endereço para entrega"
+   },
+   "shipping_methods": {
+     "standard": "Entrega Domiciliar",
+     "pickup": "Retirada na Loja"
+   }
+ },
+ "login": {
+   "title": "Entrar",
+   "email": "E-mail",
+   "password": "Senha",
+   "forgot_password": "Esqueceu a senha?",
+   "login_button": "Continuar",
+   "register_link": "Não tem uma conta?",
+   "register_button": "Registrar",
+   "google": "Entrar com Google"
+ }
+}

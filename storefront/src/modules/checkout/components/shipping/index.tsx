@@ -52,7 +52,9 @@ const Shipping: React.FC<ShippingProps> = ({
   const [itemsWithEstimate, setItemsWithEstimate] = useState<
     ItemWithEstimate[]
   >([])
-  
+
+  console.log("🚚 Métodos de envío disponibles:", availableShippingMethods)
+
   // Estados para el auto-submit
   const [pendingAutoSubmit, setPendingAutoSubmit] = useState(false)
   const [hasUserSelectedShipping, setHasUserSelectedShipping] = useState(false)
@@ -87,10 +89,12 @@ const Shipping: React.FC<ShippingProps> = ({
     }
 
     setPendingAutoSubmit(true)
-    
+
     // Esperar un poco para que la UI se actualice y luego hacer submit
     autoSubmitTimeoutRef.current = setTimeout(() => {
-      console.log('🚀 Auto-submit activado después de seleccionar método de envío')
+      console.log(
+        "🚀 Auto-submit activado después de seleccionar método de envío"
+      )
       handleSubmit()
       setPendingAutoSubmit(false)
     }, 1500) // 1.5 segundos de delay para mostrar feedback visual
@@ -100,16 +104,15 @@ const Shipping: React.FC<ShippingProps> = ({
   const set = async (id: string) => {
     setIsLoading(true)
     setHasUserSelectedShipping(true)
-    
+
     try {
       await setShippingMethod({ cartId: cart.id, shippingMethodId: id })
-      
+
       // ✅ Si la selección fue exitosa, activar auto-submit
-      console.log('✅ Método de envío seleccionado exitosamente:', id)
+      console.log("✅ Método de envío seleccionado exitosamente:", id)
       triggerAutoSubmit()
-      
     } catch (err: any) {
-      console.error('❌ Error seleccionando método de envío:', err)
+      console.error("❌ Error seleccionando método de envío:", err)
       setError(err.message)
       setPendingAutoSubmit(false)
     } finally {
@@ -247,7 +250,7 @@ const Shipping: React.FC<ShippingProps> = ({
   const deliveryRange = getDeliveryDateRange()
 
   console.log("CARRITO", cart)
-  
+
   return (
     <div className="bg-white">
       <div className="flex flex-row items-center justify-between mb-6">
@@ -257,7 +260,7 @@ const Shipping: React.FC<ShippingProps> = ({
             "flex flex-row font-archivoBlack text-2xl gap-x-2 items-baseline uppercase",
             {
               "opacity-50 pointer-events-none select-none":
-               cart.shipping_methods?.length === 0,
+                cart.shipping_methods?.length === 0,
             }
           )}
         >
@@ -278,15 +281,15 @@ const Shipping: React.FC<ShippingProps> = ({
             </Text>
           )} */}
       </div>
-      
+
       <div data-testid="delivery-options-container ">
         <div className="space-y-0 ">
-          <RadioGroup value={selectedShippingMethod?.id} onChange={set} >
+          <RadioGroup value={selectedShippingMethod?.id} onChange={set}>
             {availableShippingMethods?.map((option, index) => {
               const isSelected = option.id === selectedShippingMethod?.id
               const isFirst = index === 0
               const isLast = index === availableShippingMethods.length - 1
-              
+
               return (
                 <div key={option.id} className="relative">
                   <RadioGroup.Option
@@ -310,13 +313,15 @@ const Shipping: React.FC<ShippingProps> = ({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-4 h-4">
-                            <div className={clx(
-                              "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                              {
-                                "bg-gray-500": isSelected,
-                                "border-gray-230 bg-white": !isSelected,
-                              }
-                            )}>
+                            <div
+                              className={clx(
+                                "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                {
+                                  "bg-gray-500": isSelected,
+                                  "border-gray-230 bg-white": !isSelected,
+                                }
+                              )}
+                            >
                               {isSelected && (
                                 <div className="w-1 h-1 bg-black rounded-full"></div>
                               )}
@@ -335,52 +340,66 @@ const Shipping: React.FC<ShippingProps> = ({
                       {isSelected && (
                         <div className="mt-4 pl-7 space-y-2 border-t border-gray-200 pt-4">
                           {/* Para métodos calculated */}
-                          {option.price_type === "calculated" && deliveryRange && (
-                            <>
-                              <div className="text-sm text-gray-700">
-                                <span className="font-medium">Tiempo producción:</span>{" "}
-                                <span className="font-semibold">
-                                  {deliveryRange.minDays === deliveryRange.maxDays
-                                    ? `${deliveryRange.minDays} días`
-                                    : `${deliveryRange.minDays}-${deliveryRange.maxDays} días`}
-                                </span>
-                              </div>
-                              
-                              <div className="text-sm text-gray-900 font-medium">
-                                Tu pedido llegará entre el{" "}
-                                <span className="font-black">
-                                  {deliveryRange.startDate.toLocaleDateString("es-ES", {
-                                    day: "numeric",
-                                    month: "long",
-                                    year: "numeric",
-                                  })}
-                                </span>
-                                {deliveryRange.minDays !== deliveryRange.maxDays && (
-                                  <>
-                                    {" y el "}
-                                    <span className="font-black">
-                                      {deliveryRange.endDate.toLocaleDateString("es-ES", {
+                          {option.price_type === "calculated" &&
+                            deliveryRange && (
+                              <>
+                                <div className="text-sm text-gray-700">
+                                  <span className="font-medium">
+                                    Tiempo producción:
+                                  </span>{" "}
+                                  <span className="font-semibold">
+                                    {deliveryRange.minDays ===
+                                    deliveryRange.maxDays
+                                      ? `${deliveryRange.minDays} días`
+                                      : `${deliveryRange.minDays}-${deliveryRange.maxDays} días`}
+                                  </span>
+                                </div>
+
+                                <div className="text-sm text-gray-900 font-medium">
+                                  Tu pedido llegará entre el{" "}
+                                  <span className="font-black">
+                                    {deliveryRange.startDate.toLocaleDateString(
+                                      "es-ES",
+                                      {
                                         day: "numeric",
-                                        month: "long", 
+                                        month: "long",
                                         year: "numeric",
-                                      })}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                              
-                              <div className="text-xs text-gray-500 italic">
-                                si nadie la lía por el camino
-                              </div>
-                            </>
-                          )}
+                                      }
+                                    )}
+                                  </span>
+                                  {deliveryRange.minDays !==
+                                    deliveryRange.maxDays && (
+                                    <>
+                                      {" y el "}
+                                      <span className="font-black">
+                                        {deliveryRange.endDate.toLocaleDateString(
+                                          "es-ES",
+                                          {
+                                            day: "numeric",
+                                            month: "long",
+                                            year: "numeric",
+                                          }
+                                        )}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+
+                                <div className="text-xs text-gray-500 italic">
+                                  si nadie la lía por el camino
+                                </div>
+                              </>
+                            )}
 
                           {/* Para métodos flat rate */}
                           {option.price_type === "flat" && (
                             <div className="text-sm text-gray-700">
-                              {option.name.includes("Express") && "1-2 días laborales"}
-                              {option.name.includes("Standard") && "3-5 días laborales"}
-                              {option.name.includes("Recogida") && "Disponible para recogida"}
+                              {option.name.includes("Express") &&
+                                "1-2 días laborales"}
+                              {option.name.includes("Standard") &&
+                                "3-5 días laborales"}
+                              {option.name.includes("Recogida") &&
+                                "Disponible para recogida"}
                             </div>
                           )}
                         </div>
@@ -410,7 +429,7 @@ const Shipping: React.FC<ShippingProps> = ({
           data-testid="delivery-option-error-message"
         />
       </div>
-      
+
       <Divider className="mt-8" />
     </div>
   )

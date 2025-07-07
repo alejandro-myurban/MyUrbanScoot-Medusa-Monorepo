@@ -1,0 +1,83 @@
+{
+  "store": {
+    "title": "Medusa Store",
+    "tagline": "Votre Boutique Tout-en-Un"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "vinyls": "Autocollants en vinyle",
+    "categories": "Catégories",
+    "account": "Compte",
+    "cart": "Panier",
+    "lang": "Langue",
+    "search": "Rechercher",
+    "contact": "Contact",
+    "spare_parts": "Pièces Détachées",
+    "circuit_zone": "Zone Circuit",
+    "scoot": "Trottinettes",
+    "blog": "Blog",
+    "tooltip": {
+      "shippment": "🚚 Livraison gratuite sur les commandes de plus de 20 €",
+      "gift": "🎁 Cadeau gratuit sur les commandes de plus de 100 €",
+      "spare_parts": "🛠️ Pièces détachées exclusives pour votre trottinette"
+    }
+  },
+  "actions": {
+    "add_to_cart": "Ajouter au Panier",
+    "select_variant": "Sélectionner la Variante",
+    "buy_now": "Acheter Maintenant",
+    "checkout": "Commander",
+    "view_details": "Voir les Détails",
+    "select": "Sélectionner"
+  },
+  "checkout": {
+    "shipping_address": "Adresse de Livraison",
+    "delivery": "Livraison",
+    "payment": "Paiement",
+    "review": "Vérification",
+    "express_payment": "Paiement Express",
+    "safe_payment": "Toutes les transactions sont sécurisées et cryptées.",
+    "summary": {
+      "title": "Résumé de la Commande",
+      "discount": "Code de Réduction",
+      "apply": "Appliquer",
+      "subtotal": "Sous-total",
+      "shipping": "Livraison",
+      "total": "Total",
+      "terms": "J'ai lu et j'accepte les",
+      "terms_link": "conditions générales",
+      "free_shipping": "Livraison gratuite sur les commandes qui dépassent",
+      "free_shipping_amount_add": "Ajoutez",
+      "free_shipping_amount": "de plus pour la livraison gratuite",
+      "loyalty": "Points de Fidélité",
+      "loyalty_info": "Inscrivez-vous et commencez à gagner des points de fidélité à chaque achat !"
+    },
+    "shipping_address_form": {
+      "first_name": "Prénom",
+      "last_name": "Nom",
+      "company": "Entreprise (optionnel)",
+      "address_1": "Adresse",
+      "address_2": "Adresse 2 (optionnel)",
+      "city": "Ville",
+      "country": "Pays",
+      "state": "État/Province",
+      "postal_code": "Code Postal",
+      "phone_number": "Numéro de Téléphone",
+      "address_info": "Utiliser cette adresse pour la livraison"
+    },
+    "shipping_methods": {
+      "standard": "Livraison à Domicile",
+      "pickup": "Retrait en Magasin"
+    }
+  },
+  "login": {
+    "title": "Connexion",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "forgot_password": "Mot de passe oublié ?",
+    "login_button": "Continuer",
+    "register_link": "Vous n'avez pas de compte ?",
+    "register_button": "S'inscrire",
+    "google": "Se connecter avec Google"
+  }
+}

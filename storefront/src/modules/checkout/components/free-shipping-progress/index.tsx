@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Text } from "@medusajs/ui"
+import { useTranslation } from "react-i18next"
 
 interface FreeShippingProgressProps {
   currentAmount: number
@@ -15,15 +16,15 @@ export const FreeShippingProgress = ({
   const remaining = Math.max(0, freeShippingThreshold - currentAmount)
   const progress = Math.min(100, (currentAmount / freeShippingThreshold) * 100)
   const isEligible = currentAmount >= freeShippingThreshold
-
+    const { t } = useTranslation()
   return (
     <div
       className={`bg-gray-200 rounded-lg py-4 border font-archivo ${className}`}
     >
       {/* Título */}
       <div className="text-center mb-3">
-        <Text className="text-black/90 font-archivo text-base">
-          ENVÍO GRATIS PEDIDOS SUPERIORES A <span className="text-black font-bold">{freeShippingThreshold.toFixed(2)}€</span>
+        <Text className="text-black/90 font-archivo text-base uppercase">
+          {t("checkout.summary.free_shipping")} <span className="text-black font-bold"> {freeShippingThreshold.toFixed(2)}€</span>
         </Text>
       </div>
 
@@ -63,12 +64,12 @@ export const FreeShippingProgress = ({
             ¡ENVÍO GRATIS APLICADO! 🎉
           </Text>
         ) : (
-          <Text className="text-black/90 font-archivo text-base">
-            AÑADE{" "}
+          <Text className="text-black/90 font-archivo text-base uppercase">
+            {t("checkout.summary.free_shipping_amount_add")}{" "}
             <span className="font-bold text-black font-archivo">
               {remaining.toFixed(2)}€
             </span>{" "}
-            MÁS PARA OBTENER EL ENVÍO GRATIS
+            {t("checkout.summary.free_shipping_amount")}
           </Text>
         )}
       </div>

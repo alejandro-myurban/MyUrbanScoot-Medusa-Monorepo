@@ -18,7 +18,13 @@ export default function NavConditional({
 
   // Determinar si estamos en la página de inicio
   const isHomePage =
-    pathname === "/" || pathname === "/es" || pathname === "/en"
+    pathname === "/it" ||
+    pathname === "/es" ||
+    pathname === "/gb" ||
+    pathname === "/de" ||
+    pathname === "/fr" ||
+    pathname === "/pt" ||
+    pathname === "/nl"
 
   console.log("Pathname:", pathname, "Is Home:", isHomePage) // Para debug
 
