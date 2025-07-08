@@ -39,6 +39,7 @@ const Addresses = ({
   cart: HttpTypes.StoreCart | null
   customer: HttpTypes.StoreCustomer | null
 }) => {
+  const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
   const formRef = useRef<HTMLFormElement>(null)
@@ -58,6 +59,9 @@ const Addresses = ({
   const [showButton, setShowButton] = useState<boolean>(false)
   const { t } = useTranslation()
 
+  // Determinar si este step está activo
+  const isOpen = searchParams.get("step") === "address"
+
   const stripeReady = useContext(StripeContext)
   const stripe = stripeReady ? useStripe() : null
   const elements = stripeReady ? useElements() : null
@@ -70,6 +74,10 @@ const Addresses = ({
 
   const handleEdit = () => {
     router.push(pathname + "?step=address")
+  }
+
+  const navigateToNextStep = () => {
+    router.push(pathname + "?step=delivery")
   }
 
   const validateFormCompleteness = useCallback(() => {
@@ -877,7 +885,7 @@ const Addresses = ({
 
   const [message, formAction] = useFormState(setAddresses, null)
 
-  const handleSubmit = (formData: FormData) => {
+  const handleSubmit = async (formData: FormData) => {
     console.log("📝 Enviando formulario manual...")
 
     // Debug: mostrar datos que se están enviando
@@ -886,10 +894,48 @@ const Addresses = ({
       console.log(`  ${key}: ${value}`)
     })
 
+    // ⭐ CAPTURAR el estado de hasAutoSubmitted ANTES de resetearlo
+    const wasAutoSubmitted = hasAutoSubmitted
+
     setSubmitCount((prev) => prev + 1)
     setHasAutoSubmitted(false) // Reset para permitir futuros auto-submits
 
-    return formAction(formData)
+    const result = await formAction(formData)
+    
+    console.log("🔍 Debug después del formAction:", {
+      result,
+      wasAutoSubmitted,
+      resultType: typeof result
+    })
+    
+    // Si el formulario se completó exitosamente y fue auto-submitted, navegar al siguiente step
+    //@ts-ignore
+    if (!result && wasAutoSubmitted) {
+      console.log("✅ Auto-submit exitoso, verificando actualización...")
+      
+      // Verificar que el carrito tenga los datos actualizados antes de navegar
+      const checkCartUpdated = () => {
+        console.log("🔍 Verificando estado del cart:", {
+          hasShippingAddress: !!cart?.shipping_address,
+          firstName: cart?.shipping_address?.first_name,
+          email: cart?.email
+        })
+        
+        // Verificar que tanto shipping_address como email estén actualizados
+        if (cart?.shipping_address?.first_name && cart?.email) {
+          console.log("🔄 Cart actualizado correctamente, navegando a delivery...")
+          navigateToNextStep()
+        } else {
+          console.log("⏳ Cart aún no actualizado, esperando...")
+          setTimeout(checkCartUpdated, 500)
+        }
+      }
+      
+      // Empezar a verificar después de un pequeño delay inicial
+      setTimeout(checkCartUpdated, 500)
+    }
+
+    return result
   }
 
   // Skeleton mientras carga
@@ -927,7 +973,7 @@ const Addresses = ({
 
   return (
     <div className="bg-white">
-      {/* Express Checkout */}
+      {/* Express Checkout - solo mostrar cuando el step está activo */}
       {shouldShowExpressCheckout && (
         <div className="mb-6">
           <Heading
@@ -994,102 +1040,145 @@ const Addresses = ({
       <div className="flex flex-row items-center justify-between mb-6">
         <Heading
           level="h2"
-          className="flex flex-row text-2xl font-semibold font-archivoBlack uppercase gap-x-2 items-baseline"
+          className="flex flex-row text-2xl pt-6 font-semibold font-archivoBlack uppercase gap-x-2 items-baseline"
         >
           {t("checkout.shipping_address")}
+          {!isOpen && <CheckCircleSolid />}
         </Heading>
 
-        {/* <Text>
-          <button
-            onClick={handleEdit}
-            className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-            data-testid="edit-address-button"
-          >
-            Edit
-          </button>
-        </Text> */}
+        {!isOpen && cart?.shipping_address && (
+          <Text>
+            <button
+              onClick={handleEdit}
+              className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
+              data-testid="edit-address-button"
+            >
+              Edit
+            </button>
+          </Text>
+        )}
       </div>
 
-      <form ref={formRef} action={handleSubmit} key={submitCount}>
-        <div className="pb-8">
-          <ShippingAddress
-            customer={customer}
-            checked={sameAsBilling}
-            onChange={toggleSameAsBilling}
-            cart={cart}
-          />
+      {isOpen ? (
+        // Formulario activo
+        <form ref={formRef} action={handleSubmit} key={submitCount}>
+          <div className="pb-8">
+            <ShippingAddress
+              customer={customer}
+              checked={sameAsBilling}
+              onChange={toggleSameAsBilling}
+              cart={cart}
+            />
 
-          {!sameAsBilling && (
-            <div>
-              <Heading
-                level="h2"
-                className="text-3xl-regular gap-x-4 pb-6 pt-8"
-              >
-                DIRECCIÓN DE ENVÍO
-              </Heading>
-
-              <BillingAddress cart={cart} />
-            </div>
-          )}
-          {/* Botón manual como fallback */}
-          {(showButton || (!isFormComplete && submitCount > 0)) && (
-            <SubmitButton className="mt-6" data-testid="submit-address-button">
-              Actualizar datos
-            </SubmitButton>
-          )}
-          <ErrorMessage error={message} data-testid="address-error-message" />
-        </div>
-      </form>
-      <div>
-        <div className="text-small-regular">
-          {cart && cart.shipping_address ? (
-            <div className="flex items-start gap-x-8">
-              <div className="flex items-start gap-x-1 w-full">
-                {/* <div
-                  className="flex flex-col w-1/3"
-                  data-testid="shipping-address-summary"
+            {!sameAsBilling && (
+              <div>
+                <Heading
+                  level="h2"
+                  className="text-3xl-regular gap-x-4 pb-6 pt-8"
                 >
-                  <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                    Shipping Address
-                  </Text>
-                  <Text className="txt-medium text-ui-fg-subtle">
-                    {cart.shipping_address.first_name}{" "}
-                    {cart.shipping_address.last_name}
-                  </Text>
-                  <Text className="txt-medium text-ui-fg-subtle">
-                    {cart.shipping_address.address_1}{" "}
-                    {cart.shipping_address.address_2}
-                  </Text>
-                  <Text className="txt-medium text-ui-fg-subtle">
-                    {cart.shipping_address.postal_code},{" "}
-                    {cart.shipping_address.city}
-                  </Text>
-                  <Text className="txt-medium text-ui-fg-subtle">
-                    {cart.shipping_address.country_code?.toUpperCase()}
-                  </Text>
-                </div> */}
+                  DIRECCIÓN DE ENVÍO
+                </Heading>
 
-                {/* <div
-                  className="flex flex-col w-1/3 "
-                  data-testid="shipping-contact-summary"
-                >
-                  <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                    Contact
-                  </Text>
-                  <Text className="txt-medium text-ui-fg-subtle">
-                    {cart.shipping_address.phone}
-                  </Text>
-                  <Text className="txt-medium text-ui-fg-subtle">
-                    {cart.email}
-                  </Text>
-                </div> */}
+                <BillingAddress cart={cart} />
               </div>
-            </div>
-          ) : (
-            <div></div>
-          )}
+            )}
+            {/* Botón manual como fallback */}
+            {(showButton || (!isFormComplete && submitCount > 0)) && (
+              <SubmitButton className="mt-6" data-testid="submit-address-button">
+                Actualizar datos
+              </SubmitButton>
+            )}
+            <ErrorMessage error={message} data-testid="address-error-message" />
+          </div>
+        </form>
+      ) : (
+        // Vista de resumen cuando el step está completado
+        <div>
+          <div className="text-small-regular">
+            {cart && cart.shipping_address ? (
+              <div className="flex items-start gap-x-8">
+                <div className="flex items-start gap-x-1 w-full">
+                  <div
+                    className="flex flex-col w-1/3"
+                    data-testid="shipping-address-summary"
+                  >
+                    <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                      Shipping Address
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.shipping_address.first_name}{" "}
+                      {cart.shipping_address.last_name}
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.shipping_address.address_1}{" "}
+                      {cart.shipping_address.address_2}
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.shipping_address.postal_code},{" "}
+                      {cart.shipping_address.city}
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.shipping_address.country_code?.toUpperCase()}
+                    </Text>
+                  </div>
+
+                  <div
+                    className="flex flex-col w-1/3 "
+                    data-testid="shipping-contact-summary"
+                  >
+                    <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                      Contact
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.shipping_address.phone}
+                    </Text>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {cart.email}
+                    </Text>
+                  </div>
+
+                  <div
+                    className="flex flex-col w-1/3"
+                    data-testid="billing-address-summary"
+                  >
+                    <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                      Billing Address
+                    </Text>
+
+                    {sameAsBilling ? (
+                      <Text className="txt-medium text-ui-fg-subtle">
+                        Billing- and delivery address are the same.
+                      </Text>
+                    ) : (
+                      <>
+                        <Text className="txt-medium text-ui-fg-subtle">
+                          {cart.billing_address?.first_name}{" "}
+                          {cart.billing_address?.last_name}
+                        </Text>
+                        <Text className="txt-medium text-ui-fg-subtle">
+                          {cart.billing_address?.address_1}{" "}
+                          {cart.billing_address?.address_2}
+                        </Text>
+                        <Text className="txt-medium text-ui-fg-subtle">
+                          {cart.billing_address?.postal_code},{" "}
+                          {cart.billing_address?.city}
+                        </Text>
+                        <Text className="txt-medium text-ui-fg-subtle">
+                          {cart.billing_address?.country_code?.toUpperCase()}
+                        </Text>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <Spinner />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
       <Divider className="mt-8" />
     </div>
   )

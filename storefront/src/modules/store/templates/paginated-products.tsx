@@ -32,8 +32,8 @@ export default async function PaginatedProducts({
     return Array.isArray(param) ? param[0] : param
   }
 
-  const paramMin = extractParam(searchParams.minPrice)
-  const paramMax = extractParam(searchParams.maxPrice)
+  const paramMin = extractParam(searchParams?.minPrice)
+  const paramMax = extractParam(searchParams?.maxPrice)
 
   // Convertimos a números solo si son válidos
   const minPrice =
@@ -50,7 +50,7 @@ export default async function PaginatedProducts({
   console.log("- searchParams:", searchParams)
   console.log("- paramMin:", paramMin, "paramMax:", paramMax)
   console.log("- minPrice:", minPrice, "maxPrice:", maxPrice)
-  console.log("- Total productos recibidos:", allProducts.length)
+  console.log("- Total productos recibidos:", allProducts?.length)
 
   const region = await getRegion(countryCode)
   if (!region) {
@@ -106,7 +106,7 @@ export default async function PaginatedProducts({
     })
   }
 
-  console.log("- Productos después del filtro:", filteredProducts.length)
+  console.log("- Productos después del filtro:", filteredProducts?.length)
 
   // 2. APLICAR ORDENAMIENTO
   const sortedProducts = [...filteredProducts].sort((a, b) => {

@@ -17,7 +17,11 @@ const CartTemplate = ({
   customer: HttpTypes.StoreCustomer | null
 }) => {
   const itemCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0
+  
+  // Verificar múltiples condiciones para determinar si el carrito está vacío
+  const isCartEmpty = !cart || !cart.items || cart.items.length === 0 || itemCount === 0
 
+  console.log("CartTemplate RENDER", cart)
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -25,7 +29,7 @@ const CartTemplate = ({
           <ShoppingCart className="h-4 w-4" />
           {itemCount > 0 && (
             <Badge 
-              variant="destructive" 
+              variant="destructive"
               className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0"
             >
               {itemCount}
@@ -33,7 +37,7 @@ const CartTemplate = ({
           )}
         </Button>
       </SheetTrigger>
-      
+            
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="pb-4">
           <SheetTitle>Tu Carrito</SheetTitle>
@@ -43,7 +47,7 @@ const CartTemplate = ({
         </SheetHeader>
 
         <div className="flex flex-col h-full">
-          {cart?.items?.length ? (
+          {!isCartEmpty ? (
             <div className="flex flex-col gap-y-6 flex-1">
               {!customer && (
                 <>
@@ -51,11 +55,11 @@ const CartTemplate = ({
                   <Divider />
                 </>
               )}
-              
+                            
               <div className="flex-1 overflow-y-auto">
-                <ItemsTemplate items={cart?.items} />
+                <ItemsTemplate items={cart.items} />
               </div>
-              
+                            
               {cart && cart.region && (
                 <div className="border-t pt-4 mt-4">
                   <Summary cart={cart as any} />

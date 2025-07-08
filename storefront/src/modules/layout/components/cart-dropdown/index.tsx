@@ -109,6 +109,11 @@ const CartDropdown = ({
     return product?.thumbnail
   }
 
+  console.log("CartDropdown RENDER", {
+    totalItems,
+    cartState
+  })
+
   return (
     <div className="h-full z-50">
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -259,9 +264,9 @@ const CartDropdown = ({
                           })}
                         </span>
                       </div>
-
-                      <Button
-                        className={`
+                      <LocalizedClientLink href="/checkout">
+                        <Button
+                          className={`
                             w-full bg-black/90 mb-4
                             hover:from-blue-700 hover:to-purple-700
                             text-white font-semibold py-3 rounded-xl
@@ -269,10 +274,11 @@ const CartDropdown = ({
                             hover:scale-[1.02] hover:shadow-lg
                             active:scale-[0.98]
                           `}
-                        size="large"
-                      >
-                        Ir a Pagar
-                      </Button>
+                          size="large"
+                        >
+                          Ir a Pagar
+                        </Button>
+                      </LocalizedClientLink>
 
                       <SheetTrigger asChild>
                         <Button
@@ -297,14 +303,14 @@ const CartDropdown = ({
                       <ShoppingBag className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-gray-500 mb-4">Tu carrito está vacío</p>
-                    <LocalizedClientLink href="/store">
+                    {/* <LocalizedClientLink href="/">
                       <Button
                         onClick={close}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
                         Explorar Productos
                       </Button>
-                    </LocalizedClientLink>
+                    </LocalizedClientLink> */}
                   </div>
                 )}
               </Popover.Panel>
@@ -339,7 +345,11 @@ const CartDropdown = ({
                       <motion.div
                         initial={{ rotate: -180, scale: 0 }}
                         animate={{ rotate: 0, scale: 1 }}
-                        transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
+                        transition={{
+                          delay: 0.3,
+                          duration: 0.5,
+                          ease: "easeOut",
+                        }}
                       >
                         <ShoppingBag className="w-8 h-8 text-black/90" />
                       </motion.div>
@@ -385,15 +395,22 @@ const CartDropdown = ({
                           showQuantityControls={true}
                         />
                       </motion.div>
-                      
+
                       {cartState && cartState.region && (
                         <motion.div
                           initial={{ y: 100, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.5, duration: 0.6, ease: "easeOut" }}
+                          transition={{
+                            delay: 0.5,
+                            duration: 0.6,
+                            ease: "easeOut",
+                          }}
                           className="border-t pt-4 mt-4 bg-white/80 backdrop-blur-sm rounded-t-xl -mx-6 px-6 animate-in slide-in-from-bottom duration-500"
                         >
-                          <Summary cart={cartState as any} showDiscount={false} />
+                          <Summary
+                            cart={cartState as any}
+                            showDiscount={false}
+                          />
                           {/* Botón de checkout */}
                         </motion.div>
                       )}
