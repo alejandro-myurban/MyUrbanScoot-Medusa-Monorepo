@@ -12,6 +12,7 @@ import { Button, Container, Heading, Text, clx } from "@medusajs/ui"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import { StripeContext } from "@modules/checkout/components/payment-wrapper/stripe-wrapper"
 import Divider from "@modules/common/components/divider"
+import Spinner from "@modules/common/icons/spinner"
 import { PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js"
 import { StripePaymentElementChangeEvent } from "@stripe/stripe-js"
 import { Mailbox } from "lucide-react"
@@ -68,6 +69,7 @@ const Payment = ({
   const pathname = usePathname()
   const isMobile = useIsMobile()
 
+  // Determinar si este step está activo
   const isOpen = searchParams.get("step") === "payment"
   const stripeReady = useContext(StripeContext)
 
@@ -172,6 +174,10 @@ const Payment = ({
     router.push(pathname + "?" + createQueryString("step", "payment"), {
       scroll: false,
     })
+  }
+
+  const navigateToNextStep = () => {
+    router.push(pathname + "?step=review", { scroll: false })
   }
 
   const stripe = stripeReady ? useStripe() : null
@@ -404,21 +410,29 @@ const Payment = ({
 
   return (
     <div className="bg-white">
-      <div className="flex flex-col items-start justify-start gap-2 mb-6">
-        <Heading
-          level="h2"
-          className={clx(
-            "flex flex-row text-2xl font-semibold font-archivoBlack uppercase gap-x-2 items-baseline",
-            {
-              "opacity-50 pointer-events-none select-none":
-                !isOpen && !paymentReady,
-            }
+      <div className="flex flex-row items-center justify-between mb-6">
+        <div className="flex flex-col items-start justify-start gap-2">
+          <Heading
+            level="h2"
+            className={clx(
+              "flex flex-row text-2xl font-semibold font-archivoBlack uppercase gap-x-2 items-baseline",
+              {
+                "opacity-50 pointer-events-none select-none":
+                  !isOpen && !paymentReady,
+              }
+            )}
+          >
+            {t("checkout.payment")}
+            {!isOpen && paymentReady && <CheckCircleSolid />}
+          </Heading>
+          {isOpen && (
+            <p className="text-gray-400 font-archivo">
+              {t("checkout.safe_payment")}
+            </p>
           )}
-        >
-          {t("checkout.payment")}
-        </Heading>
-        <p className="text-gray-400 font-archivo">{(t("checkout.safe_payment"))}</p>
-        {/* {paymentReady && (
+        </div>
+
+        {!isOpen && paymentReady && (
           <Text>
             <button
               onClick={handleEdit}
@@ -428,11 +442,12 @@ const Payment = ({
               Edit
             </button>
           </Text>
-        )} */}
+        )}
       </div>
 
-      <div>
-        <div className={isOpen ? "block" : "block"}>
+      {isOpen ? (
+        // Formulario activo
+        <div>
           {!paidByGiftcard && (
             <>
               {/* Mensaje de procesamiento */}
@@ -570,62 +585,84 @@ const Payment = ({
             {getButtonText()}
           </Button>
         </div>
+      ) : (
+        // Vista de resumen cuando el step está completado
+        <div>
+          <div className="text-small-regular">
+            {paymentReady && activeSession ? (
+              <div className="flex items-start gap-x-8">
+                <div
+                  className="flex flex-col w-1/2"
+                  data-testid="payment-method-summary"
+                >
+                  <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                    Método de pago
+                  </Text>
+                  <Text className="txt-medium text-ui-fg-subtle">
+                    {selectedProvider === "pp_stripe_stripe"
+                      ? "Tarjeta de Crédito/Débito"
+                      : "Contrareembolso"}
+                  </Text>
+                  {selectedProvider === "pp_system_default" && hasCodFee && (
+                    <Text className="txt-small text-ui-fg-subtle">
+                      Cargo COD: +5,00€
+                    </Text>
+                  )}
+                </div>
 
-        {/* Vista resumen cuando no está abierto */}
-        {/* <div className={isOpen ? "hidden" : "block"}>
-          {currentCart && paymentReady && activeSession ? (
-            <div className="flex items-start gap-x-1 w-full">
-              <div className="flex flex-col w-1/3">
+                <div
+                  className="flex flex-col w-1/2"
+                  data-testid="payment-status-summary"
+                >
+                  <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                    Estado
+                  </Text>
+                  <div className="flex items-center gap-2">
+                    <Container className="flex items-center h-7 w-fit p-2 bg-ui-button-neutral-hover">
+                      {selectedProvider === "pp_stripe_stripe" ? (
+                        <CreditCard className="w-4 h-4" />
+                      ) : (
+                        <Mailbox className="w-4 h-4" />
+                      )}
+                    </Container>
+                    <Text className="txt-medium text-ui-fg-subtle">
+                      {selectedProvider === "pp_stripe_stripe"
+                        ? "Listo para pagar"
+                        : "Pago contra reembolso"}
+                    </Text>
+                  </div>
+                </div>
+              </div>
+            ) : paidByGiftcard ? (
+              <div className="flex flex-col w-1/2">
                 <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                  Payment method
+                  Método de pago
                 </Text>
                 <Text
                   className="txt-medium text-ui-fg-subtle"
                   data-testid="payment-method-summary"
                 >
-                  {selectedProvider === "pp_stripe_stripe"
-                    ? "Tarjeta de Crédito/Débito"
-                    : "Contrareembolso"}
+                  Gift card
                 </Text>
               </div>
-              <div className="flex flex-col w-1/3">
-                <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                  Payment details
-                </Text>
-                <div
-                  className="flex txt-medium text-ui-fg-subtle items-center"
-                  data-testid="payment-details-summary"
-                >
-                  <Container className="flex items-center h-7 w-fit p-2 bg-ui-button-neutral-hover">
-                    {selectedProvider === "pp_stripe_stripe" ? (
-                      <CreditCard className="w-5 h-5" />
-                    ) : (
-                      <Mailbox className="w-5 h-5" />
-                    )}
-                  </Container>
-                  <Text>
-                    {selectedProvider === "pp_stripe_stripe"
-                      ? "Ready to pay"
-                      : "Cash on delivery"}
-                  </Text>
-                </div>
+            ) : (
+              // Solo mostrar spinner/mensaje si estamos en steps posteriores o en payment
+              <div>
+                {searchParams.get("step") === "review" ||
+                searchParams.get("step") === "payment" ? (
+                  <Spinner />
+                ) : (
+                  // Si aún no hemos llegado al step de payment, mostrar mensaje
+                  <div className="text-gray-400 font-archivo text-base">
+                    Completa los pasos anteriores para configurar el pago.
+                  </div>
+                )}
               </div>
-            </div>
-          ) : paidByGiftcard ? (
-            <div className="flex flex-col w-1/3">
-              <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                Payment method
-              </Text>
-              <Text
-                className="txt-medium text-ui-fg-subtle"
-                data-testid="payment-method-summary"
-              >
-                Gift card
-              </Text>
-            </div>
-          ) : null}
-        </div> */}
-      </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <Divider className="mt-8" />
     </div>
   )

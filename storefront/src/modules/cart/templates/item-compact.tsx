@@ -1,7 +1,7 @@
 "use client"
 
 import { clx } from "@medusajs/ui"
-import { updateLineItem } from "@lib/data/cart"
+import { updateLineItem, deleteLineItem, deleteRelatedItems } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"
 import { getProductsById } from "@lib/data/products"
 import CartItemSelect from "@modules/cart/components/cart-item-select"
@@ -27,6 +27,7 @@ const CompactItem = ({
   index = 0 
 }: CompactItemProps) => {
   const [updating, setUpdating] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [productData, setProductData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -106,6 +107,20 @@ const CompactItem = ({
       })
   }
 
+  // Nueva función para eliminar el item correctamente
+  const handleDelete = async () => {
+    setError(null)
+    setDeleting(true)
+    
+    try {
+      await deleteRelatedItems(item.id)
+      await deleteLineItem(item.id)
+    } catch (err: any) {
+      setError(err.message)
+      setDeleting(false)
+    }
+  }
+
   const incrementQuantity = () => {
     if (item.quantity < 10) {
       changeQuantity(item.quantity + 1)
@@ -178,7 +193,7 @@ const CompactItem = ({
               <div className="flex items-center border border-gray-200 rounded-lg bg-white/80 backdrop-blur-sm">
                 <button
                   onClick={decrementQuantity}
-                  disabled={item.quantity <= 1 || updating}
+                  disabled={item.quantity <= 1 || updating || deleting}
                   className="p-1.5 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-l-lg"
                 >
                   <Minus className="w-3 h-3" />
@@ -190,27 +205,31 @@ const CompactItem = ({
                 
                 <button
                   onClick={incrementQuantity}
-                  disabled={item.quantity >= 10 || updating}
+                  disabled={item.quantity >= 10 || updating || deleting}
                   className="p-1.5 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-r-lg"
                 >
                   <Plus className="w-3 h-3" />
                 </button>
               </div>
 
-              {updating && (
+              {(updating || deleting) && (
                 <div className="flex items-center justify-center">
                   <Spinner />
                 </div>
               )}
             </div>
 
-            {/* Botón eliminar compacto */}
+            {/* Botón eliminar corregido */}
             <button
-              onClick={() => changeQuantity(0)}
+              onClick={handleDelete}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200 group/delete"
-              disabled={updating}
+              disabled={updating || deleting}
             >
-              <Trash2 className="w-4 h-4 group-hover/delete:scale-110 transition-transform" />
+              {deleting ? (
+                <Spinner className="w-4 h-4" />
+              ) : (
+                <Trash2 className="w-4 h-4 group-hover/delete:scale-110 transition-transform" />
+              )}
             </button>
           </div>
         )}

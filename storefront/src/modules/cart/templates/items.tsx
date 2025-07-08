@@ -3,15 +3,23 @@ import { HttpTypes } from "@medusajs/types"
 import { Heading, Table } from "@medusajs/ui"
 
 import Item from "@modules/cart/components/item"
-import MobileCartItem from "@modules/cart/components/mobile-item" // Nuevo componente
+import MobileCartItem from "@modules/cart/components/mobile-item"
 import SkeletonLineItem from "@modules/skeletons/components/skeleton-line-item"
-import SkeletonMobileLineItem from "@modules/skeletons/components/skeleton-mobile-line-item" // Nuevo skeleton
+import SkeletonMobileLineItem from "@modules/skeletons/components/skeleton-mobile-line-item"
 
 type ItemsTemplateProps = {
   items?: HttpTypes.StoreCartLineItem[]
 }
 
 const ItemsTemplate = ({ items }: ItemsTemplateProps) => {
+  // Si items es undefined, mostrar skeleton (estado de carga)
+  // Si items es un array vacío, no renderizar nada (carrito vacío)
+
+  console.log("ItemsTemplate RENDER", items)
+  if (items && items.length === 0) {
+    return null
+  }
+
   const sortedItems = items
     ? items.sort((a, b) => {
         return (a.created_at ?? "") > (b.created_at ?? "") ? -1 : 1

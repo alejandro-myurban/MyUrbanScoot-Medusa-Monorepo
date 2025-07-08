@@ -8,6 +8,16 @@ import { useSearchParams } from "next/navigation"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { addToCart } from "@lib/data/cart"
 import { PriceRangeFilter } from "../components/price-filter"
+import {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/src/components/ui/breadcrumb"
+import { ChevronRight, Home } from "lucide-react"
 
 interface SparePartsTemplateProps {
   products: HttpTypes.StoreProduct[]
@@ -40,10 +50,16 @@ export default function SparePartsTemplate({
   console.log("MARCAS (hijos de Modelos Recambios)", brands)
   console.log("CATEGORIA PADRE", parentCategory)
 
+  // Obtener la colección seleccionada para el breadcrumb
+  const selectedCollectionId = params.get("collection")
+  const selectedCollection = sparePartsTypes.find(
+    (col) => col.id === selectedCollectionId
+  )
+
   // NUEVO: Función para extraer pulgadas del título del producto
   const extractInchesFromTitle = (title: string): string[] => {
-    // Sólo números (con coma o punto) justo antes de ''  ″ o ”
-    const inchRegex = /(\d+(?:[.,]\d+)?)(?=\s*(?:''|″|”))/g
+    // Sólo números (con coma o punto) justo antes de ''  ″ o "
+    const inchRegex = /(\d+(?:[.,]\d+)?)(?=\s*(?:''|″|"))/g
 
     const matches = Array.from(title.matchAll(inchRegex), (m) =>
       // Normalizar coma decimal y quedarnos sólo con el número
@@ -284,11 +300,49 @@ export default function SparePartsTemplate({
 
   return (
     <div className="content-container py-6">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-ui-fg-base mb-4">
+      {/* Breadcrumb */}
+      <div className="mb-6">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                href={`/${countryCode}`}
+                className="flex items-center gap-1"
+              >
+                Inicio
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator>
+              <ChevronRight className="h-4 w-4" />
+            </BreadcrumbSeparator>
+            <BreadcrumbItem>
+              {selectedCollection ? (
+                <BreadcrumbLink href={`/${countryCode}/spare-parts`}>
+                  Recambios
+                </BreadcrumbLink>
+              ) : (
+                <BreadcrumbPage className="font-bold">Recambios</BreadcrumbPage>
+              )}
+            </BreadcrumbItem>
+            {selectedCollection && (
+              <>
+                <BreadcrumbSeparator>
+                  <ChevronRight className="h-4 w-4" />
+                </BreadcrumbSeparator>
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="font-bold">{selectedCollection.title}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </>
+            )}
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+
+      <div className="mb-8 text-left">
+        <h1 className="text-[30px] font-bold pb-4  text-ui-fg-base font-archivoBlack mb-4 uppercase">
           Repuestos y Accesorios
         </h1>
-        <p className="text-ui-fg-subtle max-w-2xl mx-auto">
+        <p className="text-ui-fg-subtle font-archivo max-w-2xl">
           Encuentra los mejores repuestos para tu patinete eléctrico. Filtra por
           tipo de repuesto, marca y modelo para encontrar exactamente lo que
           necesitas.
@@ -366,7 +420,7 @@ export default function SparePartsTemplate({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar de filtros */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg border p-6 sticky top-4">
+          <div className="bg-white rounded-lg py-6 pr-4 sticky top-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Filtros</h3>
               <button
@@ -528,6 +582,7 @@ export default function SparePartsTemplate({
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredProducts.map((product) => (
                 <div
+                  onClick={() => router.push(`/${countryCode}/producto/${product.handle}`)}
                   key={product.id}
                   className="bg-white rounded-lg border overflow-hidden hover:shadow-md transition-shadow"
                 >
@@ -556,8 +611,8 @@ export default function SparePartsTemplate({
                       const price = getProductPrice(product)
                       if (price !== null) {
                         return (
-                          <div className="text-lg font-semibold text-ui-fg-base mb-2">
-                            {`${price.toFixed(2)}€`}
+                          <div className=" font-archivoBlack font-bold sm:text-2xl text-ui-fg-base mb-2">
+                            {`${price.toFixed(2)} €`}
                           </div>
                         )
                       }
@@ -577,36 +632,14 @@ export default function SparePartsTemplate({
                       </div>
                     )}
 
-                    {/* Marca y tipo de repuesto */}
-                    {/* <div className="flex flex-wrap gap-1 mb-3">
-                      {product.categories?.map((cat) => (
-                        <span
-                          key={cat.id}
-                          className="text-xs bg-ui-bg-base rounded px-2 py-1"
-                        >
-                          {cat.name}
-                        </span>
-                      ))}
-                      {product.collection && (
-                        <span className="text-xs bg-ui-tag-blue-bg text-ui-tag-blue-text rounded px-2 py-1">
-                          {product.collection.title}
-                        </span>
-                      )}
-                    </div> */}
-
                     {/* Botón de acción */}
                     <div className="flex flex-col gap-2">
-                      <button
+                      {/* <button
                         onClick={() => handleAddToCart(product)}
                         className="w-full border-2 text-black border-mysGreen-100 py-2 rounded-lg hover:bg-ui-bg-interactive-hover transition-colors"
                       >
                         Añadir al carrito
-                      </button>
-                      <LocalizedClientLink href={`/producto/${product.handle}`}>
-                        <button className="w-full py-2 rounded-lg border-2 text-black border-mysGreen-100 hover:bg-ui-bg-interactive-hover transition-colors">
-                          Ver detalles
-                        </button>
-                      </LocalizedClientLink>
+                      </button> */}
                     </div>
                   </div>
                 </div>

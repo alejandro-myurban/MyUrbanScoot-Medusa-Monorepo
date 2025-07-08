@@ -175,7 +175,7 @@ export default async function CategoryTemplate({
 
       <div className="w-full">
         <div className="">
-          <h1 className="text-2xl-semi font-archivoBlack uppercase" data-testid="category-page-title">
+          <h1 className="text-2xl-semi pb-4 font-archivoBlack uppercase" data-testid="category-page-title">
             {category.name}
           </h1>
 
