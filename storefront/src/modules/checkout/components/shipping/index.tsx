@@ -481,26 +481,26 @@ const Shipping: React.FC<ShippingProps> = ({
         <div>
           <div className="text-small-regular">
             {(cart.shipping_methods?.length ?? 0) > 0 ? (
-              <div className="flex items-start gap-x-8">
-                <div className="flex flex-col w-1/2" data-testid="delivery-method-summary">
-                  <Text className="txt-medium-plus text-ui-fg-base mb-1">
+              <div className="flex items-start flex-col sm:flex-row gap-x-0 gap-y-8">
+                <div className="flex flex-col w-1/3" data-testid="delivery-method-summary">
+                  <Text className="font-semibold font-archivo text-ui-fg-base mb-1">
                     Método de envío
                   </Text>
-                  <Text className="txt-medium text-ui-fg-subtle">
+                  <Text className="txt-medium font-archivo text-ui-fg-subtle">
                     {selectedShippingMethod?.name || "Método seleccionado"}
                   </Text>
-                  <Text className="txt-medium text-ui-fg-subtle">
+                  <Text className="txt-medium font-archivo text-ui-fg-subtle">
                     {selectedShippingMethod && getShippingOptionPrice(selectedShippingMethod)}
                   </Text>
                 </div>
 
                 {/* Mostrar información de entrega si es calculated */}
                 {isCalculatedShippingSelected && deliveryRange && (
-                  <div className="flex flex-col w-1/2" data-testid="delivery-estimate-summary">
-                    <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                  <div className="flex flex-col w-1/3" data-testid="delivery-estimate-summary">
+                    <Text className="font-semibold font-archivo text-ui-fg-base mb-1">
                       Fecha estimada de entrega
                     </Text>
-                    <Text className="txt-medium text-ui-fg-subtle">
+                    <Text className="txt-medium font-archivo text-ui-fg-subtle">
                       {deliveryRange.minDays === deliveryRange.maxDays 
                         ? deliveryRange.startDate.toLocaleDateString("es-ES", {
                             day: "numeric",
