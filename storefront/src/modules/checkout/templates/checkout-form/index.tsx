@@ -1,12 +1,17 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { createPaymentCollection, initiatePaymentSession, retrieveCart } from "@lib/data/cart"
+import {
+  createPaymentCollection,
+  initiatePaymentSession,
+  retrieveCart,
+} from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"
 import Addresses from "@modules/checkout/components/addresses"
 import Payment from "@modules/checkout/components/payment"
 import Review from "@modules/checkout/components/review"
 import Shipping from "@modules/checkout/components/shipping"
+import { ExpressCheckoutSkeleton } from "@/modules/skeletons/components/skeleton-express-checkout"
 
 interface CheckoutFormProps {
   initialCart: HttpTypes.StoreCart | null
@@ -18,10 +23,10 @@ interface CheckoutFormProps {
 // Función para verificar si el carrito ya tiene una sesión de Stripe válida
 const hasValidStripeSession = (cart: any): boolean => {
   if (!cart?.payment_collection?.payment_sessions) return false
-  
+
   return cart.payment_collection.payment_sessions.some(
-    (session: any) => 
-      session.provider_id === "pp_stripe_stripe" && 
+    (session: any) =>
+      session.provider_id === "pp_stripe_stripe" &&
       session.status === "pending" &&
       session.data?.client_secret // Verificar que tiene client_secret
   )
@@ -31,10 +36,10 @@ const hasValidStripeSession = (cart: any): boolean => {
 const needsStripeInitialization = (cart: any): boolean => {
   // Si no hay payment collection, definitivamente necesitamos inicializar
   if (!cart?.payment_collection) return true
-  
+
   // Si no hay sesión de Stripe válida, necesitamos inicializar
   if (!hasValidStripeSession(cart)) return true
-  
+
   return false
 }
 
@@ -57,9 +62,11 @@ export default function CheckoutForm({
 
       // Verificar si realmente necesitamos inicializar
       const needsInit = needsStripeInitialization(cart)
-      
+
       if (!needsInit) {
-        console.log("✅ Stripe ya está correctamente inicializado para este carrito")
+        console.log(
+          "✅ Stripe ya está correctamente inicializado para este carrito"
+        )
         return
       }
 
@@ -71,7 +78,7 @@ export default function CheckoutForm({
 
       initializationAttempted.current = true
       setIsInitializing(true)
-      
+
       try {
         console.log("🔄 Inicializando Stripe porque es necesario...")
 
@@ -100,7 +107,6 @@ export default function CheckoutForm({
           setCart(refreshedCart)
           console.log("✅ Stripe inicializado correctamente")
         }
-
       } catch (error) {
         console.error("❌ Error inicializando Stripe:", error)
         initializationAttempted.current = false // Permitir reintento en caso de error
@@ -118,11 +124,11 @@ export default function CheckoutForm({
       console.log("🔄 Actualizando carrito:", {
         cartId: initialCart.id,
         hasPaymentCollection: !!initialCart.payment_collection,
-        hasStripeSession: hasValidStripeSession(initialCart)
+        hasStripeSession: hasValidStripeSession(initialCart),
       })
-      
+
       setCart(initialCart)
-      
+
       // Reset del flag si el carrito cambió significativamente
       if (initialCart.id !== cart?.id) {
         initializationAttempted.current = false
@@ -134,7 +140,7 @@ export default function CheckoutForm({
   useEffect(() => {
     console.log("🔄 CheckoutForm montado/re-montado")
     // No resetear initializationAttempted aquí para evitar re-inicializaciones
-    
+
     return () => {
       console.log("🔄 CheckoutForm desmontado")
     }
@@ -152,16 +158,12 @@ export default function CheckoutForm({
     <div>
       {/* Indicador de inicialización */}
       {isInitializing && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <span className="text-blue-700 text-sm">
-            🔄 Configurando métodos de pago...
-          </span>
-        </div>
+        <ExpressCheckoutSkeleton />
       )}
 
       <div className="w-full grid grid-cols-1 gap-y-8">
         <div>
-          <Addresses cart={cart} customer={customer} /> 
+          <Addresses cart={cart} customer={customer} />
         </div>
 
         <div>
@@ -169,13 +171,13 @@ export default function CheckoutForm({
         </div>
 
         <div>
-          <Payment 
-            cart={cart} 
+          <Payment
+            cart={cart}
             availablePaymentMethods={paymentMethods}
             onCartUpdate={setCart}
           />
         </div>
-{/* 
+        {/* 
         <div>
           <Review cart={cart} />
         </div> */}

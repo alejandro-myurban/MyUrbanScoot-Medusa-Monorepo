@@ -974,7 +974,7 @@ const Addresses = ({
   return (
     <div className="bg-white">
       {/* Express Checkout - solo mostrar cuando el step está activo */}
-      {shouldShowExpressCheckout && (
+      {isOpen && shouldShowExpressCheckout && (
         <div className="mb-6">
           <Heading
             level="h2"
@@ -1094,59 +1094,59 @@ const Addresses = ({
       ) : (
         // Vista de resumen cuando el step está completado
         <div>
-          <div className="text-small-regular">
+          <div className="text-small-regular ">
             {cart && cart.shipping_address ? (
               <div className="flex items-start gap-x-8">
-                <div className="flex items-start gap-x-1 w-full">
+                <div className="flex flex-col sm:flex-row items-start gap-x-1 gap-y-8 w-full">
                   <div
-                    className="flex flex-col w-1/3"
+                    className="flex flex-col w-full sm:w-1/3"
                     data-testid="shipping-address-summary"
                   >
-                    <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                    <Text className="font-semibold font-archivo text-ui-fg-base mb-1">
                       Shipping Address
                     </Text>
-                    <Text className="txt-medium text-ui-fg-subtle">
+                    <Text className="txt-medium font-archivo text-ui-fg-subtle">
                       {cart.shipping_address.first_name}{" "}
                       {cart.shipping_address.last_name}
                     </Text>
-                    <Text className="txt-medium text-ui-fg-subtle">
+                    <Text className="txt-medium font-archivo text-ui-fg-subtle">
                       {cart.shipping_address.address_1}{" "}
                       {cart.shipping_address.address_2}
                     </Text>
-                    <Text className="txt-medium text-ui-fg-subtle">
+                    <Text className="txt-medium font-archivo text-ui-fg-subtle">
                       {cart.shipping_address.postal_code},{" "}
                       {cart.shipping_address.city}
                     </Text>
-                    <Text className="txt-medium text-ui-fg-subtle">
+                    <Text className="txt-medium font-archivo text-ui-fg-subtle">
                       {cart.shipping_address.country_code?.toUpperCase()}
                     </Text>
                   </div>
 
                   <div
-                    className="flex flex-col w-1/3 "
+                    className="flex flex-col w-full sm:w-1/3 "
                     data-testid="shipping-contact-summary"
                   >
-                    <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                    <Text className="font-semibold font-archivo  text-ui-fg-base mb-1">
                       Contact
                     </Text>
-                    <Text className="txt-medium text-ui-fg-subtle">
+                    <Text className="txt-medium  font-archivo text-ui-fg-subtle">
                       {cart.shipping_address.phone}
                     </Text>
-                    <Text className="txt-medium text-ui-fg-subtle">
+                    <Text className="txt-medium  font-archivo text-ui-fg-subtle">
                       {cart.email}
                     </Text>
                   </div>
 
                   <div
-                    className="flex flex-col w-1/3"
+                    className="flex flex-col w-full sm:w-1/3"
                     data-testid="billing-address-summary"
                   >
-                    <Text className="txt-medium-plus text-ui-fg-base mb-1">
+                    <Text className="font-semibold font-archivo text-ui-fg-base mb-1">
                       Billing Address
                     </Text>
 
                     {sameAsBilling ? (
-                      <Text className="txt-medium text-ui-fg-subtle">
+                      <Text className="txt-medium font-archivo text-ui-fg-subtle">
                         Billing- and delivery address are the same.
                       </Text>
                     ) : (
