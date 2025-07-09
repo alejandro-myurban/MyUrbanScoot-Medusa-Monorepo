@@ -37,6 +37,7 @@
     "review": "Review",
     "express_payment": "Express Payment",
     "safe_payment": "All transactions are secured and encrypted.",
+    "edit": "Edit",
     "summary" : {
       "title": "Order Summary",
       "discount": "Discount Code",
@@ -68,6 +69,12 @@
     "shipping_methods" : {
       "standard": "Home Delivery",
       "pickup": "In-Store Pickup"
+    },
+    "address_info": {
+      "shipping_address": "Shipping Address",
+      "billing_address": "Billing Address",
+      "same_as_shipping": "Same as Shipping Address",
+      "contact" : "Contact"
     }
   },
   "login": {
