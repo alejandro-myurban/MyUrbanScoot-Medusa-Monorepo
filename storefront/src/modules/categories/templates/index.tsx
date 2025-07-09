@@ -25,6 +25,8 @@ import {
   SubcategoryCard,
   SubcategoryCardLight,
 } from "../components/subcategory-card"
+import ScootersFilters from "@/modules/common/components/scooters-filters"
+import ScootersFiltersWrapper from "@/modules/products/components/scooters-filter-wrapped"
 
 // Componente para las cards de subcategorías
 
@@ -202,6 +204,10 @@ export default async function CategoryTemplate({
             <div className="flex flex-col gap-4 w-full md:w-[250px] md:flex-shrink-0">
               <RefinementList sortBy={sort} data-testid="sort-by-container" />
               <PriceFilterWrapper products={allProducts} />
+
+              {category.handle === "patinetes-electricos" && (
+                <ScootersFiltersWrapper allProducts={allProducts} />
+              )}
 
               {/* Mostrar subcategorías como lista si existen */}
               {category.category_children &&

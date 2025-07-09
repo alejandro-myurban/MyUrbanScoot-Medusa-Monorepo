@@ -50,14 +50,14 @@ const BoughtTogetherWidget = ({ data }) => {
 
   // ─── Query de productos ────────────────────────────────────
   const { data: productsData, isLoading } = useQuery<
-    { products: { id: string; title: string }[] },
+    { products: { id: string; title: string; variants?: { prices?: { amount: number; currency_code: string }[] }[] }[] },
     Error
   >({
     queryKey: ["products", debouncedSearch],
     queryFn: () =>
       sdk.admin.product.list({
         q: debouncedSearch,
-        fields: "id,title",
+        fields: "id,title,variants.id,variants.title,variants.prices.amount,variants.prices.currency_code",
         limit: 50,
       }),
     placeholderData: (prev) => prev,
@@ -224,6 +224,30 @@ const BoughtTogetherWidget = ({ data }) => {
         })}
         </div>
 
+      {/* <div className="mb-4 space-y-5">
+        {selectedIds.map((id) => {
+          const prod = productsData?.products.find((p) => p.id === id)
+          const discountPercent = discounts[id] ?? 0
+
+          // Asumimos que usamos la primera variante del producto
+          const variant = prod?.variants?.[0]
+          const price = variant?.prices?.[0]?.amount ?? 0
+          const currency = variant?.prices?.[0]?.currency_code?.toUpperCase() ?? "USD"
+
+          console.log(price)
+          const formattedPrice = (price).toFixed(2)
+          const discountedPrice = ((price * (1 - discountPercent / 100))).toFixed(2)
+
+          return (
+            <div key={id}>
+              <Heading>{prod?.title ?? id}</Heading>
+              <h2>Sin descuento: {currency} {formattedPrice}</h2>
+              <h2>Con descuento: {currency} {discountedPrice}</h2>
+            </div>
+          )
+        })}
+      </div> */}
+      
       {/* Botón de guardar */}
       <Button onClick={handleSave} disabled={mutation.isPending}>
         {mutation.isPending ? "Guardando…" : "Guardar configuración"}
