@@ -7,16 +7,23 @@ export default function CheckoutLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="w-full bg-white relative small:min-h-screen">
-      <div className="h-16 bg-white border-b ">
+    <div className="w-full bg-white relative min-h-screen flex flex-col">
+      {/* Header fijo */}
+      <div className="h-16 bg-white border-b flex-shrink-0">
         <Nav />
       </div>
-      <div className="relative" data-testid="checkout-container">
+      
+      {/* Contenido principal que crece */}
+      <div className="relative flex-1" data-testid="checkout-container">
         {children}
       </div>
-      <div className="py-6 w-full flex items-center justify-center flex-col gap-2">
-        <img src="/logomys.png" className=" w-full sm:w-2/6 px-6" />
-        <small className="text-gray-500"> &copy; Todos los derechos reservados. MyUrbanScoot 2025.</small>
+      
+      {/* Footer que se pega abajo */}
+      <div className="py-6 w-full flex items-center justify-center flex-col gap-2 flex-shrink-0">
+        <img src="/logomys.png" className="w-full sm:w-2/6 px-6" />
+        <small className="text-gray-500">
+          &copy; Todos los derechos reservados. MyUrbanScoot 2025.
+        </small>
       </div>
     </div>
   )
