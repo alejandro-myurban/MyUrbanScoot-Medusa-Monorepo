@@ -41,7 +41,7 @@ export default async function Checkout() {
   }
   
   return (
-    <div className="w-full min-h-screen">
+    <div className="w-full">
       {/* Layout para mobile */}
       <div className="block small:hidden">
         {/* Resumen sticky en mobile */}
@@ -83,7 +83,7 @@ export default async function Checkout() {
           {/* Columna del resumen */}
           <div className="relative">
             {/* Fondo gris que se extiende hasta el borde derecho */}
-            <div className="absolute inset-y-0 left-0 right-0 bg-gray-200 -mr-[100vw]" />
+            <div className="absolute inset-y-0 left-0 right-0 bg-gray-200 -mr-[255px]" />
             
             {/* Contenido del resumen - sticky en desktop */}
             <div className="sticky top-2 z-10">
