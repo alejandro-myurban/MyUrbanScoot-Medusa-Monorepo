@@ -52,9 +52,24 @@ export default async function BoughtTogether({
   }
 
   // — Precio de descuento opcional
-  const disc = product.metadata?.bought_together_discount
-  const discountValue =
-    typeof disc === "string" || typeof disc === "number" ? disc : undefined
+  const productDiscounts: Record<string, number> = {};
+  if(product.metadata){
+    for (const key in product.metadata) {
+      if (key.startsWith("bought_together_discount_")){
+        const relatedProductsId = key.replace("bought_together_discount_", "");
+        const discountValueRow = product.metadata[key];
+
+        if (typeof discountValueRow === "string" && discountValueRow !== "null") {
+          const parsedDiscount = parseFloat(discountValueRow);
+          if (!isNaN(parsedDiscount)){
+            productDiscounts[relatedProductsId] = parsedDiscount;
+          }
+        } else if (typeof discountValueRow === "number"){
+          productDiscounts[relatedProductsId] = discountValueRow;
+        }
+      }
+    }
+  }
 
   return (
     <div className="w-full">
@@ -70,14 +85,14 @@ export default async function BoughtTogether({
           <BoughtTogetherFallback
             products={relatedProducts}
             region={region}
-            discount={discountValue}
+            productDiscounts={productDiscounts}
           />
         }
       >
         <BoughtTogetherClient
           products={relatedProducts}
           region={region}
-          discount={discountValue}
+          productDiscounts={productDiscounts}
         />
       </Suspense>
     </div>

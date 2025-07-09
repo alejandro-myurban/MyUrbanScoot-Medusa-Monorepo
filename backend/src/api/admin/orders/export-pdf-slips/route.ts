@@ -23,7 +23,6 @@ type ImageWithMime = {
 };
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
-  // 1) IDs desde la query
   const ids: string[] = Array.isArray(req.query.ids)
     ? (req.query.ids as string[])
     : req.query.ids
@@ -37,7 +36,6 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   }
 
   try {
-    // 2) Traer pedidos
     const { result } = await getOrdersListWorkflow(req.scope).run({
       input: {
         fields: [
@@ -46,6 +44,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
           "email",
           "total",
           "currency_code",
+          "tax_total", 
           "billing_address.first_name",
           "billing_address.last_name",
           "billing_address.address_1",
@@ -68,6 +67,12 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
           "items.variant.sku",
           "items.variant.product.thumbnail",
           "items.weight",
+          "items.metadata", 
+          "metadata", 
+          "customer.first_name",
+          "customer.last_name",
+          "customer.phone", 
+          "customer.metadata", 
         ],
         variables: { filters: { id: ids } },
       },
@@ -79,16 +84,19 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
         .json({ success: false, message: "No se encontraron órdenes" });
     }
 
-    // 3) Cargar logo con detección de tipo
-    const logoUrl =
-      "https://myurbanscoot.com/wp-content/uploads/2023/05/cropped-logoH-01-284x62.png";
+    const logoUrl = "https://dev.myurbanscoot.com/webhook/images/LOGO-MYURBAN-08.png";
+    const fondoUrl ="https://dev.myurbanscoot.com/webhook/images/fondo-myurbanscoot.jpg";
+    const packingSlipImageUrl ="https://dev.myurbanscoot.com/webhook/images/packing-slip.png"
+
     let logoImage: ImageWithMime | null = null;
+    let fondo: ImageWithMime | null = null;
+    let packingSlipImage: ImageWithMime | null = null; 
+
+    // Cargar logo principal (para el footer)
     try {
       const logoRes = await fetch(logoUrl);
       const arrayBuffer = await logoRes.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-
-      // Detectar el tipo de imagen - usando API antigua de file-type
       const type = await fileType.fromBuffer(buffer);
       if (!type) {
         console.warn(
@@ -101,6 +109,40 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     } catch (error) {
       console.error("Error cargando logo:", error);
       logoImage = null;
+    }
+
+    // Cargar imagen de fondo
+    try {
+      const res = await fetch(fondoUrl);
+      const arrayBuffer = await res.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const type = await fileType.fromBuffer(buffer);
+      fondo = {
+        buffer: type?.mime === "image/png" || type?.mime === "image/jpeg"
+        ? buffer
+        : await sharp(buffer).png().toBuffer(),
+        mime: "image/png",
+      };
+    } catch (err) {
+      console.error("Error cargando fondo:", err);
+      fondo = null; 
+    }
+
+    // Cargar imagen "PACKING SLIP" (ahora usada como "FACTURA")
+    try {
+      const res = await fetch(packingSlipImageUrl); 
+      const arrayBuffer = await res.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const type = await fileType.fromBuffer(buffer);
+      packingSlipImage = { 
+        buffer: type?.mime === "image/png" || type?.mime === "image/jpeg"
+          ? buffer
+          : await sharp(buffer).png().toBuffer(),
+        mime: "image/png",
+      };
+    } catch (err) {
+      console.error("Error cargando packing slip image:", err);
+      packingSlipImage = null; 
     }
 
     await Promise.all(
@@ -118,7 +160,6 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
             let imgBuffer = buf;
             let mime = type?.mime || "image/png";
 
-            // PDFKit solo soporta JPEG y PNG: convertir otros formatos a PNG
             if (mime !== "image/jpeg" && mime !== "image/png") {
               console.warn(
                 `Formato no soportado (${mime}) para item ${item.id}, convirtiendo a PNG`
@@ -138,15 +179,13 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
         })
       )
     );
-    // 5) Crear el PDF con PDFKit
-    const pdfBuffer = await generatePackingSlipsPDF(orders, logoImage);
+    const pdfBuffer = await generatePackingSlipsPDF(orders, logoImage, fondo, packingSlipImage); 
 
-    // 6) Responder
     const shortId = randomBytes(4).toString("hex");
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="packing-slips-${shortId}.pdf"`
+      `attachment; filename="packingSlips-${shortId}.pdf"` 
     );
     return res.status(200).end(pdfBuffer);
   } catch (error: any) {
@@ -161,358 +200,319 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
 
 export const AUTHENTICATE = true;
 
-// ----------------------------------------------------------------
-// Genera el PDF usando PDFKit
-// ----------------------------------------------------------------
 async function generatePackingSlipsPDF(
   orders: any[],
-  logoImage: ImageWithMime | null
+  logoImage: ImageWithMime | null,
+  fondo: ImageWithMime | null,
+  packingSlipImage: ImageWithMime | null 
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
-      // Configuración de página
       const doc = new PDFDocument({
         size: "A4",
-        margin: 42.5, // 15mm en puntos (42.5)
+        margin: 0, 
         bufferPages: true,
       });
 
-      // Recolectar datos en un buffer
       const chunks: Buffer[] = [];
       doc.on("data", (chunk) => chunks.push(chunk));
       doc.on("end", () => resolve(Buffer.concat(chunks)));
       doc.on("error", (err) => reject(err));
 
-      // Registrar fuentes
       doc.registerFont("Regular", "Helvetica");
       doc.registerFont("Bold", "Helvetica-Bold");
 
-      // Procesar cada orden - UNA PÁGINA POR ORDEN
+      const horizontalContentPadding = 30; 
+
       orders.forEach((order, orderIndex) => {
         if (orderIndex > 0) {
-          doc.addPage(); // Nueva página para cada orden después de la primera
+          doc.addPage();
         }
 
         const b = order.billing_address as ShippingAddress;
         const s = order.shipping_address as ShippingAddress;
-        const date = new Date(order.created_at).toLocaleDateString("es-ES");
+        const orderDate = new Date(order.created_at).toLocaleDateString("es-ES");
+        const invoiceDate = new Date().toLocaleDateString("es-ES"); 
 
-        // Cabecera con título y logo
-        doc
-          .font("Bold")
-          .fontSize(24)
-          .fillColor("#00AEEF")
-          .text("Hoja de embalaje", { align: "left" });
-
-        // Logo
-        if (logoImage) {
-          try {
-            doc.image(logoImage.buffer, doc.page.width - 150, doc.y - 35, {
-              width: 120,
-              fit: [120, 40],
-            });
-          } catch (error) {
-            console.error("Error al insertar logo en PDF:", error);
-          }
+        // --- FONDO (si existe) ---
+        if (fondo) {
+          doc.image(fondo.buffer, 0, 0, { width: doc.page.width, height: doc.page.height });
         }
 
-        // Detalles del pedido
-        doc.font("Regular").fontSize(11).fillColor("black");
-        doc.moveDown(1);
-        doc.text(`Pedido Nº: ${order.display_id}     Fecha: ${date}`);
-        doc.moveDown(0.5);
+        // --- CABECERA ---
+        const headerHeight = 120; 
+        doc.rect(0, 0, doc.page.width, headerHeight).fill("black"); 
 
-        // Calculamos los anchos
-        const columnWidth =
-          (doc.page.width - doc.page.margins.left - doc.page.margins.right) / 2;
+        // Imagen "PACKING SLIP" (ahora como "FACTURA") a la izquierda
+        if (packingSlipImage) { 
+            try {
+                doc.image(packingSlipImage.buffer, 30, 30, { width: 200 }); 
+            } catch (error) {
+                console.error("Error al insertar imagen de cabecera en PDF:", error);
+            }
+        }
 
-        // Dirección de facturación (columna izquierda)
-        const billingY = doc.y;
-        doc.font("Bold").text("Facturación:", doc.page.margins.left, billingY);
-        doc.font("Regular");
-        doc.text(`${b.first_name || ""} ${b.last_name || ""}`);
-        doc.text(`${b.address_1 || ""}`);
-        doc.text(
-          `${b.postal_code || ""} ${b.city || ""} ${
-            b.province ? `- ${b.province}` : ""
-          }`
-        );
-        doc.text(`${b.phone || ""}`);
-        doc.text(`${b.email || order.email || ""}`);
+        // Información de la compañía a la derecha
+        const companyInfoX = doc.page.width - horizontalContentPadding - 220; 
+        let currentCompanyInfoY = 20; 
 
-        // Columna derecha (dividida en dos bloques)
+        doc.fillColor("white").fontSize(12).font("Bold"); 
+        doc.text("MYURBANSCOOT SL", companyInfoX, currentCompanyInfoY, { align: "right", width: 220 });
+        currentCompanyInfoY = doc.y; 
 
-        // Bloque superior derecho (antigua columna central)
-        doc
-          .font("Bold")
-          .text(
-            "De la dirección:",
-            doc.page.margins.left + columnWidth,
-            billingY
-          );
-        doc.font("Regular");
-        doc.text("MyUrbanScoot", doc.page.margins.left + columnWidth, doc.y);
-        doc.text("Avda Peris y Valero 143, bajo derecha");
-        doc.text("46005 Valencia");
-        doc.text("Valencia");
-        doc.text("+34 623 47 47 65");
-        doc.text("B42702662");
+        doc.font("Regular").fontSize(12); 
+        doc.text("Avda Peris y Valero 143", companyInfoX, currentCompanyInfoY + 2, { align: "right", width: 220 });
+        currentCompanyInfoY = doc.y;
 
-        // Guardamos la posición y después de MyUrbanScoot
-        const afterCompanyY = doc.y + 15;
+        doc.text("myurbanscoot@myurbanscoot.com", companyInfoX, currentCompanyInfoY + 2, { align: "right", width: 220 });
+        currentCompanyInfoY = doc.y;
 
-        // Bloque inferior derecho (antigua columna derecha)
-        doc
-          .font("Bold")
-          .text("Envío:", doc.page.margins.left + columnWidth, afterCompanyY);
-        doc.font("Regular");
-        doc.text(
-          `${s.first_name || ""} ${s.last_name || ""}`,
-          doc.page.margins.left + columnWidth,
-          doc.y
-        );
-        doc.text(`${s.address_1 || ""}`);
-        doc.text(
-          `${s.postal_code || ""} ${s.city || ""} ${
-            s.province ? `- ${s.province}` : ""
-          }`
-        );
-        doc.text(`${s.phone || ""}`);
+        doc.text("+34623472200", companyInfoX, currentCompanyInfoY + 2, { align: "right", width: 220 });
+        currentCompanyInfoY = doc.y;
 
-        // Asegurar que estamos debajo de todas las direcciones
-        const shippingY = doc.y;
-        doc.y = Math.max(doc.y, shippingY) + 20;
+        doc.text("C.I.F.: B42702662", companyInfoX, currentCompanyInfoY + 2, { align: "right", width: 220 });
+        currentCompanyInfoY = doc.y;
+        
+        // --- DATOS DEL CLIENTE Y FACTURA ---
+        doc.y = headerHeight + 40; // Posición inicial después de la cabecera
+        const clientInfoX = horizontalContentPadding;
+        const invoiceInfoX = doc.page.width / 2 + horizontalContentPadding / 2; 
 
-        // TABLA DE PRODUCTOS - Ahora incluye TODOS los productos de esta orden
+        // Título "DATOS DEL CLIENTE"
+        doc.fillColor("black").font("Bold").fontSize(12);
+        doc.text("DATOS DEL CLIENTE", clientInfoX, doc.y);
+        doc.moveDown(0.8); 
 
-        // Encabezados de tabla
-        const startY = doc.y;
-        const tableTop = startY;
-        const tableWidth =
-          doc.page.width - doc.page.margins.left - doc.page.margins.right;
+        // Datos del cliente
+        doc.font("Regular").fontSize(11);
+        doc.font("Bold").text(`Nombre:`, clientInfoX, doc.y, { continued: true });
+        doc.font("Regular").text(` ${b.first_name || ""} ${b.last_name || ""}`.trim());
+        doc.moveDown(0.8); 
+        
+        doc.font("Bold").text(`Dirección:`, clientInfoX, doc.y, { continued: true });
+        doc.font("Regular").text(` ${b.address_1 || ""}`);
+        doc.moveDown(0.8); // Espacio para la línea 1 de dirección
+        doc.font("Bold").text(`Ciudad:`, clientInfoX, doc.y, { continued: true });
+        doc.text(`${b.city || ""}`, clientInfoX, doc.y); 
+        doc.moveDown(0.8); // Espacio para la ciudad
+        doc.font("Bold").text(`Codigo Postal:`, clientInfoX, doc.y, { continued: true });
+        doc.text(`${b.postal_code || ""}`, clientInfoX, doc.y); 
+        doc.moveDown(0.8); // Espacio para el código postal
 
-        // Ajuste de anchos de columna - Columna de cantidad más ancha
+        doc.font("Bold").text(`Teléfono:`, clientInfoX, doc.y, { continued: true });
+        doc.font("Regular").text(` ${b.phone || order.customer?.phone || ""}`); 
+        doc.moveDown(0.8); 
+        
+        doc.font("Bold").text(`Email:`, clientInfoX, doc.y, { continued: true });
+        doc.font("Regular").text(` ${b.email || ""}`); 
+        
+        // Calcular la posición Y más baja de la sección de datos del cliente
+        const clientInfoEndY = doc.y;
+
+        // Posición para la información de la factura (a la derecha)
+        doc.y = headerHeight + 40; // Reset Y para la columna de la derecha
+        doc.font("Bold").fontSize(12);
+        doc.text(`Nº FACTURA: ${order.metadata?.invoice_number || order.display_id}`, invoiceInfoX, doc.y);
+        doc.moveDown(0.8); 
+        doc.text(`FECHA: ${invoiceDate}`, invoiceInfoX, doc.y); 
+        
+        // Calcular la posición Y más baja de la sección de información de la factura
+        const invoiceInfoEndY = doc.y;
+
+        // --- TABLA DE PRODUCTOS ---
+        // Asegura que la tabla comience después de ambas columnas de información
+        const tableStartY = Math.max(clientInfoEndY, invoiceInfoEndY) + 20; // Añadir un espaciado extra
+        doc.y = tableStartY;
+        
+        const tableX = horizontalContentPadding;
+        const tableWidth = doc.page.width - (horizontalContentPadding * 2); 
+        const rowHeight = 45; 
+        const headerRowHeight = 25; 
+
         const colWidths = [
-          tableWidth * 0.1,
-          tableWidth * 0.15,
-          tableWidth * 0.15,
-          tableWidth * 0.3,
-          tableWidth * 0.15,
-          tableWidth * 0.15,
+          tableWidth * 0.15, // Imagen
+          tableWidth * 0.12, // Cantidad (agrandado)
+          tableWidth * 0.38, // Descripción (ajustado)
+          tableWidth * 0.20, // Detalles (achicado)
+          tableWidth * 0.15, // Precio
         ];
 
-        // Función para dibujar una celda de tabla
-        // Reemplaza tu función drawTableCell por esta:
         const drawTableCell = (
           x: number,
           y: number,
           width: number,
           height: number,
           text: string,
-          isHeader = false
+          isHeader = false,
+          align: "left" | "center" | "right" = "left"
         ) => {
-          // 1) Ajusta aquí el grosor según si es header o no
           doc.lineWidth(isHeader ? 1 : 0.5);
-
-          // 2) Dibuja fondo y borde
           if (isHeader) {
-            // fondo oscuro + borde
-            doc.rect(x, y, width, height).fillAndStroke("#333333", "#000000");
-            doc.fillColor("#ffffff").font("Bold");
+            doc.rect(x, y, width, height).fillAndStroke("#f5f5f5", "#CCCCCC"); 
+            doc.fillColor("#000000").font("Bold");
           } else {
-            // solo borde fino
             doc.rect(x, y, width, height).stroke();
             doc.fillColor("#000000").font("Regular");
           }
 
-          // 3) Texto con padding
           const padding = 5;
-          doc.text(text, x + padding, y + padding, {
+          const textHeight = doc.heightOfString(text, { width: width - padding * 2 });
+          doc.text(text, x + padding, y + (height - textHeight) / 2, {
             width: width - padding * 2,
-            height: height - padding * 2,
-            align: isHeader ? "center" : "left",
+            align: isHeader ? "center" : align,
           });
         };
 
-        // Altura de la fila - Aumento para contener la imagen
-        const rowHeight = 50;
-
-        // Dibujar encabezados
         const headerY = doc.y;
-        const headers = [
-          "S.No",
-          "Imagen",
-          "SKU",
-          "Producto",
-          "Cantidad",
-          "Total weight",
-        ];
+        const headers = ["Imagen", "Cantidad", "Descripción", "Detalles", "Precio"]; 
+
         headers.forEach((header, i) => {
-          drawTableCell(
-            doc.page.margins.left +
-              colWidths.slice(0, i).reduce((sum, w) => sum + w, 0),
-            headerY,
-            colWidths[i],
-            rowHeight,
-            header,
-            true
-          );
+          const cellX = tableX + colWidths.slice(0, i).reduce((sum, w) => sum + w, 0);
+          drawTableCell(cellX, headerY, colWidths[i], headerRowHeight, header, true); 
         });
 
-        // Dibujar filas de datos - UNA FILA POR PRODUCTO
-        let currentY = headerY + rowHeight;
+        let currentY = headerY + headerRowHeight; 
 
-        // Procesar cada producto en la tabla
-        order.items.forEach((item: any, itemIndex: number) => {
-          const sku = item.variant?.sku || "";
-          const weight = item.weight
-            ? `${(item.weight / 1000).toFixed(2)}kg`
-            : "n/a";
-          let title = item.title;
-          let colorLabel = "";
-          if (title.includes("Color : ")) {
-            const parts = title.split("Color : ");
-            title = parts[0];
-            colorLabel = parts[1];
-          }
-
-          // S.No (número secuencial)
-          drawTableCell(
-            doc.page.margins.left,
-            currentY,
-            colWidths[0],
-            rowHeight,
-            (itemIndex + 1).toString()
-          );
+        order.items.forEach((item: any) => {
+          const xStart = tableX;
 
           // Imagen
-          const imgCell = {
-            x: doc.page.margins.left + colWidths[0],
-            y: currentY,
-            width: colWidths[1],
-            height: rowHeight,
-          };
-          doc
-            .rect(imgCell.x, imgCell.y, imgCell.width, imgCell.height)
-            .lineWidth(0.5)
-            .stroke();
+          const imageCell = { x: xStart, y: currentY, width: colWidths[0], height: rowHeight };
+          doc.rect(imageCell.x, imageCell.y, imageCell.width, imageCell.height).stroke();
 
-          // Añadir thumbnail si existe
           if (item._thumbImage) {
             try {
-              // Tamaño de imagen ajustado para caber en la celda
-              const imageSize = Math.min(
-                imgCell.width - 10,
-                imgCell.height - 10
-              );
+              const imageSize = Math.min(imageCell.width - 10, imageCell.height - 10); 
               doc.image(
                 item._thumbImage.buffer,
-                imgCell.x + (imgCell.width - imageSize) / 2,
-                imgCell.y + (imgCell.height - imageSize) / 2,
-                {
-                  fit: [imageSize, imageSize],
-                  align: "center",
-                  valign: "center",
-                }
+                imageCell.x + (imageCell.width - imageSize) / 2,
+                imageCell.y + (imageCell.height - imageSize) / 2,
+                { fit: [imageSize, imageSize], valign: "center", align: "center" } 
               );
-            } catch (error) {
-              console.error(
-                `Error al insertar thumbnail para item ${item.id}:`,
-                error
-              );
-              // Dibuja un cuadro gris en lugar de la imagen que falló
-              doc
-                .rect(
-                  imgCell.x + (imgCell.width - 30) / 2,
-                  imgCell.y + (imgCell.height - 30) / 2,
-                  30,
-                  30
-                )
-                .fillAndStroke("#CCCCCC", "#999999");
+            } catch (err) {
+              console.error(`Error al insertar thumbnail para item ${item.id}:`, err);
+              doc.rect(imageCell.x + 5, imageCell.y + 5, 30, 30).fillAndStroke("#ccc", "#999");
             }
           }
 
-          // SKU
-          drawTableCell(
-            doc.page.margins.left + colWidths[0] + colWidths[1],
-            currentY,
-            colWidths[2],
-            rowHeight,
-            sku
-          );
-
-          // Producto
-          const productCell = {
-            x:
-              doc.page.margins.left +
-              colWidths[0] +
-              colWidths[1] +
-              colWidths[2],
-            y: currentY,
-            width: colWidths[3],
-            height: rowHeight,
-          };
-          doc
-            .rect(
-              productCell.x,
-              productCell.y,
-              productCell.width,
-              productCell.height
-            )
-            .lineWidth(0.5)
-            .stroke();
-          doc.font("Regular").fillColor("black");
-          doc.text(title, productCell.x + 5, productCell.y + 5, {
-            width: productCell.width - 10,
-          });
-
-          if (colorLabel) {
-            doc.font("Regular").fontSize(9).fillColor("#666666");
-            doc.text(`Color : ${colorLabel}`, productCell.x + 5, doc.y, {
-              width: productCell.width - 10,
-            });
-          }
-
           // Cantidad
-          drawTableCell(
-            doc.page.margins.left +
-              colWidths.slice(0, 4).reduce((sum, w) => sum + w, 0),
-            currentY,
-            colWidths[4],
-            rowHeight,
-            item.quantity.toString()
-          );
+          drawTableCell(xStart + colWidths[0], currentY, colWidths[1], rowHeight, item.quantity.toString(), false, "center");
 
-          // Peso
-          drawTableCell(
-            doc.page.margins.left +
-              colWidths.slice(0, 5).reduce((sum, w) => sum + w, 0),
-            currentY,
-            colWidths[5],
-            rowHeight,
-            weight
-          );
+          // Descripción
+          let title = item.title;
+          if (title.includes("Color : ")) title = title.split("Color : ")[0];
+          drawTableCell(xStart + colWidths[0] + colWidths[1], currentY, colWidths[2], rowHeight, title, false, "left");
 
-          // Actualizar la posición Y para la siguiente fila
+          // Detalles 
+          let detailsContent = "";
+          const colorMatch = item.title.match(/Color : (.*)/);
+          if (colorMatch && colorMatch[1]) {
+              detailsContent += `Color: ${colorMatch[1]}\n`;
+          }
+          if (item.metadata?.details) { 
+            detailsContent += item.metadata.details;
+          } else if (item.metadata && Object.keys(item.metadata).length > 0) {
+            for (const key in item.metadata) {
+                if (key !== "details") { 
+                    detailsContent += `${key}: ${item.metadata[key]}\n`;
+                }
+            }
+          }
+          drawTableCell(xStart + colWidths[0] + colWidths[1] + colWidths[2], currentY, colWidths[3], rowHeight, detailsContent.trim(), false, "left");
+
+          // Precio Unitario
+          const unitPrice = item.unit_price.toFixed(2); 
+          drawTableCell(xStart + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3], currentY, colWidths[4], rowHeight, `${unitPrice}€`, false, "right");
+
           currentY += rowHeight;
         });
 
-        // Pie de página - MOVIDO DEBAJO DE LA TABLA Y A LA IZQUIERDA
-        doc.fontSize(10).fillColor("#666666");
-        doc.text(
-          "Gracias por confiar en MyUrbanScoot!",
-          doc.page.margins.left,
-          currentY + 20
-        );
-        doc.text("Código: -5€BABY", doc.page.margins.left, doc.y);
-        doc.text(
-          "Incidencias: WhatsApp o llamada.",
-          doc.page.margins.left,
-          doc.y
-        );
+        // Calcular totales
+        const baseImponible = order.total / 1.21;
+        const ivaAmount = baseImponible * 0.21;
+
+        // Dimensiones
+        const totalSummaryBlockWidth = 250;
+        const summaryBlockStartX = doc.page.width - horizontalContentPadding - totalSummaryBlockWidth;
+        const summaryLabelWidth = totalSummaryBlockWidth * 0.6;
+        const summaryValueStartX = summaryBlockStartX + summaryLabelWidth;
+        const summaryValueWidth = totalSummaryBlockWidth * 0.4;
+
+        // Altura de filas
+        const rowHeightPrice = 20;
+        const totalHeight = 25;
+
+        // Posición inicial Y
+        let y = currentY + 20;
+
+        // Estilo general
+        doc.font("Regular").fontSize(11);
+
+        // --- BASE IMPONIBLE ---
+        doc.rect(summaryBlockStartX, y, summaryLabelWidth, rowHeightPrice).stroke();
+        doc.rect(summaryValueStartX, y, summaryValueWidth, rowHeightPrice).stroke();
+
+        doc.text("Base Imponible", summaryBlockStartX + 5, y + 5, {
+          width: summaryLabelWidth - 10,
+          align: "left"
+        });
+        doc.text(`${baseImponible.toFixed(2)}€`, summaryValueStartX, y + 5, {
+          width: summaryValueWidth - 5,
+          align: "right"
+        });
+
+        y += rowHeightPrice;
+
+        // --- IVA ---
+        doc.rect(summaryBlockStartX, y, summaryLabelWidth, rowHeightPrice).stroke();
+        doc.rect(summaryValueStartX, y, summaryValueWidth, rowHeightPrice).stroke();
+
+        doc.text("IVA 21%", summaryBlockStartX + 5, y + 5, {
+          width: summaryLabelWidth - 10,
+          align: "left"
+        });
+        doc.text(`${ivaAmount.toFixed(2)}€`, summaryValueStartX, y + 5, {
+          width: summaryValueWidth - 5,
+          align: "right"
+        });
+
+        y += rowHeight;
+
+        // --- TOTAL ---
+        doc.font("Bold").fontSize(14);
+        doc.rect(summaryBlockStartX, y, summaryLabelWidth, totalHeight).stroke();
+        doc.rect(summaryValueStartX, y, summaryValueWidth, totalHeight).stroke();
+
+        doc.text("TOTAL", summaryBlockStartX + 5, y + 6, {
+          width: summaryLabelWidth - 10,
+          align: "left"
+        });
+        doc.text(`${order.total.toFixed(2)}€`, summaryValueStartX, y + 6, {
+          width: summaryValueWidth - 5,
+          align: "right"
+        });
+        // --- PIE DE PÁGINA ---
+        const footerHeight = 80;
+        const footerY = doc.page.height - footerHeight;
+
+        doc.rect(0, footerY, doc.page.width, footerHeight).fill("#000000"); 
+
+        // Logo de MyUrbanScoot en el centro del pie
+        if (logoImage) {
+            try {
+                const logoWidth = doc.page.width - 60; 
+                const logoHeight = 60; 
+                const logoX = (doc.page.width - logoWidth) / 2; 
+                doc.image(logoImage.buffer, logoX, footerY + (footerHeight - logoHeight) / 2, { 
+                    width: logoWidth,
+                    fit: [logoWidth, logoHeight],
+                });
+            } catch (error) {
+                console.error("Error al insertar logo del footer:", error);
+            }
+        }
       });
 
-      // Finalizar el documento
       doc.end();
     } catch (error) {
       reject(error);

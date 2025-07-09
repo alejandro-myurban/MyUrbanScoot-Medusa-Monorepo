@@ -12,13 +12,13 @@
   interface ClientProps {
     products: HttpTypes.StoreProduct[]
     region: HttpTypes.StoreRegion
-    discount?: string | number
+    productDiscounts: Record<string, number>,
   }
 
   export default function BoughtTogetherClient({
     products,
     region,
-    discount,
+    productDiscounts,
   }: ClientProps) {
     // 👈 AGREGAR setBoughtTogetherPrice del contexto
     const { extras, toggleExtra, setBoughtTogetherPrice } = useCombinedCart()
@@ -87,12 +87,11 @@
             if (cheapestPrice) {
               let priceToAdd = cheapestPrice.calculated_price_number || 0
 
+              const discount = productDiscounts[product.id]
+
               // Aplicar descuento si existe
-              if (discount) {
-                const discountAmount = typeof discount === "string" ? parseFloat(discount) : discount
-                if (!isNaN(discountAmount) && discountAmount > 0) {
-                  priceToAdd = priceToAdd * (1 - discountAmount / 100)
-                }
+              if (discount && !isNaN(discount) && discount > 0) {
+                priceToAdd = priceToAdd * (1 - discount / 100)
               }
 
               totalPrice += priceToAdd
@@ -102,7 +101,7 @@
       })
 
       return totalPrice
-    }, [extras, products, discount])
+    }, [extras, products, productDiscounts])
 
     // 👈 NUEVO useEffect: Actualizar precio en el contexto cuando cambien los extras
     useEffect(() => {
@@ -172,9 +171,10 @@
           let displayPrice = cheapestPrice
           let discountPercent: number | null = null
 
+          const discount = productDiscounts[p.id]
+
           if (cheapestPrice && discount) {
-            const discountAmount =
-              typeof discount === "string" ? parseFloat(discount) : discount
+            const discountAmount = discount
             if (!isNaN(discountAmount) && discountAmount > 0) {
               const originalPriceNumber =
                 cheapestPrice.calculated_price_number ||
