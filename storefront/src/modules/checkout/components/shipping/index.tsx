@@ -9,7 +9,7 @@ import Radio from "@modules/common/components/radio"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import Spinner from "@modules/common/icons/spinner"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
-import { useCallback, useEffect, useState, useRef } from "react"
+import { useCallback, useEffect, useState, useRef, useMemo } from "react"
 import { setShippingMethod } from "@lib/data/cart"
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
@@ -61,6 +61,10 @@ const Shipping: React.FC<ShippingProps> = ({
   const [hasUserSelectedShipping, setHasUserSelectedShipping] = useState(false)
   const autoSubmitTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // ✅ NUEVO: Estados para navegación automática con envío gratis
+  const [freeShippingApplied, setFreeShippingApplied] = useState(false)
+  const [autoNavigationTimeout, setAutoNavigationTimeout] = useState<NodeJS.Timeout | null>(null)
+
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -85,20 +89,203 @@ const Shipping: React.FC<ShippingProps> = ({
     router.push(pathname + "?step=payment", { scroll: false })
   }
 
+  const shouldApplyFreeShipping = useCallback(() => {
+    const itemTotal = cart?.item_total || 0
+    const countryCode =
+      cart?.billing_address?.country_code ||
+      cart?.shipping_address?.country_code
+
+    return itemTotal >= 100 && countryCode === "es"
+  }, [
+    cart?.item_total,
+    cart?.billing_address?.country_code,
+    cart?.shipping_address?.country_code,
+  ])
+
+  const findFreeShippingMethod = useCallback(() => {
+    return availableShippingMethods?.find(
+      (method) =>
+        method.name.toLowerCase().includes("gratis") ||
+        method.name.toLowerCase().includes("free") 
+    )
+  }, [availableShippingMethods])
+
+  const applyFreeShippingAutomatically = useCallback(async () => {
+    const freeMethod = findFreeShippingMethod()
+    if (!freeMethod) return
+
+    try {
+      console.log("🎉 Aplicando envío gratis automáticamente:", freeMethod.name)
+      await setShippingMethod({
+        cartId: cart.id,
+        shippingMethodId: freeMethod.id,
+      })
+      
+      console.log("✅ Método de envío gratis aplicado exitosamente")
+      
+      // ✅ NUEVO: Forzar refresh para asegurar que los datos se actualicen
+      router.refresh()
+      
+      // ✅ NUEVO: Esperar un poco después del refresh antes de marcar como aplicado
+      setTimeout(() => {
+        console.log("🎯 Marcando freeShippingApplied como true")
+        setFreeShippingApplied(true)
+      }, 800)
+      
+    } catch (error) {
+      console.error("❌ Error aplicando envío gratis automático:", error)
+    }
+  }, [findFreeShippingMethod, cart.id, router])
+
+  const visibleShippingMethods = useMemo(() => {
+    if (!availableShippingMethods) return null
+
+    const freeMethod = findFreeShippingMethod()
+    if (!freeMethod) return availableShippingMethods
+
+    // Ocultar el método gratis de la UI
+    return availableShippingMethods.filter(
+      (method) => method.id !== freeMethod.id
+    )
+  }, [availableShippingMethods, findFreeShippingMethod])
+
+  // ✅ FIX 1: Añadir delay para permitir que los datos se actualicen después de navegación
+  useEffect(() => {
+    if (!isOpen || !availableShippingMethods?.length) return
+
+    // ✅ Usar setTimeout para permitir que el cart se actualice completamente
+    const checkFreeShippingTimeout = setTimeout(() => {
+      const shouldApply = shouldApplyFreeShipping()
+      const freeMethod = findFreeShippingMethod()
+      const currentMethod = selectedShippingMethod
+
+      console.log("🔍 Verificando condiciones envío gratis (con delay):", {
+        shouldApply,
+        hasFreeMethod: !!freeMethod,
+        currentMethodId: currentMethod?.id,
+        freeMethodId: freeMethod?.id,
+        itemTotal: cart?.item_total,
+        countryCode:
+          cart?.billing_address?.country_code ||
+          cart?.shipping_address?.country_code,
+        hasShippingAddress: !!cart?.shipping_address,
+      })
+
+      if (shouldApply && freeMethod) {
+        // Si debe aplicarse y no está ya seleccionado
+        if (!currentMethod || currentMethod.id !== freeMethod.id) {
+          console.log("✅ Aplicando envío gratis automáticamente")
+          applyFreeShippingAutomatically()
+        }
+      } else if (freeMethod && currentMethod?.id === freeMethod.id) {
+        // Si ya no se cumplen las condiciones pero el método gratis está seleccionado
+        console.log("⚠️ Ya no se cumplen las condiciones para envío gratis")
+      }
+    }, 500) // ✅ Esperar 500ms para que los datos se actualicen
+
+    return () => clearTimeout(checkFreeShippingTimeout)
+  }, [
+    isOpen,
+    availableShippingMethods,
+    cart?.shipping_address, // ✅ Añadir shipping_address como dependencia
+    cart?.item_total,
+    cart?.billing_address?.country_code,
+    cart?.shipping_address?.country_code,
+  ])
+
+  // ✅ FIX 2: Navegación automática sin bucles - usar ref para evitar re-renders
+  const navigationScheduledRef = useRef(false)
+  
+  useEffect(() => {
+    const freeMethod = findFreeShippingMethod()
+    const isCurrentlyFreeShipping = selectedShippingMethod?.id === freeMethod?.id
+    
+    console.log("🔍 Debug navegación automática:", {
+      isOpen,
+      freeShippingApplied,
+      isCurrentlyFreeShipping,
+      shouldApplyFreeShipping: shouldApplyFreeShipping(),
+      navigationScheduled: navigationScheduledRef.current,
+      selectedMethodId: selectedShippingMethod?.id,
+      freeMethodId: freeMethod?.id,
+    })
+    
+    // Solo programar navegación si:
+    // 1. Está abierto el step
+    // 2. Se aplicó envío gratis
+    // 3. Es realmente envío gratis
+    // 4. Se cumplen las condiciones
+    // 5. NO se ha programado ya la navegación
+    if (
+      isOpen && 
+      freeShippingApplied && 
+      isCurrentlyFreeShipping && 
+      shouldApplyFreeShipping() &&
+      !navigationScheduledRef.current
+    ) {
+      console.log("🚀 Programando navegación automática (SOLO UNA VEZ)...")
+      navigationScheduledRef.current = true
+      
+      // Limpiar timeout anterior si existe
+      if (autoNavigationTimeout) {
+        clearTimeout(autoNavigationTimeout)
+      }
+      
+      // Programar navegación después de 3 segundos
+      const timeout = setTimeout(() => {
+        console.log("✅ Ejecutando navegación automática a payment...")
+        router.replace(pathname + "?step=payment", { scroll: false })
+        // Reset estados
+        setFreeShippingApplied(false)
+        navigationScheduledRef.current = false
+      }, 3000)
+      
+      setAutoNavigationTimeout(timeout)
+    }
+    
+    // Reset si las condiciones ya no se cumplen
+    if (!isOpen || !isCurrentlyFreeShipping || !shouldApplyFreeShipping()) {
+      if (navigationScheduledRef.current) {
+        console.log("🔄 Cancelando navegación programada - condiciones cambiaron")
+        navigationScheduledRef.current = false
+      }
+      if (autoNavigationTimeout) {
+        clearTimeout(autoNavigationTimeout)
+        setAutoNavigationTimeout(null)
+      }
+    }
+  }, [
+    isOpen,
+    freeShippingApplied, 
+    selectedShippingMethod?.id, // Solo el ID, no todo el objeto
+    cart?.item_total,
+    cart?.shipping_address?.country_code, // Solo country_code específico
+  ])
+
+  // ✅ NUEVO: Limpiar timeout al desmontar componente
+  useEffect(() => {
+    return () => {
+      if (autoNavigationTimeout) {
+        clearTimeout(autoNavigationTimeout)
+      }
+    }
+  }, [autoNavigationTimeout])
+
   // Función mejorada para verificar el cart desde el servidor
   const checkShippingMethodUpdated = useCallback(async () => {
     try {
       console.log("🔍 Verificando método de envío desde servidor...")
-      
+
       // Obtener el cart actualizado del servidor
       const response = await sdk.store.cart.retrieve(cart.id)
       const updatedCart = response.cart
-      
+
       console.log("🔍 Estado del cart desde servidor:", {
         hasShippingMethods: !!updatedCart?.shipping_methods?.length,
-        selectedMethodId: updatedCart?.shipping_methods?.at(-1)?.shipping_option_id
+        selectedMethodId:
+          updatedCart?.shipping_methods?.at(-1)?.shipping_option_id,
       })
-      
+
       if (updatedCart?.shipping_methods?.length) {
         console.log("🔄 Método de envío actualizado, navegando a payment...")
         setPendingAutoSubmit(false)
@@ -112,7 +299,9 @@ const Shipping: React.FC<ShippingProps> = ({
     } catch (error) {
       console.error("❌ Error verificando cart desde servidor:", error)
       setPendingAutoSubmit(false)
-      setError("Error verificando el método de envío. Por favor, intenta de nuevo.")
+      setError(
+        "Error verificando el método de envío. Por favor, intenta de nuevo."
+      )
     }
   }, [cart.id, navigateToNextStep])
 
@@ -144,12 +333,11 @@ const Shipping: React.FC<ShippingProps> = ({
       router.refresh()
 
       console.log("✅ Método de envío seleccionado exitosamente:", id)
-      
+
       // Pequeño delay para que el refresh tome efecto, luego verificar
       setTimeout(() => {
         triggerAutoSubmit()
       }, 300)
-      
     } catch (err: any) {
       console.error("❌ Error seleccionando método de envío:", err)
       setError(err.message || "Error al seleccionar el método de envío")
@@ -288,6 +476,41 @@ const Shipping: React.FC<ShippingProps> = ({
 
   const deliveryRange = getDeliveryDateRange()
 
+  // ✅ NUEVO: Componente para mostrar mensaje de envío gratis con countdown
+  const FreeShippingMessage = () => {
+    const [countdown, setCountdown] = useState(3)
+    
+    useEffect(() => {
+      if (freeShippingApplied && countdown > 0) {
+        const timer = setTimeout(() => {
+          setCountdown(prev => prev - 1)
+        }, 1000)
+        
+        return () => clearTimeout(timer)
+      }
+    }, [freeShippingApplied, countdown])
+    
+    if (!shouldApplyFreeShipping() || selectedShippingMethod?.id !== findFreeShippingMethod()?.id) {
+      return null
+    }
+    
+    return (
+      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 text-green-600">🎉</div>
+          <Text className="text-sm text-green-700 font-medium">
+            ¡Envío gratis aplicado! Tu pedido supera los 100€ y el destino es España.
+            {freeShippingApplied && countdown > 0 && (
+              <span className="block mt-1 text-xs">
+                Continuando automáticamente en {countdown} segundos...
+              </span>
+            )}
+          </Text>
+        </div>
+      </div>
+    )
+  }
+
   console.log("CARRITO", cart)
 
   return (
@@ -304,20 +527,23 @@ const Shipping: React.FC<ShippingProps> = ({
           )}
         >
           {t("checkout.delivery")}
-          {!isOpen && !!((cart.shipping_methods?.length ?? 0) > 0) && <CheckCircleSolid />}
+          {!isOpen && !!((cart.shipping_methods?.length ?? 0) > 0) && (
+            <CheckCircleSolid />
+          )}
         </Heading>
-        
-        {!isOpen && !!(cart.shipping_methods && cart.shipping_methods.length > 0) && (
-          <Text>
-            <button
-              onClick={handleEdit}
-              className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-              data-testid="edit-delivery-button"
-            >
-              Edit
-            </button>
-          </Text>
-        )}
+
+        {!isOpen &&
+          !!(cart.shipping_methods && cart.shipping_methods.length > 0) && (
+            <Text>
+              <button
+                onClick={handleEdit}
+                className="font-archivo text-sm hover:text-black/60"
+                data-testid="edit-delivery-button"
+              >
+                Editar
+              </button>
+            </Text>
+          )}
       </div>
 
       {isOpen ? (
@@ -325,10 +551,10 @@ const Shipping: React.FC<ShippingProps> = ({
         <div data-testid="delivery-options-container">
           <div className="space-y-0">
             <RadioGroup value={selectedShippingMethod?.id} onChange={set}>
-              {availableShippingMethods?.map((option, index) => {
+              {visibleShippingMethods?.map((option, index) => {
                 const isSelected = option.id === selectedShippingMethod?.id
                 const isFirst = index === 0
-                const isLast = index === availableShippingMethods.length - 1
+                const isLast = index === visibleShippingMethods.length - 1
 
                 return (
                   <div key={option.id} className="relative">
@@ -345,9 +571,11 @@ const Shipping: React.FC<ShippingProps> = ({
                           "rounded-b-lg": isLast,
                           // Estados de selección
                           "bg-gray-50 border-gray-400": isSelected,
-                          "hover:bg-gray-50": !isSelected && !isLoading && !pendingAutoSubmit,
+                          "hover:bg-gray-50":
+                            !isSelected && !isLoading && !pendingAutoSubmit,
                           // Estado deshabilitado
-                          "cursor-not-allowed opacity-60": isLoading || pendingAutoSubmit,
+                          "cursor-not-allowed opacity-60":
+                            isLoading || pendingAutoSubmit,
                         }
                       )}
                     >
@@ -459,13 +687,17 @@ const Shipping: React.FC<ShippingProps> = ({
             </RadioGroup>
           </div>
 
+          {/* ✅ NUEVO: Usar el componente FreeShippingMessage con countdown */}
+          <FreeShippingMessage />
+
           {/* Mensaje de feedback cuando se está preparando el auto-submit */}
           {pendingAutoSubmit && (
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                 <Text className="text-sm text-blue-700">
-                  ✅ Método de envío seleccionado - verificando y continuando al pago...
+                  ✅ Método de envío seleccionado - verificando y continuando al
+                  pago...
                 </Text>
               </div>
             </div>
@@ -482,7 +714,10 @@ const Shipping: React.FC<ShippingProps> = ({
           <div className="text-small-regular">
             {(cart.shipping_methods?.length ?? 0) > 0 ? (
               <div className="flex items-start flex-col sm:flex-row gap-x-0 gap-y-8">
-                <div className="flex flex-col w-1/3" data-testid="delivery-method-summary">
+                <div
+                  className="flex flex-col w-1/3"
+                  data-testid="delivery-method-summary"
+                >
                   <Text className="font-semibold font-archivo text-ui-fg-base mb-1">
                     Método de envío
                   </Text>
@@ -490,32 +725,41 @@ const Shipping: React.FC<ShippingProps> = ({
                     {selectedShippingMethod?.name || "Método seleccionado"}
                   </Text>
                   <Text className="txt-medium font-archivo text-ui-fg-subtle">
-                    {selectedShippingMethod && getShippingOptionPrice(selectedShippingMethod)}
+                    {selectedShippingMethod &&
+                      getShippingOptionPrice(selectedShippingMethod)}
                   </Text>
                 </div>
 
                 {/* Mostrar información de entrega si es calculated */}
                 {isCalculatedShippingSelected && deliveryRange && (
-                  <div className="flex flex-col w-1/3" data-testid="delivery-estimate-summary">
+                  <div
+                    className="flex flex-col w-1/3"
+                    data-testid="delivery-estimate-summary"
+                  >
                     <Text className="font-semibold font-archivo text-ui-fg-base mb-1">
                       Fecha estimada de entrega
                     </Text>
                     <Text className="txt-medium font-archivo text-ui-fg-subtle">
-                      {deliveryRange.minDays === deliveryRange.maxDays 
+                      {deliveryRange.minDays === deliveryRange.maxDays
                         ? deliveryRange.startDate.toLocaleDateString("es-ES", {
                             day: "numeric",
-                            month: "long", 
-                            year: "numeric"
-                          })
-                        : `${deliveryRange.startDate.toLocaleDateString("es-ES", {
-                            day: "numeric",
-                            month: "short"
-                          })} - ${deliveryRange.endDate.toLocaleDateString("es-ES", {
-                            day: "numeric", 
                             month: "long",
-                            year: "numeric"
-                          })}`
-                      }
+                            year: "numeric",
+                          })
+                        : `${deliveryRange.startDate.toLocaleDateString(
+                            "es-ES",
+                            {
+                              day: "numeric",
+                              month: "short",
+                            }
+                          )} - ${deliveryRange.endDate.toLocaleDateString(
+                            "es-ES",
+                            {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            }
+                          )}`}
                     </Text>
                   </div>
                 )}
@@ -524,9 +768,9 @@ const Shipping: React.FC<ShippingProps> = ({
               // Solo mostrar spinner si no hay shipping methods Y si hemos pasado por este step
               // (es decir, si el step actual es posterior a delivery o si estamos en delivery)
               <div>
-                {(searchParams.get("step") === "payment" || 
-                  searchParams.get("step") === "review" || 
-                  searchParams.get("step") === "delivery") ? (
+                {searchParams.get("step") === "payment" ||
+                searchParams.get("step") === "review" ||
+                searchParams.get("step") === "delivery" ? (
                   <Spinner />
                 ) : (
                   // Si aún no hemos llegado al step de delivery, no mostrar nada

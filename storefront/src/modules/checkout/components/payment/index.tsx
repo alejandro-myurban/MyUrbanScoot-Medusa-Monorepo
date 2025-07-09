@@ -331,10 +331,16 @@ const Payment = ({
           throw new Error("No se encontró client_secret")
         }
 
+        const baseUrl = window.location.origin
+        const returnUrl = `${baseUrl}/api/capture-payment/${currentCart.id}`
+
         const { error: confirmError } = await stripe.confirmPayment({
           elements,
           clientSecret,
-          redirect: "if_required",
+          confirmParams: {
+            return_url: returnUrl,
+          },
+          redirect: "if_required", 
         })
 
         if (confirmError) {
@@ -436,10 +442,10 @@ const Payment = ({
           <Text>
             <button
               onClick={handleEdit}
-              className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
+              className="font-archivo text-sm hover:text-black/60"
               data-testid="edit-payment-button"
             >
-              Edit
+              Editar
             </button>
           </Text>
         )}

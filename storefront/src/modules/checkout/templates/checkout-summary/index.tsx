@@ -11,6 +11,7 @@ import { ChevronDown } from "lucide-react"
 import { TermsCheckbox } from "@modules/checkout/components/terms-checkbox"
 import { FreeShippingProgress } from "@modules/checkout/components/free-shipping-progress"
 import { useTranslation } from "react-i18next"
+import { useParams } from "next/navigation"
 
 // Hook para detectar si estamos en desktop
 const useIsDesktop = () => {
@@ -37,7 +38,9 @@ const CheckoutSummary = ({ cart }: { cart: any }) => {
   const [termsAccepted, setTermsAccepted] = useState(false)
   const isDesktop = useIsDesktop()
   const { t } = useTranslation()
-  
+  const params = useParams()
+  const countryCode = params.countryCode
+
   // En desktop siempre expandido, en mobile controlado por estado
   const isExpanded = isDesktop || isMobileExpanded
 
@@ -69,9 +72,10 @@ const CheckoutSummary = ({ cart }: { cart: any }) => {
               px-4 py-3
               font-archivo 
               transition-all duration-200 
-              ${isExpanded
-                ? "rounded-t-lg border-b border-gray-300"
-                : "rounded-lg"
+              ${
+                isExpanded
+                  ? "rounded-t-lg border-b border-gray-300"
+                  : "rounded-lg"
               } 
               ${!isDesktop ? "cursor-pointer select-none" : "select-none"}
             `}
@@ -109,17 +113,24 @@ const CheckoutSummary = ({ cart }: { cart: any }) => {
               small:border-none 
               overflow-hidden 
               transition-all duration-300 ease-in-out 
-              ${isExpanded ? "max-h-[70vh] small:max-h-[80vh] opacity-100" : "max-h-0 opacity-0"}
+              ${
+                isExpanded
+                  ? "max-h-[70vh] small:max-h-[80vh] opacity-100"
+                  : "max-h-0 opacity-0"
+              }
             `}
           >
-            <div className={`
+            <div
+              className={`
               p-3 small:p-4 space-y-2 
               overflow-y-auto 
-              ${isDesktop 
-                ? 'max-h-[calc(100vh-8rem)]' 
-                : 'max-h-[calc(95vh-4rem)]'
+              ${
+                isDesktop
+                  ? "max-h-[calc(100vh-8rem)]"
+                  : "max-h-[calc(95vh-4rem)]"
               }
-            `}>
+            `}
+            >
               {/* Items del carrito */}
               <div>
                 <ItemsPreviewTemplate items={cart?.items} />
@@ -141,11 +152,12 @@ const CheckoutSummary = ({ cart }: { cart: any }) => {
                 checked={termsAccepted}
                 onChange={setTermsAccepted}
               />
-
-              <FreeShippingProgress
-                currentAmount={cart.item_subtotal}
-                freeShippingThreshold={100.0}
-              />
+              {countryCode === "es" && cart?.billing_address?.country_code === "es" && (
+                <FreeShippingProgress
+                  currentAmount={cart.item_subtotal}
+                  freeShippingThreshold={100.0}
+                />
+              )}
 
               {/* Puntos de lealtad si existe cliente */}
               {cart.customer_id && (

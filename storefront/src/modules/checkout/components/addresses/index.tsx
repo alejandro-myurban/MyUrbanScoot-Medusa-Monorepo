@@ -56,6 +56,7 @@ const Addresses = ({
     "first_load" | "available" | "unavailable"
   >("first_load")
 
+  const wasAutoSubmittedRef = useRef(false)
   const [showButton, setShowButton] = useState<boolean>(false)
   const { t } = useTranslation()
 
@@ -79,6 +80,31 @@ const Addresses = ({
   const navigateToNextStep = () => {
     router.push(pathname + "?step=delivery")
   }
+
+  const [message, formAction] = useFormState(setAddresses, null)
+  
+  useEffect(() => {
+    console.log("🔍 useEffect navegación:", {
+      wasAutoSubmitted: wasAutoSubmittedRef.current,
+      hasMessage: !!message,
+      message,
+    })
+
+    // Si fue auto-submit y no hay errores, navegar
+    if (wasAutoSubmittedRef.current && !message) {
+      console.log("✅ Auto-submit exitoso sin errores, navegando...")
+
+      wasAutoSubmittedRef.current = false // Reset
+      router.refresh()
+
+      setTimeout(() => {
+        navigateToNextStep()
+      }, 800)
+    } else if (wasAutoSubmittedRef.current && message) {
+      console.log("❌ Auto-submit con errores, no navegando:", message)
+      wasAutoSubmittedRef.current = false // Reset
+    }
+  }, [message, router])
 
   const validateFormCompleteness = useCallback(() => {
     const form = formRef.current
@@ -883,59 +909,22 @@ const Addresses = ({
     return () => form.removeEventListener("blur", onBlur, true)
   }, [formRef])
 
-  const [message, formAction] = useFormState(setAddresses, null)
-
   const handleSubmit = async (formData: FormData) => {
-    console.log("📝 Enviando formulario manual...")
+    console.log("📝 Enviando formulario...")
 
-    // Debug: mostrar datos que se están enviando
-    console.log("📋 Datos del formulario:")
-    Array.from(formData.entries()).forEach(([key, value]) => {
-      console.log(`  ${key}: ${value}`)
-    })
-
-    // ⭐ CAPTURAR el estado de hasAutoSubmitted ANTES de resetearlo
-    const wasAutoSubmitted = hasAutoSubmitted
+    // Capturar si fue auto-submit
+    wasAutoSubmittedRef.current = hasAutoSubmitted
 
     setSubmitCount((prev) => prev + 1)
-    setHasAutoSubmitted(false) // Reset para permitir futuros auto-submits
+    setHasAutoSubmitted(false)
 
-    const result = await formAction(formData)
-    
-    console.log("🔍 Debug después del formAction:", {
-      result,
-      wasAutoSubmitted,
-      resultType: typeof result
-    })
-    
-    // Si el formulario se completó exitosamente y fue auto-submitted, navegar al siguiente step
-    //@ts-ignore
-    if (!result && wasAutoSubmitted) {
-      console.log("✅ Auto-submit exitoso, verificando actualización...")
-      
-      // Verificar que el carrito tenga los datos actualizados antes de navegar
-      const checkCartUpdated = () => {
-        console.log("🔍 Verificando estado del cart:", {
-          hasShippingAddress: !!cart?.shipping_address,
-          firstName: cart?.shipping_address?.first_name,
-          email: cart?.email
-        })
-        
-        // Verificar que tanto shipping_address como email estén actualizados
-        if (cart?.shipping_address?.first_name && cart?.email) {
-          console.log("🔄 Cart actualizado correctamente, navegando a delivery...")
-          navigateToNextStep()
-        } else {
-          console.log("⏳ Cart aún no actualizado, esperando...")
-          setTimeout(checkCartUpdated, 500)
-        }
-      }
-      
-      // Empezar a verificar después de un pequeño delay inicial
-      setTimeout(checkCartUpdated, 500)
-    }
+    // Enviar el formulario
+    formAction(formData)
 
-    return result
+    console.log(
+      "🔍 Formulario enviado, auto-submit:",
+      wasAutoSubmittedRef.current
+    )
   }
 
   // Skeleton mientras carga
@@ -1050,10 +1039,10 @@ const Addresses = ({
           <Text>
             <button
               onClick={handleEdit}
-              className="text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
+              className="font-archivo text-sm pt-6 hover:text-black/60"
               data-testid="edit-address-button"
             >
-              Edit
+              Editar
             </button>
           </Text>
         )}
@@ -1084,7 +1073,10 @@ const Addresses = ({
             )}
             {/* Botón manual como fallback */}
             {(showButton || (!isFormComplete && submitCount > 0)) && (
-              <SubmitButton className="mt-6" data-testid="submit-address-button">
+              <SubmitButton
+                className="mt-6"
+                data-testid="submit-address-button"
+              >
                 Actualizar datos
               </SubmitButton>
             )}
