@@ -12,6 +12,9 @@ type Props = {
     brand?: string // Nueva: marca (categoria)
     model?: string // Nueva: modelo (subcategoria)
     page?: string
+    tireSize?: string // Nuevo: tamaño de neumáticos
+    tireGripType?: string // Nuevo : agarre de neumatico
+    tireType?: string // Nuevo: tipo de neumatico
   }
 }
 
@@ -25,7 +28,15 @@ export const metadata: Metadata = {
 
 export default async function SparePartsPage({ params, searchParams }: Props) {
   const { countryCode } = params
-  const { collection, brand, model, page = "1" } = searchParams
+  const { 
+    collection, 
+    brand, 
+    model, 
+    page = "1", 
+    tireSize, 
+    tireGripType, // Desestructurar
+    tireType // Desestructurar
+  } = searchParams
 
   // Validar país
   if (!countryCode || countryCode.length !== 2) {
@@ -107,6 +118,17 @@ export default async function SparePartsPage({ params, searchParams }: Props) {
       // queryParams.metadata = { compatible_model: model }
     }
 
+    if (tireSize){
+      queryParams.tireSize = tireSize // Se pasara a getProductsList
+    }
+    // Añadir nuevos filtros a queryParams
+    if (tireGripType) {
+      queryParams.tireGripType = tireGripType;
+    }
+    if (tireType) {
+      queryParams.tireType = tireType;
+    }
+
     console.log("=== PAGE DEBUG ===")
     console.log(
       "All categories from API:",
@@ -123,6 +145,7 @@ export default async function SparePartsPage({ params, searchParams }: Props) {
       "Parent category (Modelos Recambios):",
       modelosRecambiosCategory
     )
+    
     console.log(
       "Brand categories (children):",
       brandCategories.map((b) => ({
@@ -151,7 +174,11 @@ export default async function SparePartsPage({ params, searchParams }: Props) {
         brands={brandCategories}
         countryCode={countryCode}
         parentCategory={modelosRecambiosCategory}
+        currentTireSize={tireSize}
+        currentTireGripType={tireGripType} // Pasar la prop
+        currentTireType={tireType} // Pasar la prop
       />
+      
     )
   } catch (error) {
     console.error("Error loading spare parts page:", error)

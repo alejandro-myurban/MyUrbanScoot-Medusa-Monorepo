@@ -1,15 +1,16 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Container, Heading } from "@medusajs/ui"
+// import {STORE_CORS} from "../../lib/constants"
 
 const ProductFrontendLinkWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
   const handle = data?.handle
 
   
   if (!handle) return null
-  
+  // console.log("storecors" ,STORE_CORS)
 
-  const frontendUrl = `http://localhost:8000/es/producto/${handle}`
+  const frontendUrl = `https://storefront-production-e469.up.railway.app/es/producto/${handle}`
   console.log(frontendUrl)
 
   return (
@@ -28,7 +29,7 @@ const ProductFrontendLinkWidget = ({ data }: DetailWidgetProps<AdminProduct>) =>
 }
 
 export const config = defineWidgetConfig({
-  zone: "product.details.before", // ← Esta es la correcta
+  zone: "product.details.before", 
 })
 
 export default ProductFrontendLinkWidget

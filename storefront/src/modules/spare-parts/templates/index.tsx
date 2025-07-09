@@ -25,6 +25,9 @@ interface SparePartsTemplateProps {
   brands: HttpTypes.StoreProductCategory[] // Marcas (hijos de "Modelos Recambios")
   countryCode: string
   parentCategory?: HttpTypes.StoreProductCategory // La categoría padre "Modelos Recambios"
+  currentTireSize?: string
+  currentTireGripType?: string
+  currentTireType?: string
 }
 
 export default function SparePartsTemplate({
@@ -33,6 +36,9 @@ export default function SparePartsTemplate({
   brands,
   countryCode,
   parentCategory,
+  currentTireSize,
+  currentTireGripType,
+  currentTireType,
 }: SparePartsTemplateProps) {
   const [filteredProducts, setFilteredProducts] =
     useState<HttpTypes.StoreProduct[]>(products)
@@ -40,10 +46,36 @@ export default function SparePartsTemplate({
   const [selectedModels, setSelectedModels] = useState<string[]>([])
   const [selectedInches, setSelectedInches] = useState<string[]>([]) // NUEVO: filtro de pulgadas
   const [expandedBrands, setExpandedBrands] = useState<string[]>([])
+  const [selectedTireSizes, setSelectedTireSizes] = useState<string[]>([]) // Filtro por tamaño
+  const [selectedGripTypes, setSelectedGripTypes] = useState<string[]>([]) // Filtro por agarre
+  const [selectedTireTypes, setSelectedTireTypes] = useState<string[]>([]) // Filtro por tipo de neumatico
+
   const [loading, setLoading] = useState(false)
   const [priceRange, setPriceRange] = useState([0, 500])
   const router = useRouter()
   const params = useSearchParams()
+
+  useEffect(() => {
+    if (currentTireSize) {
+      setSelectedInches([currentTireSize])
+      console.log(currentTireSize)
+    } else {
+      setSelectedInches([])
+    }
+
+    if (currentTireGripType) {
+      setSelectedGripTypes([currentTireGripType])
+    } else {
+      setSelectedGripTypes([])
+    }
+
+    if (currentTireType) {
+      setSelectedTireTypes([currentTireType])
+    } else {
+      setSelectedTireTypes([])
+    }
+  }, [currentTireSize, currentTireGripType, currentTireType])
+
 
   console.log("PRODUCTOS ", products)
   console.log("TIPOS DE REPUESTOS (collections)", sparePartsTypes)
@@ -101,11 +133,34 @@ export default function SparePartsTemplate({
       ) {
         const productInches = extractInchesFromTitle(product.title || "")
         productInches.forEach((inch) => inches.add(inch))
+        console.log("METADATA", product)
       }
     })
 
     return Array.from(inches).sort((a, b) => parseFloat(a) - parseFloat(b))
   }
+
+  const getAvailableTireOptions = () => {
+    const sizes = new Set<string>()
+    const grips = new Set<string>()
+    const types = new Set<string>()
+
+    products.forEach((product) => {
+      const meta = product.metadata || {}
+      console.log(meta.tire_grip_type)
+      if (typeof meta.tire_size === "string") sizes.add(meta.tire_size)
+      if (typeof meta.tire_grip_type === "string") grips.add(meta.tire_grip_type)
+      if (typeof meta.tire_type === "string") types.add(meta.tire_type)
+    })
+
+    return {
+      sizes: Array.from(sizes).sort(),
+      grips: Array.from(grips),
+      types: Array.from(types),
+    }
+  }
+
+  const { sizes, grips, types } = getAvailableTireOptions()
 
   // NUEVO: Verificar si se debe mostrar el filtro de pulgadas
   const shouldShowInchesFilter = (): boolean => {
@@ -129,12 +184,12 @@ export default function SparePartsTemplate({
 
   useEffect(() => {
     filterProducts()
-  }, [selectedBrands, selectedModels, selectedInches, products, priceRange]) // ACTUALIZADO: añadir selectedInches
+  }, [selectedBrands, selectedModels, selectedInches, products, priceRange, selectedTireSizes, selectedGripTypes, selectedTireTypes]) // ACTUALIZADO: añadir todos los filtros
 
   // Filtrar productos cuando cambien los filtros
   useEffect(() => {
     filterProducts()
-  }, [selectedBrands, selectedModels, selectedInches, products]) // ACTUALIZADO: añadir selectedInches
+  }, [selectedBrands, selectedModels, selectedInches, products, selectedTireSizes, selectedGripTypes, selectedTireTypes]) // ACTUALIZADO: añadir todos los filtros
 
   const getFirstAvailableVariant = (
     product: HttpTypes.StoreProduct
@@ -184,6 +239,11 @@ export default function SparePartsTemplate({
     // Limpiar filtros de marca y modelo al cambiar tipo de repuesto
     next.delete("brand")
     next.delete("model")
+    // Limpiar filtros de neumáticos al cambiar tipo de repuesto
+    next.delete("tireSize")
+    next.delete("tireGripType")
+    next.delete("tireType")
+
 
     router.replace(`/${countryCode}/spare-parts?${next.toString()}`, {
       scroll: false,
@@ -209,8 +269,8 @@ export default function SparePartsTemplate({
     return amount
   }
 
-  // ACTUALIZADO: función de filtrado con pulgadas
-  const filterProducts = () => {
+  // ACTUALIZADO: función de filtrado con pulgadas y nuevos filtros de neumáticos
+  const filterProducts = () => { // <-- ESTA ES LA FUNCIÓN QUE FALTABA CERRAR
     let filtered = products
 
     filtered = filtered.filter((product) => {
@@ -247,8 +307,32 @@ export default function SparePartsTemplate({
       })
     }
 
+    // Filtro por tamaño de neumático (metadata.tire_size)
+    if (selectedTireSizes.length > 0) {
+      filtered = filtered.filter((product) =>
+        typeof product.metadata?.tire_size === "string" &&
+        selectedTireSizes.includes(product.metadata.tire_size)
+      )
+    }
+
+    // Filtro por tipo de agarre (metadata.tire_grip_type)
+    if (selectedGripTypes.length > 0) {
+      filtered = filtered.filter((product) =>
+        typeof product.metadata?.tire_grip_type === "string" &&
+        selectedGripTypes.includes(product.metadata.tire_grip_type)
+      )
+    }
+
+    // Filtro por tipo de neumático (metadata.tire_type)
+    if (selectedTireTypes.length > 0) {
+      filtered = filtered.filter((product) =>
+        typeof product.metadata?.tire_type === "string" &&
+        selectedTireTypes.includes(product.metadata.tire_type)
+      )
+    }
+
     setFilteredProducts(filtered)
-  }
+  } // <-- ¡AQUÍ FALTABA LA LLAVE DE CIERRE DE filterProducts!
 
   const handleBrandChange = (brandId: string, checked: boolean) => {
     if (checked) {
@@ -293,6 +377,11 @@ export default function SparePartsTemplate({
     setSelectedModels([])
     setSelectedInches([]) // NUEVO: limpiar filtro de pulgadas
     setExpandedBrands([])
+    // --- Neumaticos ---
+    setSelectedTireSizes([])
+    setSelectedGripTypes([])
+    setSelectedTireTypes([])
+
   }
 
   // NUEVO: Obtener pulgadas disponibles
@@ -461,6 +550,85 @@ export default function SparePartsTemplate({
                 </div>
               </div>
             )}
+            {/* Filtro Neumaticos */}
+            
+            {/* Filtro Tamaño de Neumatico */}
+            {sizes.length > 0 && (
+              <div className="mb-6">
+                <h4 className="font-medium mb-3">Tamaño neumático</h4>
+                {sizes.map((size) => (
+                  <label key={size} className="flex items-center space-x-2 cursor-pointer">
+                    <Checkbox
+                      checked={selectedTireSizes.includes(size)}
+                      onCheckedChange={(checked) =>
+                        setSelectedTireSizes((prev) =>
+                          checked ? [...prev, size] : prev.filter((s) => s !== size)
+                        )
+                      }
+                    />
+                    <span className="text-sm">{size}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {/* Filtro tipo de agarre */}
+
+            {grips.length > 0 && (
+              <div className="mb-6">
+                <h4 className="font-medium mb-3">Tipo de agarre</h4>
+                {grips.map((grip) => (
+                  <label key={grip} className="flex items-center space-x-2 cursor-pointer">
+                    <Checkbox
+                      checked={selectedGripTypes.includes(grip)}
+                      onCheckedChange={(checked) =>
+                        setSelectedGripTypes((prev) =>
+                          checked ? [...prev, grip] : prev.filter((g) => g !== grip)
+                        )
+                      }
+                    />
+                    <span className="text-sm capitalize">
+                      {grip === "offroad"
+                        ? "Offroad (taco)"
+                        : grip === "smooth"
+                        ? "Liso"
+                        : grip === "mixed"
+                        ? "Mixto"
+                        : grip}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {/* Filtro tipo de neumaticos */}
+            
+            {types.length > 0 && (
+              <div className="mb-6">
+                <h4 className="font-medium mb-3">Tipo de neumático</h4>
+                {types.map((type) => (
+                  <label key={type} className="flex items-center space-x-2 cursor-pointer">
+                    <Checkbox
+                      checked={selectedTireTypes.includes(type)}
+                      onCheckedChange={(checked) =>
+                        setSelectedTireTypes((prev) =>
+                          checked ? [...prev, type] : prev.filter((t) => t !== type)
+                        )
+                      }
+                    />
+                    <span className="text-sm capitalize">
+                      {{
+                        tubeless: "Tubeless",
+                        tube: "Con cámara",
+                        solid: "Macizo",
+                      }[type] || type}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+
 
             {/* Filtro por marcas y modelos */}
             <div className="mb-6">
@@ -539,7 +707,10 @@ export default function SparePartsTemplate({
             {/* Mostrar filtros activos */}
             {(selectedBrands.length > 0 ||
               selectedModels.length > 0 ||
-              selectedInches.length > 0) && (
+              selectedInches.length > 0 ||
+              selectedTireSizes.length > 0 ||
+              selectedGripTypes.length > 0 ||
+              selectedTireTypes.length > 0) && ( // Añadidos los nuevos filtros
               <div className="pt-4 border-t">
                 <h5 className="text-sm font-medium mb-2">Filtros activos:</h5>
                 <div className="space-y-1 text-xs text-ui-fg-subtle">
@@ -551,6 +722,15 @@ export default function SparePartsTemplate({
                   )}
                   {selectedInches.length > 0 && (
                     <div>Pulgadas: {selectedInches.join(", ")}"</div>
+                  )}
+                  {selectedTireSizes.length > 0 && (
+                    <div>Tamaño neumático: {selectedTireSizes.join(", ")}</div>
+                  )}
+                  {selectedGripTypes.length > 0 && (
+                    <div>Tipo de agarre: {selectedGripTypes.join(", ")}</div>
+                  )}
+                  {selectedTireTypes.length > 0 && (
+                    <div>Tipo de neumático: {selectedTireTypes.join(", ")}</div>
                   )}
                 </div>
               </div>
