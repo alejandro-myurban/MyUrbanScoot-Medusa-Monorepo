@@ -10,13 +10,13 @@ import Spinner from "@modules/common/icons/spinner"
 interface FallbackProps {
   products: HttpTypes.StoreProduct[]
   region: HttpTypes.StoreRegion
-  discount?: string | number
+  productDiscounts: Record<string, number>
 }
 
 export default function BoughtTogetherFallback({
   products,
   region,
-  discount,
+  productDiscounts,
 }: FallbackProps) {
   const isAdding = false
 
@@ -26,6 +26,9 @@ export default function BoughtTogetherFallback({
         const variant = p.variants?.[0]
         if (!variant) return null
 
+        // Obtiene el descuento para un producto en especifico 
+        const discount = productDiscounts[p.id];
+
         // Compute price with same logic
         const { cheapestPrice } = getProductPrice({ product: p }) ?? {}
         if (!cheapestPrice) return null
@@ -34,8 +37,7 @@ export default function BoughtTogetherFallback({
         let discountPercent: number | null = null
 
         if (discount) {
-          const discountAmount =
-            typeof discount === "string" ? parseFloat(discount) : discount
+          const discountAmount = discount 
           if (!isNaN(discountAmount) && discountAmount > 0) {
             const originalPriceNumber =
               cheapestPrice.calculated_price_number ||
