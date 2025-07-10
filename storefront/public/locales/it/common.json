@@ -67,6 +67,12 @@
     "shipping_methods": {
       "standard": "Consegna a domicilio",
       "pickup": "Ritiro in negozio"
+    },
+    "address_info": {
+      "shipping_address": "Indirizzo di spedizione",
+      "billing_address": "Indirizzo di fatturazione",
+      "same_as_shipping": "Uguale all'indirizzo di spedizione",
+      "contact": "Contatto"
     }
   },
   "login": {

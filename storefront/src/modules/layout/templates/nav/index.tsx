@@ -82,9 +82,9 @@ export default async function Nav() {
               <NavigationMenuItem>
                 <LocalizedClientLink href="/spare-parts">
                   <NavigationMenuLink className="text-black/80 hover:text-black">
-                      <ActiveNavItem
+                    <ActiveNavItem
                       className="text-black/80 hover:text-black after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
-                      href="/spare_parts"
+                      href="/spare-parts"
                       translationKey="navigation.spare_parts"
                     />
                   </NavigationMenuLink>
@@ -129,7 +129,7 @@ export default async function Nav() {
                 href="/cart"
                 data-testid="nav-cart-link"
               >
-                Cart (0)
+                <CartButton />
               </LocalizedClientLink>
             }
           >
@@ -245,7 +245,7 @@ export default async function Nav() {
                 href="/cart"
                 data-testid="nav-cart-link"
               >
-                Cart (0)
+                <CartButton />
               </LocalizedClientLink>
             }
           >

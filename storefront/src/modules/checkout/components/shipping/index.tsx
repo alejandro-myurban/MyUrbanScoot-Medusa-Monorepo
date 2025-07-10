@@ -238,7 +238,7 @@ const Shipping: React.FC<ShippingProps> = ({
         // Reset estados
         setFreeShippingApplied(false)
         navigationScheduledRef.current = false
-      }, 3000)
+      }, 1000)
       
       setAutoNavigationTimeout(timeout)
     }

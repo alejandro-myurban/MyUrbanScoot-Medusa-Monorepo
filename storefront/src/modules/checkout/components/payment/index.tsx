@@ -20,6 +20,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useContext, useEffect, useState } from "react"
 import { useCodFee } from "../../../../lib/hooks/use-cod"
 import { useTranslation } from "react-i18next"
+import { TermsCheckbox } from "../terms-checkbox"
 
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false)
@@ -57,7 +58,7 @@ const Payment = ({
   const [selectedProvider, setSelectedProvider] =
     useState<string>("pp_stripe_stripe")
   const [processingOrder, setProcessingOrder] = useState(false)
-
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const {
     handlePaymentProviderChange,
     isLoading: codLoading,
@@ -340,7 +341,7 @@ const Payment = ({
           confirmParams: {
             return_url: returnUrl,
           },
-          redirect: "if_required", 
+          redirect: "if_required",
         })
 
         if (confirmError) {
@@ -481,6 +482,10 @@ const Payment = ({
                     onChange={handlePaymentElementChange}
                     options={{
                       layout: "accordion",
+                      wallets: {
+                        applePay: "never",
+                        googlePay: "never",
+                      },
                     }}
                   />
                 </div>
@@ -579,13 +584,15 @@ const Payment = ({
             data-testid="payment-method-error-message"
           />
 
+          <TermsCheckbox checked={termsAccepted} onChange={setTermsAccepted} />
+
           {/* Botón principal para procesar el pago */}
           <Button
             size="large"
             className="mt-6 w-full h-11 lg:w-2/5 font-archivoBlack text-xl"
             onClick={handleSubmit}
             isLoading={isLoading || codLoading || processingOrder}
-            disabled={isButtonDisabled()}
+            disabled={isButtonDisabled() || !termsAccepted}
             data-testid="submit-payment-button"
           >
             {getButtonText()}

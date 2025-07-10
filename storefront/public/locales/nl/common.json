@@ -68,6 +68,12 @@
     "shipping_methods": {
       "standard": "Thuisbezorging",
       "pickup": "Afhalen in de Winkel"
+    },
+    "address_info": {
+      "shipping_address": "Verzendadres",
+      "billing_address": "Factuuradres",
+      "same_as_shipping": "Hetzelfde als verzendadres",
+      "contact": "Contact"
     }
   },
   "login": {

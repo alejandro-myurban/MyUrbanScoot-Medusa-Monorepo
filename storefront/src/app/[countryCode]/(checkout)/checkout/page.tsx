@@ -65,7 +65,7 @@ export default async function Checkout() {
       </div>
 
       {/* Layout para desktop */}
-      <div className="hidden small:block">
+      <div className="hidden small:block overflow-x-hidden">
         <div className="grid grid-cols-[1fr_600px] w-full max-w-screen-large pl-4 pr-4 mx-auto gap-x-8 py-4 sm:py-12">
           
           {/* Columna del formulario */}
@@ -83,7 +83,7 @@ export default async function Checkout() {
           {/* Columna del resumen */}
           <div className="relative">
             {/* Fondo gris que se extiende hasta el borde derecho */}
-            <div className="absolute inset-y-0 left-0 right-0 bg-gray-200 -mr-[255px]" />
+            <div className="absolute inset-y-0 left-0 right-0 bg-gray-200 -mr-[100vw]" />
             
             {/* Contenido del resumen - sticky en desktop */}
             <div className="sticky top-2 z-10">
