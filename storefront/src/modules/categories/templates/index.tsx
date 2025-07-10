@@ -1,35 +1,110 @@
 // app/categories/[handle]/page.tsx
 import { notFound } from "next/navigation"
 import React, { Suspense } from "react"
-
-import InteractiveLink from "@modules/common/components/interactive-link"
+import { HttpTypes } from "@medusajs/types"
+import { getProductsListWithSort } from "@lib/data/products"
+import { getRegion } from "@lib/data/regions"
 import SkeletonProductGrid from "@modules/skeletons/templates/skeleton-product-grid"
 import RefinementList from "@modules/store/components/refinement-list"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 import PaginatedProducts from "@modules/store/templates/paginated-products"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import { HttpTypes } from "@medusajs/types"
-import { getProductsListWithSort } from "@lib/data/products"
-import { getRegion } from "@lib/data/regions"
 import {
   Breadcrumb,
-  BreadcrumbEllipsis,
-  BreadcrumbItem,
   BreadcrumbLink,
+  BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "../../../src/components/ui/breadcrumb"
 import PriceFilterWrapper from "@modules/products/components/price-filter-wrapper"
-import {
-  SubcategoryCard,
-  SubcategoryCardLight,
-} from "../components/subcategory-card"
-import ScootersFilters from "@/modules/common/components/scooters-filters"
-import ScootersFiltersWrapper from "@/modules/products/components/scooters-filter-wrapped"
+import { SubcategoryCardLight } from "../components/subcategory-card"
 
-// Componente para las cards de subcategorías
+// Importamos el nuevo componente contenedor cliente
+import ScootersFiltersContainer from "../components/scootets-filters-container" // <-- Nuevo componente contenedor
 
+// --- Función de ayuda para aplicar los filtros de scooter (EN EL SERVIDOR) ---
+const applyScooterFilters = (
+  products: HttpTypes.StoreProduct[],
+  searchParams: { [key: string]: string | string[] | undefined }
+) => {
+  return products.filter((product) => {
+    const m = product.metadata || {}
+
+    // Parámetros de selección múltiple (checkboxes)
+    const dgt = Array.isArray(searchParams.dgt) ? (searchParams.dgt as string[]) : (searchParams.dgt ? [searchParams.dgt as string] : []);
+    const motorType = Array.isArray(searchParams.motorType) ? (searchParams.motorType as string[]) : (searchParams.motorType ? [searchParams.motorType as string] : []);
+    const hydraulicBrakes = Array.isArray(searchParams.hydraulicBrakes) ? (searchParams.hydraulicBrakes as string[]) : (searchParams.hydraulicBrakes ? [searchParams.hydraulicBrakes as string] : []);
+    const tireSizes = Array.isArray(searchParams.tireSizes) ? (searchParams.tireSizes as string[]) : (searchParams.tireSizes ? [searchParams.tireSizes as string] : []);
+    const gripTypes = Array.isArray(searchParams.gripTypes) ? (searchParams.gripTypes as string[]) : (searchParams.gripTypes ? [searchParams.gripTypes as string] : []);
+    const tireTypes = Array.isArray(searchParams.tireTypes) ? (searchParams.tireTypes as string[]) : (searchParams.tireTypes ? [searchParams.tireTypes as string] : []);
+
+
+    // Parámetros de rango (ej. "min,max")
+    const parseRangeParam = (param: string | string[] | undefined, defaultMin: number, defaultMax: number): [number, number] => {
+      if (typeof param === 'string') {
+        const parts = param.split(',').map(Number);
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          return [parts[0], parts[1]];
+        }
+      }
+      return [defaultMin, defaultMax];
+    };
+
+    // basado en `allCategoryProducts`.
+    const autonomyRange = parseRangeParam(searchParams.autonomyRange, 0, 9999);
+    const powerRange = parseRangeParam(searchParams.powerRange, 0, 99999);
+    const voltageRange = parseRangeParam(searchParams.voltageRange, 0, 999);
+    const weightRange = parseRangeParam(searchParams.weightRange, 0, 999);
+    const speedRange = parseRangeParam(searchParams.speedRange, 0, 999);
+
+
+    // Lógica de coincidencia para cada filtro
+    const dgtMatch = !dgt.length || (m.dgt && dgt.includes(m.dgt as string));
+    const motorTypeMatch = !motorType.length || (m.motor_type && motorType.includes(m.motor_type as string));
+    const hydraulicBrakesMatch = !hydraulicBrakes.length || (m.hydraulic_brakes && hydraulicBrakes.includes(m.hydraulic_brakes as string));
+    const tireSizesMatch = !tireSizes.length || (m.tire_size && tireSizes.includes(m.tire_size as string));
+    const gripTypesMatch = !gripTypes.length || (m.tire_grip_type && gripTypes.includes(m.tire_grip_type as string));
+    const tireTypesMatch = !tireTypes.length || (m.tire_type && tireTypes.includes(m.tire_type as string));
+
+
+    const autonomyMatch =
+      Number(m.autonomy_km) >= autonomyRange[0] &&
+      Number(m.autonomy_km) <= autonomyRange[1];
+
+    const powerMatch =
+      Number(m.motor_power_w) >= powerRange[0] &&
+      Number(m.motor_power_w) <= powerRange[1];
+
+    const voltageMatch =
+      Number(m.battery_voltage_v) >= voltageRange[0] &&
+      Number(m.battery_voltage_v) <= voltageRange[1];
+
+    const weightMatch =
+      Number(m.weight_kg) >= weightRange[0] &&
+      Number(m.weight_kg) <= weightRange[1];
+
+    const speedMatch =
+      Number(m.max_speed_kmh) >= speedRange[0] &&
+      Number(m.max_speed_kmh) <= speedRange[1];
+
+    return (
+      dgtMatch &&
+      motorTypeMatch &&
+      hydraulicBrakesMatch &&
+      tireSizesMatch &&
+      gripTypesMatch &&
+      tireTypesMatch &&
+      autonomyMatch &&
+      powerMatch &&
+      voltageMatch &&
+      weightMatch &&
+      speedMatch
+    );
+  });
+};
+
+// --- Componente principal de la plantilla de categoría (Server Component) ---
 export default async function CategoryTemplate({
   categories,
   sortBy,
@@ -51,7 +126,6 @@ export default async function CategoryTemplate({
     notFound()
   }
 
-  // Construir la jerarquía de breadcrumbs
   const buildHierarchy = (cat: any): any[] => {
     const hierarchy: any[] = []
     let current = cat.parent_category
@@ -63,8 +137,7 @@ export default async function CategoryTemplate({
   }
   const parents = buildHierarchy(category)
 
-  // Obtener TODOS los productos de esta categoría para el filtro
-  const ALL_PRODUCTS_LIMIT = 1000
+  const ALL_PRODUCTS_LIMIT = 1000 
   const queryParamsForFilter = {
     limit: ALL_PRODUCTS_LIMIT,
     category_id: [category.id],
@@ -75,9 +148,9 @@ export default async function CategoryTemplate({
     notFound()
   }
 
-  // Petición para todos los productos (para el filtro de precios)
+  // Obtén todos los productos de la categoría *sin filtros iniciales de scooter*
   const {
-    response: { products: allProducts },
+    response: { products: allCategoryProducts },
   } = await getProductsListWithSort({
     page: 1,
     queryParams: queryParamsForFilter,
@@ -85,45 +158,37 @@ export default async function CategoryTemplate({
     countryCode,
   })
 
+  // Aplica los filtros de scooter si la categoría es "patinetes-electricos"
+  const filteredProductsToDisplay = category.handle === "patinetes-electricos"
+    ? applyScooterFilters(allCategoryProducts, searchParams || {})
+    : allCategoryProducts;
+
   const sortSubcategories = (
     subcategories: HttpTypes.StoreProductCategory[]
   ) => {
-    // Define el orden prioritario
     const priorityOrder = ["kugoo-kirin", "smartgyro", "dualtron", "xiaomi"]
-
-    // Separar las categorías prioritarias de las demás
     const priorityCategories: HttpTypes.StoreProductCategory[] = []
     const otherCategories: HttpTypes.StoreProductCategory[] = []
 
     subcategories.forEach((cat) => {
       const priorityIndex = priorityOrder.indexOf(cat.handle)
       if (priorityIndex !== -1) {
-        // Si está en la lista prioritaria, guardar con su índice
         priorityCategories[priorityIndex] = cat
       } else {
-        // Si no está en la lista prioritaria
         otherCategories.push(cat)
       }
     })
 
-    // Filtrar undefined (por si alguna categoría prioritaria no existe)
     const sortedPriority = priorityCategories.filter(Boolean)
-
-    // Ordenar las otras categorías por rank o alfabéticamente
     const sortedOthers = otherCategories.sort((a, b) => {
-      // Primero por rank si existe
       if (a.rank !== undefined && b.rank !== undefined) {
         return a.rank! - b.rank!
       }
-      // Luego alfabéticamente por nombre
       return a.name.localeCompare(b.name)
     })
-
-    // Combinar arrays: primero las prioritarias, luego las demás
     return [...sortedPriority, ...sortedOthers]
   }
 
-  // Detectar si es la categoría de Vinilos y tiene subcategorías
   const shouldShowSubcategoryCards =
     category.handle === "vinilos" &&
     category.category_children &&
@@ -141,14 +206,12 @@ export default async function CategoryTemplate({
     >
       <Breadcrumb>
         <BreadcrumbList>
-          {/* Home link */}
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <LocalizedClientLink href="/">Inicio</LocalizedClientLink>
             </BreadcrumbLink>
           </BreadcrumbItem>
 
-          {/* Categorías padre */}
           {parents.map((parent) => (
             <React.Fragment key={parent.id}>
               <BreadcrumbSeparator className="flex-none text-black [&>svg]:w-4 [&>svg]:h-4" />
@@ -165,7 +228,6 @@ export default async function CategoryTemplate({
             </React.Fragment>
           ))}
 
-          {/* Categoría actual */}
           <BreadcrumbSeparator className="flex-none text-black [&>svg]:w-4 [&>svg]:h-4" />
           <BreadcrumbItem>
             <BreadcrumbPage className="font-semibold">
@@ -189,7 +251,6 @@ export default async function CategoryTemplate({
         </div>
 
         {shouldShowSubcategoryCards ? (
-          // Mostrar cards de subcategorías para Vinilos
           <div className="grid grid-cols-1 xsmall:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {sortedSubcategories.map((subcategory) => (
               <SubcategoryCardLight
@@ -199,17 +260,19 @@ export default async function CategoryTemplate({
             ))}
           </div>
         ) : (
-          // Mostrar el layout normal con productos
           <div className="flex gap-8 flex-col md:flex-row">
             <div className="flex flex-col gap-4 w-full md:w-[250px] md:flex-shrink-0">
               <RefinementList sortBy={sort} data-testid="sort-by-container" />
-              <PriceFilterWrapper products={allProducts} />
+              <PriceFilterWrapper products={allCategoryProducts} />
 
+              {/* Contenedor para ScootersFilters */}
               {category.handle === "patinetes-electricos" && (
-                <ScootersFiltersWrapper allProducts={allProducts} />
+                <ScootersFiltersContainer
+                  allProducts={allCategoryProducts} 
+                  initialSearchParams={searchParams || {}} 
+                />
               )}
 
-              {/* Mostrar subcategorías como lista si existen */}
               {category.category_children &&
                 category.category_children.length > 0 && (
                   <div className="mt-6">
@@ -217,9 +280,9 @@ export default async function CategoryTemplate({
                     <ul className="space-y-2">
                       {category.category_children.map((c) => (
                         <li key={c.id}>
-                          <InteractiveLink href={`/categories/${c.handle}`}>
+                          <LocalizedClientLink href={`/categories/${c.handle}`}>
                             {c.name}
-                          </InteractiveLink>
+                          </LocalizedClientLink>
                         </li>
                       ))}
                     </ul>
@@ -227,7 +290,6 @@ export default async function CategoryTemplate({
                 )}
             </div>
 
-            {/* Productos paginados */}
             <div className="flex-1">
               <Suspense fallback={<SkeletonProductGrid />}>
                 <PaginatedProducts
@@ -236,7 +298,7 @@ export default async function CategoryTemplate({
                   categoryId={category.id}
                   countryCode={countryCode}
                   searchParams={searchParams ?? {}}
-                  allProducts={allProducts}
+                  allProducts={filteredProductsToDisplay}
                 />
               </Suspense>
             </div>
