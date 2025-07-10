@@ -1063,7 +1063,7 @@ const Addresses = ({
               <div>
                 <Heading
                   level="h2"
-                  className="text-3xl-regular gap-x-4 pb-6 pt-8"
+                  className="text-2xl gap-x-4 pb-6 pt-8 uppercase font-archivoBlack font-bold"
                 >
                   DIRECCIÓN DE ENVÍO
                 </Heading>
@@ -1095,7 +1095,7 @@ const Addresses = ({
                     data-testid="shipping-address-summary"
                   >
                     <Text className="font-semibold font-archivo text-ui-fg-base mb-1">
-                      Shipping Address
+                       {t("checkout.address_info.shipping_address")}
                     </Text>
                     <Text className="txt-medium font-archivo text-ui-fg-subtle">
                       {cart.shipping_address.first_name}{" "}
@@ -1119,7 +1119,7 @@ const Addresses = ({
                     data-testid="shipping-contact-summary"
                   >
                     <Text className="font-semibold font-archivo  text-ui-fg-base mb-1">
-                      Contact
+                      {t("checkout.address_info.contact")}
                     </Text>
                     <Text className="txt-medium  font-archivo text-ui-fg-subtle">
                       {cart.shipping_address.phone}
@@ -1134,12 +1134,12 @@ const Addresses = ({
                     data-testid="billing-address-summary"
                   >
                     <Text className="font-semibold font-archivo text-ui-fg-base mb-1">
-                      Billing Address
+                      {t("checkout.address_info.billing_address")}
                     </Text>
 
                     {sameAsBilling ? (
                       <Text className="txt-medium font-archivo text-ui-fg-subtle">
-                        Billing- and delivery address are the same.
+                        {t("checkout.address_info.same_as_shipping")}
                       </Text>
                     ) : (
                       <>

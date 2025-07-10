@@ -19,7 +19,7 @@
     "tooltip": {
       "shippment": "🚚 Envíos gratis con 20 €",
       "gift": "🎁 Regalo en pedidos superiores a 100 €",
-      "spare_parts" : "🛠️ Repuestos exclusivos para tu patinete"
+      "spare_parts": "🛠️ Repuestos exclusivos para tu patinete"
     }
   },
   "actions": {
@@ -33,10 +33,11 @@
   "checkout": {
     "shipping_address": "Entrega",
     "delivery": "Envíos",
+    "billing_address": "Dirección de envío",
     "payment": "Pago",
     "review": "Revisión",
     "express_payment": "Pago Express",
-    "safe_payment" : "Todas las transacciones son seguras y están cifradas.",
+    "safe_payment": "Todas las transacciones son seguras y están cifradas.",
     "summary": {
       "title": "Resumen del Pedido",
       "discount": "Código de Descuento",
@@ -63,11 +64,17 @@
       "state": "Provincia",
       "postal_code": "Código Postal",
       "phone_number": "Teléfono",
-      "address_info" : "Usar esta dirección para el envío."
+      "address_info": "Usar esta dirección para el envío."
     },
     "shipping_methods": {
       "standard": "Envío a Domicilio",
       "pickup": "Recogida en Tienda"
+    },
+    "address_info": {
+      "shipping_address": "Dirección de envío",
+      "billing_address": "Dirección de facturación",
+      "same_as_shipping": "Igual que la dirección de envío",
+      "contact": "Contacto"
     }
   },
   "login": {

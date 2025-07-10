@@ -148,10 +148,6 @@ const CheckoutSummary = ({ cart }: { cart: any }) => {
                 <CartTotals totals={cart} />
               </div>
 
-              <TermsCheckbox
-                checked={termsAccepted}
-                onChange={setTermsAccepted}
-              />
               {countryCode === "es" && cart?.billing_address?.country_code === "es" && (
                 <FreeShippingProgress
                   currentAmount={cart.item_subtotal}

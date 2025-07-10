@@ -264,7 +264,7 @@ const CartDropdown = ({
                           })}
                         </span>
                       </div>
-                      <LocalizedClientLink href="/checkout">
+                      <LocalizedClientLink href="/checkout?step=address">
                         <Button
                           className={`
                             w-full bg-black/90 mb-4
