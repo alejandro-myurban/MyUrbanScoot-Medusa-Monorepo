@@ -133,6 +133,7 @@ const CompactItem = ({
     }
   }
 
+
   return (
     <div 
       className={clx(
