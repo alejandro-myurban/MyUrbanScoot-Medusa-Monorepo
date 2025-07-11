@@ -272,7 +272,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                 className="flex flex-row items-start relative"
                 data-testid="product-container"
               >
-                <div className="block w-1/2 relative">
+                <div className="block w-1/2 sticky top-0">
                   <ClientImageGallery images={product.images || []} />
                 </div>
                 <div className="flex flex-col sticky top-48 w-1/2 py-4 gap-y-12">

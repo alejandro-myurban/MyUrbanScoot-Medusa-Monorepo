@@ -17,7 +17,7 @@ export const addCustomLineItemIfCustomNameWorkflow = createWorkflow(
   "add-custom-line-item-if-custom-name-or-number",
   ({ cart_id, quantity = 1 }: Input) => {
     const NAME_FEE_VARIANT_ID = "variant_01JV4R20FJ07VWECNGVKSY76HM";
-    const NUMBER_FEE_VARIANT_ID = "variant_01JV7720S8EAQ6VHJWRMWVHRFY";
+    const NUMBER_FEE_VARIANT_ID = "variant_01JVAAEJD9QF8DV88FVRB00Q3C";
 
     console.log("🔍 Iniciando workflow para cart_id:", cart_id);
 
