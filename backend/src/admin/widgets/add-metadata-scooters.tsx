@@ -1,35 +1,46 @@
 // components/ScooterMetadataWidget.tsx
 import React, { useEffect, useState } from 'react';
 import { DetailWidgetProps, AdminProduct } from '@medusajs/framework/types';
-import { sdk } from '../lib/sdk'; 
+import { sdk } from '../lib/sdk';
 import { defineWidgetConfig } from "@medusajs/admin-sdk";
-import { Container, Button, Input, toast, Select } from "@medusajs/ui";
+import {
+  Container,
+  Button,
+  Input,
+  toast,
+  Select,
+  Heading,
+  Label
+} from "@medusajs/ui";
 
 interface ScooterMetadata {
-  dgt?: string; motor_type?: string; hydraulic_brakes?: string;
-  tire_size?: string; tire_grip_type?: string; tire_type?: string;
-  autonomy_km?: number; motor_power_w?: number; battery_voltage_v?: number;
-  weight_kg?: number; max_speed_kmh?: number;
-  [key: string]: any; 
+  dgt?: string;
+  motor_type?: string;
+  hydraulic_brakes?: string;
+  tire_size?: string;
+  tire_grip_type?: string;
+  tire_type?: string;
+  autonomy_km?: number;
+  motor_power_w?: number;
+  battery_voltage_v?: number;
+  weight_kg?: number;
+  max_speed_kmh?: number;
+  warranty_months?: string;
+  breakes_details?: string;
+  [key: string]: any;
 }
 
 const dgtOptions = ["DGT", "NO DGT"];
 const motorTypeOptions = ["single", "dual"];
 const hydraulicBrakesOptions = ["yes", "no"];
-const tireSizeOptions = ["10\"x3", "10\"x2,75-6,5", "8,5\"x3"];
 const gripTypeOptions = ["offroad (Taco)", "smooth", "mixed"];
 const tireTypeOptions = ["Tubeless", "Tube", "Solid"];
 
 const ScooterMetadataWidget: React.FC<DetailWidgetProps<AdminProduct>> = ({ data }) => {
-  console.log("DEBUG: SDK object imported into widget:", sdk);
-  console.log("DEBUG: sdk.admin.product available:", sdk.admin?.product);
-  console.log("DEBUG: data prop recibida:", data);
-
   const productId = data.id;
 
-  // Función para extraer metadatos iniciales
   const getInitialMetadata = (): ScooterMetadata => {
-    const metadata = data.metadata || {}; 
+    const metadata = data.metadata || {};
     const initial: ScooterMetadata = {
       dgt: metadata.dgt as string || '',
       motor_type: metadata.motor_type as string || '',
@@ -37,43 +48,95 @@ const ScooterMetadataWidget: React.FC<DetailWidgetProps<AdminProduct>> = ({ data
       tire_size: metadata.tire_size as string || '',
       tire_grip_type: metadata.tire_grip_type as string || '',
       tire_type: metadata.tire_type as string || '',
-      // Para números, si el valor no existe o es inválido, usar undefined para que el input muestre vacío
       autonomy_km: typeof metadata.autonomy_km === 'number' ? metadata.autonomy_km : undefined,
       motor_power_w: typeof metadata.motor_power_w === 'number' ? metadata.motor_power_w : undefined,
       battery_voltage_v: typeof metadata.battery_voltage_v === 'number' ? metadata.battery_voltage_v : undefined,
       weight_kg: typeof metadata.weight_kg === 'number' ? metadata.weight_kg : undefined,
       max_speed_kmh: typeof metadata.max_speed_kmh === 'number' ? metadata.max_speed_kmh : undefined,
+      warranty_months: metadata.warranty_months as string || '',
+      breakes_details: metadata.breakes_details as string || '',
     };
-    console.log("DEBUG: Metadatos iniciales extraídos (initialMetadata):", initial);
     return initial;
   };
 
   const [metadata, setMetadata] = useState<ScooterMetadata>(getInitialMetadata());
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string | null>>({});
 
-  // useEffect para re-inicializar el estado si cambia 
   useEffect(() => {
     setMetadata(getInitialMetadata());
-  }, [data.metadata, productId]); 
+    setErrors({});
+  }, [data.metadata, productId]);
 
-  // Manejador de cambios para campos de texto/número y Select
-  const handleChange = (name: string, value: string | number | undefined, type?: string) => {
-    console.log(`DEBUG: Cambio detectado - Campo: ${name}, Valor: ${value}, Tipo: ${type}`);
-    let newValue: string | number | undefined = value;
-    if (type === 'number') {
-      newValue = (value as string).trim() === '' ? undefined : (isNaN(Number(value)) ? 0 : Number(value));
-    }
-    setMetadata(prev => {
-      const updatedMetadata = { ...prev, [name]: newValue };
-      console.log('DEBUG: Estado de metadatos actualizado:', updatedMetadata);
-      return updatedMetadata;
-    });
+  const labelMap: Record<string, string> = {
+    tire_size: 'Tamaño Neumático',
+    warranty_months: 'Garantía',
+    breakes_details: 'Detalles de Frenado',
   };
 
-  // Función para guardar los metadatos
+  const handleChange = (name: string, value: string | number | undefined, type?: string) => {
+    let newValue: string | number | undefined = value;
+    let errorMessage: string | null = null;
+
+    if (type === 'number') {
+      newValue = (value as string).trim() === '' ? undefined : (isNaN(Number(value)) ? 0 : Number(value));
+    } else { // Validaciones para campos de texto
+      const stringValue = String(value || '').trim();
+      
+      if (name === 'warranty_months' || name === 'breakes_details') {
+        // Para Garantía y Frenado: no puede contener SOLO números
+        const isOnlyNumbers = /^[0-9]+$/.test(stringValue); 
+        if (isOnlyNumbers && stringValue !== '') {
+          errorMessage = `El campo '${labelMap[name]}' no puede contener solo números. Por favor, agregue texto descriptivo.`;
+        }
+      } else if (name === 'tire_size') {
+        // Para Tamaño Neumático: no puede contener SOLO letras
+        const isOnlyLetters = /^[a-zA-Z\s]+$/.test(stringValue); // Permite letras y espacios
+        if (isOnlyLetters && stringValue !== '') {
+          errorMessage = `El campo '${labelMap[name]}' no puede contener solo letras. Debe incluir números (ej. "10x3").`;
+        }
+      }
+    }
+    
+    setMetadata(prev => ({ ...prev, [name]: newValue }));
+    setErrors(prev => ({ ...prev, [name]: errorMessage }));
+  };
+
   const handleSave = async () => {
+    let hasErrors = false;
+    const newErrors: Record<string, string | null> = {};
+
+    // Re-validar los campos de texto sensibles justo antes de guardar
+    const textFieldsToValidate = ['tire_size', 'warranty_months', 'breakes_details'];
+    textFieldsToValidate.forEach(key => {
+      const stringValue = String(metadata[key as keyof ScooterMetadata] || '').trim();
+      
+      if (key === 'warranty_months' || key === 'breakes_details') {
+        const isOnlyNumbers = /^[0-9]+$/.test(stringValue);
+        if (isOnlyNumbers && stringValue !== '') {
+          newErrors[key] = `El campo '${labelMap[key]}' no puede contener solo números. Por favor, agregue texto descriptivo.`;
+          hasErrors = true;
+        } else {
+          newErrors[key] = null;
+        }
+      } else if (key === 'tire_size') {
+        const isOnlyLetters = /^[a-zA-Z\s]+$/.test(stringValue);
+        if (isOnlyLetters && stringValue !== '') {
+          newErrors[key] = `El campo '${labelMap[key]}' no puede contener solo letras. Debe incluir números (ej. "10x3").`;
+          hasErrors = true;
+        } else {
+          newErrors[key] = null;
+        }
+      }
+    });
+
+    setErrors(newErrors);
+    if (hasErrors) {
+      toast.error('Corrige los errores antes de guardar.');
+      return;
+    }
+
     setSaving(true);
-    console.log("DEBUG: Iniciando guardado de metadatos.");
     try {
       const updatedProductMetadata: Record<string, any> = { ...data.metadata };
 
@@ -81,51 +144,46 @@ const ScooterMetadataWidget: React.FC<DetailWidgetProps<AdminProduct>> = ({ data
         const value = metadata[key as keyof ScooterMetadata];
 
         if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
-          delete updatedProductMetadata[key];
+          if (Object.prototype.hasOwnProperty.call(updatedProductMetadata, key)) {
+             delete updatedProductMetadata[key];
+          }
         } else {
           updatedProductMetadata[key] = value;
         }
       }
 
-      console.log("DEBUG: Metadatos a enviar (final payload):", updatedProductMetadata); 
       await sdk.admin.product.update(productId, { metadata: updatedProductMetadata });
       toast.success('Metadatos guardados!');
-      console.log("DEBUG: Metadatos guardados exitosamente en la API.");
-      // Recargar la página para que Medusa Admin refleje los cambios completamente
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
     } catch (err: any) {
       console.error('ERROR: Fallo al guardar metadatos:', err);
       toast.error(`Error al guardar: ${err.message || 'Desconocido'}`);
     } finally {
       setSaving(false);
-      console.log("DEBUG: Guardado de metadatos finalizado.");
     }
   };
 
   return (
-    <Container className="p-4">
-      <h2 className="text-lg font-semibold mb-4 text-gray-200">Metadatos de Scooter</h2>
+    <Container className="p-3 bg-ui-bg-base rounded-lg shadow-sm">
+      <Heading level="h2" className="mb-3 text-ui-fg-base text-lg">Metadatos de Scooter</Heading>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {/* Select fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 mb-4">
         {[
           { key: 'dgt', label: 'Homologación DGT', options: dgtOptions },
           { key: 'motor_type', label: 'Tipo de Motor', options: motorTypeOptions },
           { key: 'hydraulic_brakes', label: 'Frenos Hidráulicos', options: hydraulicBrakesOptions },
-          { key: 'tire_size', label: 'Tamaño Neumático', options: tireSizeOptions },
           { key: 'tire_grip_type', label: 'Tipo de Agarre Neumático', options: gripTypeOptions },
           { key: 'tire_type', label: 'Tipo de Neumático', options: tireTypeOptions },
         ].map(({ key, label, options }) => (
-          <div key={key} className="flex flex-col">
-            <label htmlFor={key} className="text-sm font-medium text-gray-100 mb-1">{label}</label>
+          <div key={key} className="flex flex-col gap-y-0.5">
+            <Label htmlFor={key} className="text-ui-fg-subtle text-xs">{label}</Label>
             <Select
               name={key}
               value={String(metadata[key as keyof ScooterMetadata] || '')}
               onValueChange={(value) => handleChange(key, value, 'text')}
             >
-              <Select.Trigger id={key}><Select.Value placeholder="Seleccionar" /></Select.Trigger>
+              <Select.Trigger id={key} className="h-8">
+                <Select.Value placeholder="Seleccionar" />
+              </Select.Trigger>
               <Select.Content>
                 {options.map(option => <Select.Item key={option} value={option}>{option}</Select.Item>)}
               </Select.Content>
@@ -133,26 +191,50 @@ const ScooterMetadataWidget: React.FC<DetailWidgetProps<AdminProduct>> = ({ data
           </div>
         ))}
 
-        {/* Numeric Input fields */}
         {[
-          { key: 'autonomy_km', label: 'Autonomía (km)' }, { key: 'motor_power_w', label: 'Potencia Motor (W)' },
-          { key: 'battery_voltage_v', label: 'Voltaje Batería (V)' }, { key: 'weight_kg', label: 'Peso (kg)' },
-          { key: 'max_speed_kmh', label: 'Velocidad Máxima (km/h)' },
-        ].map(({ key, label }) => (
-          <div key={key} className="flex items-center gap-2">
-            <label htmlFor={key} className="text-sm font-medium text-gray-300 w-48 flex-shrink-0">{label}</label>
+          { key: 'tire_size', label: 'Tamaño Neumático', placeholder: 'Ej: 10"x3' },
+          { key: 'warranty_months', label: 'Garantía (meses/texto)', placeholder: 'Ej: 24 meses o 2 años' },
+          { key: 'breakes_details', label: 'Detalles de Frenado', placeholder: 'Ej: Disco delantero y trasero' },
+        ].map(({ key, label, placeholder }) => (
+          <div key={key} className="flex flex-col gap-y-0.5">
+            <Label htmlFor={key} className="text-ui-fg-subtle text-xs">{label}</Label>
+            <Input
+              type="text"
+              id={key}
+              name={key}
+              value={metadata[key as keyof ScooterMetadata] || ''}
+              onChange={(e) => handleChange(key, e.target.value, 'text')}
+              placeholder={placeholder}
+              className="h-8"
+            />
+            {errors[key] && (
+              <p className="text-rose-500 text-xs mt-1">{errors[key]}</p>
+            )}
+          </div>
+        ))}
+
+        {[
+          { key: 'autonomy_km', label: 'Autonomía (km)', placeholder: '50' },
+          { key: 'motor_power_w', label: 'Potencia Motor (W)', placeholder: '1000' },
+          { key: 'battery_voltage_v', label: 'Voltaje Batería (V)', placeholder: '48' },
+          { key: 'weight_kg', label: 'Peso (kg)', placeholder: '15' },
+          { key: 'max_speed_kmh', label: 'Velocidad Máxima (km/h)', placeholder: '25' },
+        ].map(({ key, label, placeholder }) => (
+          <div key={key} className="flex flex-col gap-y-0.5">
+            <Label htmlFor={key} className="text-ui-fg-subtle text-xs">{label}</Label>
             <Input
               type="number" id={key} name={key}
               value={metadata[key as keyof ScooterMetadata] !== undefined ? metadata[key as keyof ScooterMetadata] : ''}
               onChange={(e) => handleChange(key, e.target.value, 'number')}
               min={0} step={1}
-              placeholder={`Ej: ${key.includes('km') ? '50' : key.includes('W') ? '1000' : '48'}`}
+              placeholder={`Ej: ${placeholder}`}
+              className="h-8"
             />
           </div>
         ))}
       </div>
 
-      <Button onClick={handleSave} disabled={saving} className="w-full">
+      <Button onClick={handleSave} disabled={saving || Object.values(errors).some(e => e !== null)} className="w-full h-9 text-sm">
         {saving ? 'Guardando...' : 'Guardar Metadatos'}
       </Button>
     </Container>
