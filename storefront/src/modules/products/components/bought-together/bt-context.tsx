@@ -9,7 +9,8 @@ interface CombinedCartContextValue {
   customMetadata: Record<string, string>
   setCustomField: (key: string, value: string) => void
   clearCustomFields: () => void
-  // Nuevas propiedades para manejar el precio de BoughtTogether
+  boughtTogetherNames: Record<string, string>
+  setBoughtTogetherName: (variantId: string, name: string) => void
   boughtTogetherPrice: number
   setBoughtTogetherPrice: (price: number) => void
   clearBoughtTogetherPrice: () => void
@@ -21,9 +22,14 @@ const CombinedCartContext = createContext<CombinedCartContextValue | undefined>(
 
 export function CombinedCartProvider({ children }: { children: ReactNode }) {
   const [extras, setExtras] = useState<string[]>([])
-  const [customMetadata, setCustomMetadata] = useState<Record<string, string>>({})
+  const [customMetadata, setCustomMetadata] = useState<Record<string, string>>(
+    {}
+  )
   // Nuevo estado para el precio de productos comprados juntos
   const [boughtTogetherPrice, setBoughtTogetherPrice] = useState<number>(0)
+  const [boughtTogetherNames, setBoughtTogetherNames] = useState<
+    Record<string, string>
+  >({})
 
   const toggleExtra = (variantId: string) => {
     setExtras((prev) =>
@@ -42,6 +48,13 @@ export function CombinedCartProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  const setBoughtTogetherName = (variantId: string, name: string) => {
+    setBoughtTogetherNames((prev) => ({
+      ...prev,
+      [variantId]: name,
+    }))
+  }
+
   const clearCustomFields = () => setCustomMetadata({})
 
   // Nueva función para limpiar el precio de BoughtTogether
@@ -56,6 +69,8 @@ export function CombinedCartProvider({ children }: { children: ReactNode }) {
         customMetadata,
         setCustomField,
         clearCustomFields,
+        boughtTogetherNames,
+        setBoughtTogetherName,
         boughtTogetherPrice,
         setBoughtTogetherPrice,
         clearBoughtTogetherPrice,

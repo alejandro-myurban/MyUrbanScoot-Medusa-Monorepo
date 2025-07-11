@@ -3,7 +3,7 @@
 import { Button, toast, Toaster } from "@medusajs/ui"
 import { isEqual } from "lodash"
 import { useParams, useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useIntersection } from "@lib/hooks/use-in-view"
 import Divider from "@modules/common/components/divider"
 import OptionSelect from "@modules/products/components/product-actions/option-select"
@@ -16,14 +16,17 @@ import { useCombinedCart } from "../bought-together/bt-context"
 import { useTranslation } from "react-i18next"
 import Financing from "../financing"
 import CustomNameNumberForm from "../custom-name-number"
-import PopularBadge from "../badge-top-seller"
-import BoughtTogether from "../bought-together"
+
+type CustomizationDetails = {
+  customName: string | null
+  customNumber: string | null
+  totalPrice: number
+}
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
   region: HttpTypes.StoreRegion
   disabled?: boolean
-  // Nueva prop para controlar si mostrar BoughtTogether
   showBoughtTogether?: boolean
   boughtTogether?: React.ReactNode
 }
@@ -48,13 +51,32 @@ export default function ProductActions({
   product,
   region,
   disabled,
-  showBoughtTogether = true, // Por defecto mostrar (para compatibilidad)
+  showBoughtTogether = true,
   boughtTogether,
 }: ProductActionsProps) {
   const { setSelectedColor, optionTitle } = useColorContext()
   const [options, setOptions] = useState<Record<string, string | undefined>>({})
   const [isAdding, setIsAdding] = useState(false)
   const [additionalPrice, setAdditionalPrice] = useState(0)
+  const [customizationDetails, setCustomizationDetails] =
+    useState<CustomizationDetails>({
+      // 👈 NUEVO estado
+      customName: null,
+      customNumber: null,
+      totalPrice: 0,
+    })
+
+  const handlePriceChange = useCallback((price: number) => {
+    setAdditionalPrice(price)
+  }, [])
+
+  const handleCustomizationChange = useCallback(
+    (details: CustomizationDetails) => {
+      setCustomizationDetails(details)
+    },
+    []
+  )
+
   const countryCode = useParams().countryCode as string
   const searchParams = useSearchParams()
   const {
@@ -62,8 +84,9 @@ export default function ProductActions({
     clearExtras,
     clearCustomFields,
     customMetadata,
-    boughtTogetherPrice, // 👈 Nuevo
-    clearBoughtTogetherPrice, // 👈 Nuevo
+    boughtTogetherNames,
+    boughtTogetherPrice,
+    clearBoughtTogetherPrice,
   } = useCombinedCart()
   const { t } = useTranslation()
 
@@ -190,6 +213,7 @@ export default function ProductActions({
   const inView = useIntersection(actionsRef, "0px")
 
   const handleAddToCart = async () => {
+    console.log("METADATA EN CART", customMetadata)
     if (!selectedVariant?.id) return
     setIsAdding(true)
     try {
@@ -216,6 +240,12 @@ export default function ProductActions({
       clearCustomFields()
       clearBoughtTogetherPrice()
       setAdditionalPrice(0)
+      // 👈 NUEVO: Limpiar también los detalles de personalización
+      setCustomizationDetails({
+        customName: null,
+        customNumber: null,
+        totalPrice: 0,
+      })
 
       toast.success("¡Producto añadido al carrito con éxito!")
     } catch (error) {
@@ -249,7 +279,8 @@ export default function ProductActions({
 
               <CustomNameNumberForm
                 product={product}
-                onPriceChange={setAdditionalPrice}
+                onPriceChange={handlePriceChange}
+                onCustomizationChange={handleCustomizationChange}
               />
             </div>
           )}
@@ -266,10 +297,12 @@ export default function ProductActions({
         <Divider />
 
         <ProductPrice
-          product={product} 
+          product={product}
           variant={selectedVariant}
           additionalPriceCustom={additionalPrice}
           additionalPriceBoughtTogether={boughtTogetherPrice}
+          boughtTogetherNames={boughtTogetherNames}
+          customizationDetails={customizationDetails}
         />
 
         <Toaster />

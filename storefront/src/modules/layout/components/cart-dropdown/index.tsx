@@ -28,6 +28,8 @@ import EmptyCartMessage from "@modules/cart/components/empty-cart-message"
 import SignInPrompt from "@modules/cart/components/sign-in-prompt"
 import Divider from "@modules/common/components/divider"
 import CompactItemsTemplate from "@/modules/cart/templates/items-two"
+import { addCustomNameFee } from "@/lib/data/cart" // Importar tu función
+import { useRouter } from "next/navigation"
 
 const CartDropdown = ({
   cart: cartState,
@@ -43,9 +45,47 @@ const CartDropdown = ({
   )
   const [cartDropdownOpen, setCartDropdownOpen] = useState(false)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [isProcessingCustomFee, setIsProcessingCustomFee] = useState(false)
+  const router = useRouter()
 
   const open = () => setCartDropdownOpen(true)
   const close = () => setCartDropdownOpen(false)
+
+  // Función para manejar el procesamiento de custom fees
+  const handleCustomNameFeeProcessing = async () => {
+    if (!cartState?.id || isProcessingCustomFee) return
+
+    // Verificar si hay items con custom_name en metadata
+    const hasCustomNameItems = cartState.items?.some(
+      (item) => item.metadata && "custom_name" in item.metadata
+    )
+
+    if (hasCustomNameItems) {
+      setIsProcessingCustomFee(true)
+      try {
+        await addCustomNameFee()
+        router.refresh()
+        console.log("Custom name fee aplicado exitosamente")
+      } catch (error) {
+        console.error("Error al aplicar custom name fee:", error)
+      } finally {
+        setIsProcessingCustomFee(false)
+      }
+    }
+  }
+
+  // Función para manejar cuando se abre el sheet
+  const handleSheetOpen = () => {
+    setIsSheetOpen(true)
+    // Procesar custom fees cuando se abre el carrito completo
+    handleCustomNameFeeProcessing()
+  }
+
+  // Función para manejar cuando se va a checkout
+  const handleCheckout = async () => {
+    await handleCustomNameFeeProcessing()
+    // El LocalizedClientLink se encargará de la navegación
+  }
 
   const totalItems =
     cartState?.items?.reduce((acc, item) => {
@@ -111,7 +151,7 @@ const CartDropdown = ({
 
   console.log("CartDropdown RENDER", {
     totalItems,
-    cartState
+    cartState,
   })
 
   return (
@@ -137,9 +177,10 @@ const CartDropdown = ({
                     }
                   `}
                   data-testid="nav-cart-link"
+                  onClick={handleSheetOpen}
                 >
                   <div className="relative">
-                    <ShoppingBag className="w-6 h-6 transition-transform duration-300 group-hover:rotate-12 focus:outline-none focus:ring-0 active:outline-none" />
+                    <ShoppingBag className="w-6 h-6 transition-transform text-black/90 duration-300 group-hover:rotate-12 focus:outline-none focus:ring-0 active:outline-none" />
 
                     {/* Badge animado */}
                     <div
@@ -234,8 +275,14 @@ const CartDropdown = ({
                               </h4>
                               <LineItemOptions variant={item.variant} />
                               <div className="flex justify-between items-center mt-1">
-                                <span className="text-xs text-gray-500">
-                                  Qty: {item.quantity}
+                                <span className="text-xs text-gray-500 flex">
+                                  x{item.quantity}
+                                  <DeleteButton
+                                    className="ml-2 text-gray-400 hover:text-red-500"
+                                    id={item.id}
+                                    aria-label="Eliminar artículo del carrito"
+                                    data-testid={`delete-item-${item.id}`}
+                                  />
                                 </span>
                                 <LineItemPrice item={item} style="tight" />
                               </div>
@@ -264,6 +311,7 @@ const CartDropdown = ({
                           })}
                         </span>
                       </div>
+
                       <LocalizedClientLink href="/checkout?step=address">
                         <Button
                           className={`
@@ -273,10 +321,19 @@ const CartDropdown = ({
                             transition-all duration-300 ease-out
                             hover:scale-[1.02] hover:shadow-lg
                             active:scale-[0.98]
+                            ${
+                              isProcessingCustomFee
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }
                           `}
                           size="large"
+                          onClick={handleCheckout}
+                          disabled={isProcessingCustomFee}
                         >
-                          Ir a Pagar
+                          {isProcessingCustomFee
+                            ? "Procesando..."
+                            : "Ir a Pagar"}
                         </Button>
                       </LocalizedClientLink>
 
@@ -291,6 +348,7 @@ const CartDropdown = ({
                             active:scale-[0.98]
                           `}
                           size="large"
+                          onClick={handleSheetOpen}
                         >
                           Ver Carrito Completo
                         </Button>
@@ -303,14 +361,6 @@ const CartDropdown = ({
                       <ShoppingBag className="w-8 h-8 text-gray-400" />
                     </div>
                     <p className="text-gray-500 mb-4">Tu carrito está vacío</p>
-                    {/* <LocalizedClientLink href="/">
-                      <Button
-                        onClick={close}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        Explorar Productos
-                      </Button>
-                    </LocalizedClientLink> */}
                   </div>
                 )}
               </Popover.Panel>
@@ -411,7 +461,6 @@ const CartDropdown = ({
                             cart={cartState as any}
                             showDiscount={false}
                           />
-                          {/* Botón de checkout */}
                         </motion.div>
                       )}
                     </motion.div>

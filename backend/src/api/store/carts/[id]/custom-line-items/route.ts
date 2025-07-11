@@ -14,7 +14,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     ).run({
       input: { cart_id, quantity },
     });
-    console.log("HOLAAAAAAAAAAAAAAAAAAAAAAAA");
+    console.log("HOLAAAAAAAAAAAAAAAAAAAAAAAA", cart_id);
     res.status(200).json({ cart: result.cart });
   } catch (error) {
     console.error("Error in POST /cart/:id/custom-line-items", error);

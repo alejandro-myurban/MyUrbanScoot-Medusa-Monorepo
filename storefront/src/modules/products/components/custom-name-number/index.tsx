@@ -1,18 +1,27 @@
 "use client"
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { Input } from "@medusajs/ui"
 import type { HttpTypes } from "@medusajs/types"
 import { useCombinedCart } from "../bought-together/bt-context"
 import { PlusCircle, MinusCircle } from "lucide-react"
 
-type ProductActionsProps = {
-  product: HttpTypes.StoreProduct
-  onPriceChange?: (additionalPrice: number) => void // Nueva prop para comunicar el precio
+// 👈 NUEVO: Tipo para los detalles de personalización
+type CustomizationDetails = {
+  customName: string | null
+  customNumber: string | null
+  totalPrice: number
 }
 
-export default function CustomNameNumberForm({ 
-  product, 
-  onPriceChange 
+type ProductActionsProps = {
+  product: HttpTypes.StoreProduct
+  onPriceChange?: (additionalPrice: number) => void
+  onCustomizationChange?: (details: CustomizationDetails) => void // 👈 NUEVA prop
+}
+
+export default function CustomNameNumberForm({
+  product,
+  onPriceChange,
+  onCustomizationChange, // 👈 NUEVA prop
 }: ProductActionsProps) {
   const [customName, setCustomName] = useState("")
   const [customNumber, setCustomNumber] = useState("")
@@ -26,17 +35,30 @@ export default function CustomNameNumberForm({
   const NAME_PRICE = 5 // 5€ por nombre
   const NUMBER_PRICE = 3 // 3€ por número
 
-  // Función para calcular y comunicar el precio adicional
-  const calculateAndNotifyPrice = (hasName: boolean, hasNumber: boolean) => {
+  // 👈 NUEVA: Función para calcular y comunicar tanto precio como detalles
+  const calculateAndNotifyChanges = useCallback((hasName: boolean, hasNumber: boolean, nameValue: string = "", numberValue: string = "") => {
     let additionalPrice = 0
     if (hasName) additionalPrice += NAME_PRICE
     if (hasNumber) additionalPrice += NUMBER_PRICE
-    
+
     // Comunicar el precio al componente padre
     onPriceChange?.(additionalPrice)
-  }
+
+    // 👈 NUEVO: Comunicar los detalles de personalización
+    const customizationDetails: CustomizationDetails = {
+      customName: hasName ? nameValue || customName : null,
+      customNumber: hasNumber ? numberValue || customNumber : null,
+      totalPrice: additionalPrice
+    }
+    
+    onCustomizationChange?.(customizationDetails)
+    
+    console.log("📊 Customization details sent:", customizationDetails)
+  }, [customName, customNumber, onPriceChange, onCustomizationChange])
 
   const handleNameSelection = (hasName: boolean) => {
+    console.log("🎯 handleNameSelection called with:", hasName)
+    
     if (hasName) {
       setShowNameForm(true)
     } else {
@@ -44,12 +66,14 @@ export default function CustomNameNumberForm({
       setCustomName("")
       setCustomField("custom_name", "")
     }
-    
-    // Recalcular precio con el nuevo estado del nombre
-    calculateAndNotifyPrice(hasName, showNumberForm)
+
+    // 👈 ACTUALIZADO: Usar la nueva función
+    calculateAndNotifyChanges(hasName, showNumberForm, customName, customNumber)
   }
 
   const handleNumberSelection = (hasNumber: boolean) => {
+    console.log("🎯 handleNumberSelection called with:", hasNumber)
+    
     if (hasNumber) {
       setShowNumberForm(true)
     } else {
@@ -57,46 +81,76 @@ export default function CustomNameNumberForm({
       setCustomNumber("")
       setCustomField("custom_number", "")
     }
-    
-    // Recalcular precio con el nuevo estado del número
-    calculateAndNotifyPrice(showNameForm, hasNumber)
+
+    // 👈 ACTUALIZADO: Usar la nueva función
+    calculateAndNotifyChanges(showNameForm, hasNumber, customName, customNumber)
   }
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
+    console.log("🔤 handleNameChange called with:", value)
+
     setCustomName(value)
     setCustomField("custom_name", value)
+
+    // 👈 NUEVO: Comunicar cambios inmediatamente
+    calculateAndNotifyChanges(showNameForm, showNumberForm, value, customNumber)
   }
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
+    console.log("🔢 handleNumberChange called with:", value)
+    
     setCustomNumber(value)
     setCustomField("custom_number", value)
+    
+    // 👈 NUEVO: Comunicar cambios inmediatamente
+    calculateAndNotifyChanges(showNameForm, showNumberForm, customName, value)
   }
+
+  // Debug: mostrar estados actuales
+  console.log("🐛 CustomNameNumberForm render:", {
+    customName,
+    customNumber,
+    showNameForm,
+    showNumberForm,
+    product: product.id
+  })
 
   // Cuando se desmonta el componente o cambia el producto, limpiamos el estado local
   useEffect(() => {
+    console.log("🔄 useEffect - Setting product_id:", product.id)
     setCustomField("product_id", product.id)
     return () => {
+      console.log("🧹 useEffect cleanup")
       setCustomName("")
       setCustomNumber("")
-      // Reset precio cuando se desmonta
+      // Reset precio y detalles cuando se desmonta
       onPriceChange?.(0)
+      onCustomizationChange?.({
+        customName: null,
+        customNumber: null,
+        totalPrice: 0
+      })
     }
-  }, [product.id, onPriceChange])
+  }, [product.id]) // 👈 FIXED: Removidas las dependencias problemáticas
 
-  // Notificar precio inicial cuando el componente se monta
+  // 👈 ACTUALIZADO: Notificar cambios iniciales cuando el componente se monta
   useEffect(() => {
-    calculateAndNotifyPrice(showNameForm, showNumberForm)
-  }, []) // Solo al montar
+    console.log("🎬 Initial calculation")
+    calculateAndNotifyChanges(showNameForm, showNumberForm, customName, customNumber)
+  }, [calculateAndNotifyChanges, showNameForm, showNumberForm, customName, customNumber]) // 👈 FIXED: Dependencias específicas
 
   // Solo mostrar si hay campos personalizados para este producto
   if (
     product.metadata?.custom_name !== "true" &&
     product.metadata?.custom_number !== "true"
   ) {
+    console.log("❌ No custom fields for this product")
     return null
   }
+
+  console.log("✅ Rendering custom fields form")
 
   return (
     <div className="flex flex-col gap-y-4">
@@ -163,9 +217,11 @@ export default function CustomNameNumberForm({
           </div>
 
           {/* Input para el nombre */}
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            showNameForm ? 'max-h-20 opacity-100 mt-2' : 'max-h-0 opacity-0'
-          }`}>
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              showNameForm ? "max-h-20 opacity-100 mt-2" : "max-h-0 opacity-0"
+            }`}
+          >
             <Input
               placeholder="Tu nombre, apodo o nick"
               value={customName}
@@ -202,8 +258,9 @@ export default function CustomNameNumberForm({
           >
             <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
               <p className="text-sm text-gray-600 leading-relaxed font-archivo">
-                Elige tu número favorito (0-999) que se personalizará en el producto. 
-                Ideal para números de la suerte, fechas especiales o simplemente tu número preferido.
+                Elige tu número favorito (0-999) que se personalizará en el
+                producto. Ideal para números de la suerte, fechas especiales o
+                simplemente tu número preferido.
               </p>
             </div>
           </div>
@@ -232,15 +289,19 @@ export default function CustomNameNumberForm({
             >
               <div className="text-center w-full flex justify-between">
                 <div className="font-semibold">Añadir número</div>
-                <div className="text-sm  text-gray-500">+{NUMBER_PRICE},00€</div>
+                <div className="text-sm  text-gray-500">
+                  +{NUMBER_PRICE},00€
+                </div>
               </div>
             </button>
           </div>
 
           {/* Input para el número */}
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            showNumberForm ? 'max-h-20 opacity-100 mt-2' : 'max-h-0 opacity-0'
-          }`}>
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              showNumberForm ? "max-h-20 opacity-100 mt-2" : "max-h-0 opacity-0"
+            }`}
+          >
             <Input
               placeholder="Tu número favorito"
               value={customNumber}
