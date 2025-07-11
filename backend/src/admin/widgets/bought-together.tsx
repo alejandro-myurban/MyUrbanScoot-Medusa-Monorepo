@@ -195,59 +195,106 @@ const BoughtTogetherWidget = ({ data }) => {
         </div>
       )}
 
-      {/* Inputs de descuentos individuales */}
-      <div className="mb-4 space-y-2">
-        {selectedIds.map((id) => {
-          const prod = productsData?.products.find((p) => p.id === id);
-          return (
-            <div key={id} className="flex items-center gap-2">
-              <label className="text-sm w-64">
-                Descuento para <strong>{prod?.title ?? id}</strong>:
-              </label>
-              <input
-                type="number"
-                min={0}
-                step={1}
-                placeholder="Ej. 10"
-                value={discounts[id] ?? ""}
-                onChange={(e) => {
-                  const newValue = Number(e.target.value);
-                  setDiscounts((prev) => ({
-                    ...prev,
-                    [id]: isNaN(newValue) ? 0 : newValue,
-                  }));
-                }}
-                className="w-24 p-2 border rounded text-sm"
-              />
-            </div>
-          );
-        })}
+        {/* Inputs de descuentos individuales */}
+        <div className="mb-6 space-y-3"> 
+          {selectedIds.length > 0 && productsData ? ( // Asegúrate de que haya IDs seleccionados y productsData cargado
+            selectedIds.map((id) => {
+              const prod = productsData.products?.find((p) => p.id === id); 
+              return (
+                <div key={id} className="flex items-center gap-4 bg-ui-bg-base p-3 rounded-md border border-ui-border-base shadow-sm">
+                  <label className="text-sm font-medium text-ui-fg-base flex-grow">
+                    Descuento para <strong className="text-ui-fg-subtle">{prod?.title ?? `Producto ${id}`}</strong>:
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100} // Añadido un máximo razonable para porcentajes
+                      step={1}
+                      placeholder="Ej. 10"
+                      value={discounts[id] ?? ""}
+                      onChange={(e) => {
+                        const newValue = Number(e.target.value);
+                        setDiscounts((prev) => ({
+                          ...prev,
+                          [id]: isNaN(newValue) ? 0 : Math.max(0, Math.min(100, newValue)),
+                        }));
+                      }}
+                      className="w-24 p-2 pl-3 border border-ui-border-base rounded-md text-sm focus:border-ui-border-interactive focus:ring-1 focus:ring-ui-border-interactive transition-colors"
+                    />
+                    <span className="absolute right-3 text-ui-fg-muted">%</span> 
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            selectedIds.length > 0 && <p className="text-ui-fg-subtle text-center py-2">Cargando productos para definir descuentos...</p>
+          )}
+        </div>
+        
+        {/* Ver los descuentos */}
+        <div className="mb-6 space-y-6"> 
+          {!isLoading && productsData && selectedIds.length > 0 ? (
+            selectedIds.map((id) => {
+              const prod = productsData.products.find((p) => p.id === id);
+
+              if (!prod) {
+                return (
+                  <div key={id} className="p-4 bg-ui-bg-subtle border border-ui-border-base rounded-md flex justify-between items-center text-ui-fg-subtle">
+                    <p className="text-sm font-medium">{`Producto no encontrado: ${id}`}</p>
+                  </div>
+                );
+              }
+
+              const discountPercent = discounts[id] ?? 0;
+
+              const variant = prod.variants?.[0];
+
+              if (!variant) {
+                return (
+                  <div key={id} className="p-4 bg-ui-bg-subtle border border-ui-border-base rounded-md">
+                    <h3 className="text-base font-semibold text-ui-fg-base">{prod.title ?? `Producto ${id}`}</h3>
+                    <p className="text-sm text-ui-fg-subtle">No hay variantes disponibles para mostrar precios.</p>
+                  </div>
+                );
+              }
+
+              const priceObj = variant.prices?.[0];
+              const priceAmount = priceObj?.amount;
+
+              // Se asume que priceAmount ya viene en el formato correcto (ej. 34.9)
+              const price = typeof priceAmount === 'number' ? priceAmount : 0; 
+              const currency = priceObj?.currency_code?.toUpperCase() ?? "EUR";
+
+              let formattedPrice = "N/A";
+              let discountedPrice = "N/A";
+
+              try {
+                formattedPrice = price.toFixed(2); 
+                discountedPrice = (price * (1 - discountPercent / 100)).toFixed(2);
+              } catch (e) {
+                console.error(`Error al formatear precios para ${prod.title || id}:`, e);
+              }
+
+              return (
+                <div key={id} className="p-4 bg-ui-bg-subtle border border-ui-border-base rounded-md shadow-sm">
+                  <h3 className="text-base font-semibold text-ui-fg-base mb-2">{prod.title}</h3>
+                  <div className="flex justify-between items-center text-sm">
+                    <p className="text-ui-fg-subtle">Precio original:</p>
+                    <p className="font-medium text-ui-fg-base">{currency} {formattedPrice}</p>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <p className="text-ui-fg-subtle">Precio con descuento ({discountPercent}%):</p>
+                    <p className="font-medium text-ui-fg-interactive">{currency} {discountedPrice}</p>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-ui-fg-subtle text-center py-4">Cargando información de precios o no hay productos seleccionados con descuento para mostrar.</p>
+          )}
         </div>
 
-      {/* <div className="mb-4 space-y-5">
-        {selectedIds.map((id) => {
-          const prod = productsData?.products.find((p) => p.id === id)
-          const discountPercent = discounts[id] ?? 0
-
-          // Asumimos que usamos la primera variante del producto
-          const variant = prod?.variants?.[0]
-          const price = variant?.prices?.[0]?.amount ?? 0
-          const currency = variant?.prices?.[0]?.currency_code?.toUpperCase() ?? "USD"
-
-          console.log(price)
-          const formattedPrice = (price).toFixed(2)
-          const discountedPrice = ((price * (1 - discountPercent / 100))).toFixed(2)
-
-          return (
-            <div key={id}>
-              <Heading>{prod?.title ?? id}</Heading>
-              <h2>Sin descuento: {currency} {formattedPrice}</h2>
-              <h2>Con descuento: {currency} {discountedPrice}</h2>
-            </div>
-          )
-        })}
-      </div> */}
-      
       {/* Botón de guardar */}
       <Button onClick={handleSave} disabled={mutation.isPending}>
         {mutation.isPending ? "Guardando…" : "Guardar configuración"}

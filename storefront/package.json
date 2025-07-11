@@ -23,6 +23,9 @@
   },
   "dependencies": {
     "@formatjs/intl-localematcher": "^0.5.2",
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "@headlessui/react": "^1.6.1",
     "@hookform/error-message": "^2.0.0",
     "@lambdacurry/medusa-plugins-sdk": "^0.0.5",
