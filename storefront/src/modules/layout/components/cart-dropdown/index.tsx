@@ -48,7 +48,12 @@ const CartDropdown = ({
   const [isProcessingCustomFee, setIsProcessingCustomFee] = useState(false)
   const router = useRouter()
 
-  const open = () => setCartDropdownOpen(true)
+  const open = () => {
+    setCartDropdownOpen(true)
+    // Procesar custom fees cuando se abre el popover
+    handleCustomNameFeeProcessing()
+  }
+  
   const close = () => setCartDropdownOpen(false)
 
   // Función para manejar el procesamiento de custom fees
@@ -57,7 +62,9 @@ const CartDropdown = ({
 
     // Verificar si hay items con custom_name en metadata
     const hasCustomNameItems = cartState.items?.some(
-      (item) => item.metadata && "custom_name" in item.metadata
+      (item) =>
+        item.metadata &&
+        ("custom_name" in item.metadata || "custom_number" in item.metadata)
     )
 
     if (hasCustomNameItems) {
@@ -77,8 +84,7 @@ const CartDropdown = ({
   // Función para manejar cuando se abre el sheet
   const handleSheetOpen = () => {
     setIsSheetOpen(true)
-    // Procesar custom fees cuando se abre el carrito completo
-    handleCustomNameFeeProcessing()
+    // Ya no necesitamos procesar custom fees aquí
   }
 
   // Función para manejar cuando se va a checkout
@@ -180,7 +186,7 @@ const CartDropdown = ({
                   onClick={handleSheetOpen}
                 >
                   <div className="relative">
-                    <ShoppingBag className="w-6 h-6 transition-transform text-black/90 duration-300 group-hover:rotate-12 focus:outline-none focus:ring-0 active:outline-none" />
+                    <ShoppingBag className={`w-6 h-6 transition-transform text-black/90 duration-300 group-hover:rotate-12 focus:outline-none focus:ring-0 active:outline-none ${dark ? "text-white/90" : " text-black/90"}`} />
 
                     {/* Badge animado */}
                     <div
