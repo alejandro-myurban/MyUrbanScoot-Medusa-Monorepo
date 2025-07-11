@@ -1,6 +1,8 @@
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
+/* FontAwesome */
+@import '@fortawesome/fontawesome-svg-core/styles.css';
 
 @layer utilities {
   /* Chrome, Safari and Opera */
