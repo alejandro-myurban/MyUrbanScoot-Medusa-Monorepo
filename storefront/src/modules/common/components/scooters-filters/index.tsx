@@ -28,7 +28,7 @@ type Props = {
     speedRange: [number, number]
   }
   setSelectedFilters: (filters: Props["selectedFilters"]) => void
-  allProducts: HttpTypes.StoreProduct[]; // <--- ¡CORRECCIÓN AQUÍ! Añadimos la prop allProducts
+  allProducts: HttpTypes.StoreProduct[]; 
 }
 
 const ScootersFilters: React.FC<Props> = ({ selectedFilters, setSelectedFilters, allProducts }) => {
