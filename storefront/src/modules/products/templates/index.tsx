@@ -26,6 +26,7 @@ import {
 } from "../../../src/components/ui/breadcrumb"
 import ImageGallerySkeleton from "@modules/skeletons/components/skeleton-image-gallery"
 import ProductInfoSkeleton from "@modules/skeletons/components/skeleton-product-info"
+import { ProductTechnicalSpecifications } from "../components/features-scooters" // Assuming this is your component
 
 type ProductTemplateProps = {
   product: HttpTypes.StoreProduct
@@ -88,6 +89,11 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   }
 
   const categoryHierarchy = buildCategoryHierarchy(product)
+
+  // Determine if the product belongs to "patinetes-electricos" category
+  const isPatinetesElectricosCategory = product.categories?.some(
+    (cat) => cat.handle === "patinetes-electricos"
+  )
 
   // Get color or base option from product
   const variantOption = product.options?.find(
@@ -303,6 +309,10 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
               </div>
             </div>
           </div>
+          {isPatinetesElectricosCategory && ( // Use the new variable here
+            <ProductTechnicalSpecifications product={product} />
+          )}
+
 
           {/* Sección de reseñas y productos relacionados - común para ambos */}
           <div

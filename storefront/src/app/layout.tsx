@@ -5,7 +5,12 @@ import { Poppins } from "next/font/google"
 import { DM_Sans } from "next/font/google"
 import { Archivo_Black } from "next/font/google"
 import { Archivo } from "next/font/google"
+import '@fortawesome/fontawesome-svg-core/styles.css'; // Importa los estilos CSS de Font Awesome
+import { config } from '@fortawesome/fontawesome-svg-core';
 import "styles/globals.css"
+
+config.autoAddCss = false; // Desactiva la adición automática de CSS para Next.js
+
 
 export const poppins = Poppins({
   subsets: ["latin"],
