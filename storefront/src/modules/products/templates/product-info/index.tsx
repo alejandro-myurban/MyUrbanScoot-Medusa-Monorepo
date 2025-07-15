@@ -107,7 +107,7 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
 
         <Heading
           level="h2"
-          className="text-2xl sm:text-3xl leading-10 uppercase font-archivoBlack text-ui-fg-base"
+          className="text-2xl sm:text-3xl leading-10 uppercase font-archivoBlack font-bold text-ui-fg-base"
           data-testid="product-title"
         >
           {product.title}
