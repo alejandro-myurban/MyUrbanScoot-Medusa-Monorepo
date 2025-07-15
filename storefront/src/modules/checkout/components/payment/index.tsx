@@ -535,11 +535,11 @@ const Payment = ({
                         )}
 
                         {/* Información de contrareembolso */}
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm mb-4 font-archivo text-gray-600">
                           <p className="mb-2">
                             Pagarás el importe total al recibir tu pedido.
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs font-archivo text-gray-500">
                             El repartidor aceptará efectivo o tarjeta según
                             disponibilidad. Se aplica un cargo adicional de 5€.
                           </p>
@@ -551,7 +551,7 @@ const Payment = ({
                           size="small"
                           onClick={handleCancelCOD}
                           disabled={isLoading || codLoading}
-                          className="w-full"
+                          className="w-full p-2 bg-red-50 font-archivo font-bold uppercase"
                         >
                           {isLoading
                             ? "Cambiando..."
