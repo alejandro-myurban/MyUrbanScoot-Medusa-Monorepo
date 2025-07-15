@@ -230,6 +230,17 @@ const medusaConfig = {
         ],
       },
     },
+    {
+      resolve: "@medusajs/medusa/tax",
+      options:{
+        providers:[
+          {
+            resolve:"./src/modules/canary-tax",
+            id: "canary-tax",
+          }
+        ]
+      }
+    }
   ],
   plugins: [
     {
