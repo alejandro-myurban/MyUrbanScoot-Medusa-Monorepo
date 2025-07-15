@@ -45,7 +45,6 @@ const Addresses = ({
   const formRef = useRef<HTMLFormElement>(null)
   const [submitCount, setSubmitCount] = useState(0)
   const [isFormComplete, setIsFormComplete] = useState(false)
-  const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false)
   const [expressCheckoutLoading, setExpressCheckoutLoading] = useState(false)
   const [expressCheckoutError, setExpressCheckoutError] = useState<
     string | null
@@ -56,8 +55,6 @@ const Addresses = ({
     "first_load" | "available" | "unavailable"
   >("first_load")
 
-  const wasAutoSubmittedRef = useRef(false)
-  const [showButton, setShowButton] = useState<boolean>(false)
   const { t } = useTranslation()
 
   // Determinar si este step está activo
@@ -83,28 +80,17 @@ const Addresses = ({
 
   const [message, formAction] = useFormState(setAddresses, null)
   
+  // Efecto simplificado para navegar tras éxito del formulario
   useEffect(() => {
-    console.log("🔍 useEffect navegación:", {
-      wasAutoSubmitted: wasAutoSubmittedRef.current,
-      hasMessage: !!message,
-      message,
-    })
-
-    // Si fue auto-submit y no hay errores, navegar
-    if (wasAutoSubmittedRef.current && !message) {
-      console.log("✅ Auto-submit exitoso sin errores, navegando...")
-
-      wasAutoSubmittedRef.current = false // Reset
+    // Solo navegar si no hay errores después de un submit exitoso
+    if (message === null && submitCount > 0) {
+      console.log("✅ Formulario enviado exitosamente, navegando...")
       router.refresh()
-
       setTimeout(() => {
         navigateToNextStep()
       }, 800)
-    } else if (wasAutoSubmittedRef.current && message) {
-      console.log("❌ Auto-submit con errores, no navegando:", message)
-      wasAutoSubmittedRef.current = false // Reset
     }
-  }, [message, router])
+  }, [message, submitCount, router])
 
   const validateFormCompleteness = useCallback(() => {
     const form = formRef.current
@@ -159,28 +145,13 @@ const Addresses = ({
     return allValid
   }, [sameAsBilling])
 
+  // Efecto para validar el formulario en tiempo real
   useEffect(() => {
     if (!formRef.current) return
 
     const handleFormChange = () => {
       const isComplete = validateFormCompleteness()
       setIsFormComplete(isComplete)
-
-      // Auto-submit cuando esté completo y no se haya hecho ya
-      if (isComplete && !hasAutoSubmitted) {
-        console.log("✅ Formulario completo - haciendo auto-submit")
-        setHasAutoSubmitted(true)
-
-        // Pequeño delay para asegurar que los valores estén actualizados
-        setTimeout(() => {
-          formRef.current?.requestSubmit()
-        }, 100)
-      }
-
-      // Reset del flag si el formulario se vuelve incompleto
-      if (!isComplete && hasAutoSubmitted) {
-        setHasAutoSubmitted(false)
-      }
     }
 
     // Obtener todos los inputs del formulario
@@ -193,6 +164,9 @@ const Addresses = ({
       input.addEventListener("change", handleFormChange)
     })
 
+    // Validación inicial
+    handleFormChange()
+
     // Cleanup
     return () => {
       inputs.forEach((input) => {
@@ -200,7 +174,7 @@ const Addresses = ({
         input.removeEventListener("change", handleFormChange)
       })
     }
-  }, [validateFormCompleteness, hasAutoSubmitted])
+  }, [validateFormCompleteness])
 
   // Estado para cachear las shipping options
   const [cachedShippingOptions, setCachedShippingOptions] = useState<any[]>([])
@@ -241,9 +215,6 @@ const Addresses = ({
       if (cart && !cart.payment_collection && stripeReady) {
         try {
           console.log("🔄 Inicializando payment collection...")
-          if (!cart?.id) {
-            throw new Error("Cart is not available")
-          }
           if (!cart?.id) {
             throw new Error("Cart is not available")
           }
@@ -744,6 +715,7 @@ const Addresses = ({
       setExpressCheckoutLoading(false)
     }
   }
+  
   const onShippingAddressChange = async (event: any) => {
     console.log("📍 Cambio de dirección:", event.address)
 
@@ -892,39 +864,11 @@ const Addresses = ({
     setExpressCheckoutError(null)
   }
 
-  useEffect(() => {
-    const form = formRef.current
-    if (!form) return
-
-    const onBlur = (e: Event) => {
-      const tgt = e.target as HTMLInputElement
-      if (tgt.name === "email") {
-        form.requestSubmit()
-        const timer = setTimeout(() => setShowButton(true), 5000)
-        return () => clearTimeout(timer)
-      }
-    }
-
-    form.addEventListener("blur", onBlur, true)
-    return () => form.removeEventListener("blur", onBlur, true)
-  }, [formRef])
-
   const handleSubmit = async (formData: FormData) => {
     console.log("📝 Enviando formulario...")
-
-    // Capturar si fue auto-submit
-    wasAutoSubmittedRef.current = hasAutoSubmitted
-
     setSubmitCount((prev) => prev + 1)
-    setHasAutoSubmitted(false)
-
-    // Enviar el formulario
     formAction(formData)
-
-    console.log(
-      "🔍 Formulario enviado, auto-submit:",
-      wasAutoSubmittedRef.current
-    )
+    console.log("🔍 Formulario enviado manualmente")
   }
 
   // Skeleton mientras carga
@@ -997,8 +941,8 @@ const Addresses = ({
                   },
                   buttonHeight: 48,
                   layout: {
-                    maxColumns: 2, // Muestra máximo 2 opciones antes del acordeón
-                    overflow: "auto", // Permite el acordeón para opciones adicionales
+                    maxColumns: 2,
+                    overflow: "auto",
                   },
                 }}
                 onCancel={onCancel}
@@ -1051,7 +995,7 @@ const Addresses = ({
       {isOpen ? (
         // Formulario activo
         <form ref={formRef} action={handleSubmit} key={submitCount}>
-          <div className="pb-8">
+          <div className="pb-4">
             <ShippingAddress
               customer={customer}
               checked={sameAsBilling}
@@ -1071,16 +1015,18 @@ const Addresses = ({
                 <BillingAddress cart={cart} />
               </div>
             )}
-            {/* Botón manual como fallback */}
-            {(showButton || (!isFormComplete && submitCount > 0)) && (
-              <SubmitButton
-                className="mt-6"
-                data-testid="submit-address-button"
-              >
-                Actualizar datos
-              </SubmitButton>
-            )}
+            
             <ErrorMessage error={message} data-testid="address-error-message" />
+          </div>
+          
+          {/* Botón Continuar - siempre visible y funcional */}
+          <div className="">
+            <SubmitButton
+              className="w-full sm:w-2/6 bg-black/90 text-white hover:bg-black/70 uppercase font-archivoBlack font-semibold"
+              data-testid="continue-address-button"
+            >
+              Continuar
+            </SubmitButton>
           </div>
         </form>
       ) : (

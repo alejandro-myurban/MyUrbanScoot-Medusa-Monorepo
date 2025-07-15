@@ -107,37 +107,32 @@ export const ProductTechnicalSpecifications: React.FC<ProductTechnicalSpecificat
     }
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-sm max-w-4xl mx-auto mt-10 md:px-8 lg:px-10">
-            <div className="flex flex-col items-center mb-6 text-center">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-1">
+        <div className="bg-gray-50 lg:bg-white p-6 py-8 lg:py-6 rounded-lg max-w-4xl mx-auto lg:mt-32 md:px-8 lg:px-10">
+            <div className="flex flex-col items-center mb-8 text-center">
+                <h2 className="text-2xl md:text-3xl font-bold text-black/90 uppercase font-archivoBlack mb-1">
                     {mainTitle}
                 </h2>
-                <h3 className="text-gray-700">
+                <h3 className="text-gray-700 font-archivo">
                     de {product.title}
                 </h3>
             </div>
 
-            <div className="
-                flex flex-col items-center gap-y-8
-                md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10
-                lg:grid-cols-4 lg:gap-x-10 lg:gap-y-12
-            ">
+            {/* Grid: 1 columna (móvil) → 2 columnas (sm) → 4 columnas (md+) */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-6 gap-6 sm:gap-8 md:gap-10">
                 {characteristicsToDisplay.map((char, index) => {
                     const IconComponentToRender = fontAwesomeIconMap[char.icono]
-                        ? <FontAwesomeIcon icon={fontAwesomeIconMap[char.icono]} className="text-blue-500 w-10 h-10 mb-2" />
+                        ? <FontAwesomeIcon icon={fontAwesomeIconMap[char.icono]} className="text-mysRed-100 w-10 h-10 mb-2" />
                         : <FontAwesomeIcon icon={faInfoCircle} className="text-gray-400 w-10 h-10 mb-2" />;
 
                     return (
-                        // Contenedor de cada característica. Aseguramos que tenga un ancho definido
-                        // Esto permite que el texto dentro se centre y envuelva sin afectar a los hermanos
-                        <div key={index} className="flex flex-col items-center text-center p-2 w-full max-w-[180px] mx-auto">
+                        <div key={index} className="flex flex-col items-center text-center p-2">
                             {IconComponentToRender}
-                            {/* Párrafo para el nombre. Ajustar max-w si es necesario para nombres muy largos */}
-                            <p className="text-sm font-semibold uppercase text-gray-800 mb-1 max-w-[150px] break-words">
+                            {/* Nombre de la característica */}
+                            <p className="text-sm font-semibold font-archivo uppercase text-gray-800 mb-1 break-words">
                                 {char.nombre}
                             </p>
-                            {/* Párrafo para el valor. Ajustar max-w para controlar el envoltorio */}
-                            <p className="text-base text-gray-700 max-w-[150px] break-words">
+                            {/* Valor de la característica */}
+                            <p className="text-base text-gray-700 font-archivo break-words">
                                 {char.displayValue}
                             </p>
                         </div>
