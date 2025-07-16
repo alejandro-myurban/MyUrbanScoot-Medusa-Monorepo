@@ -5,6 +5,7 @@ import {
 
 export default class CanaryIslandsTaxProvider implements ITaxProvider {
   static identifier = "canary-tax"
+  
 
   private readonly PENINSULA_VAT_RATE = 21
 
@@ -13,7 +14,7 @@ export default class CanaryIslandsTaxProvider implements ITaxProvider {
   getIdentifier(): string {
     return CanaryIslandsTaxProvider.identifier
   }
-
+  
   async getTaxLines(
     itemLines: TaxTypes.ItemTaxCalculationLine[],
     shippingLines: TaxTypes.ShippingTaxCalculationLine[],
@@ -47,6 +48,7 @@ export default class CanaryIslandsTaxProvider implements ITaxProvider {
       : `IVA ${this.PENINSULA_VAT_RATE}%`
 
     const providerId = this.getIdentifier()
+    console.log("🟢 Canary Tax Provider loaded");
 
     const taxLines: (TaxTypes.ItemTaxLineDTO | TaxTypes.ShippingTaxLineDTO)[] = []
 
