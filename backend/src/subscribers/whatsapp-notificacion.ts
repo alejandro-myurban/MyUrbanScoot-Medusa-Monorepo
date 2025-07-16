@@ -1,37 +1,86 @@
-// src/subscribers/whatsapp-order-placed.ts
-import { Modules } from "@medusajs/framework/utils"
-import { SubscriberArgs, SubscriberConfig } from "@medusajs/medusa"
-import { sendWhatsAppMessage } from "../modules/whatsapp-notifications/twilio-whatsapp"
+import {
+  ContainerRegistrationKeys,
+  generateJwtToken,
+  Modules,
+} from "@medusajs/framework/utils";
+import {
+  IOrderModuleService,
+  INotificationModuleService,
+} from "@medusajs/framework/types";
+import { SubscriberArgs, SubscriberConfig } from "@medusajs/medusa";
+import { EmailTemplates } from "../modules/email-notifications/templates";
+import { STORE_CORS } from "../lib/constants";
 
-export default async function whatsappOrderPlacedHandler({
+export default async function sendNotificationOnOrder({
   event: { data },
   container,
 }: SubscriberArgs<any>) {
-  console.log("🔥 Subscriber WhatsApp activado")
+  const logger = container.resolve("logger");
+  logger.info("📦 Nuevo pedido detectado, preparando email y WhatsApp...");
 
-  const orderModuleService = container.resolve(Modules.ORDER)
+  const orderModuleService = container.resolve<IOrderModuleService>(
+    Modules.ORDER
+  );
+
+  const notificationService: INotificationModuleService = container.resolve(
+    Modules.NOTIFICATION
+  );
+
+  // Obtené la orden completa
   const order = await orderModuleService.retrieveOrder(data.id, {
-    relations: ["items", "summary", "shipping_address", "customer"],
-  })
+    relations: ["items", "shipping_address"],
+  });
 
-  const phone = order.shipping_address?.phone?.trim()
-  if (!phone?.startsWith("+")) {
-    console.warn("⚠️ Número inválido:", phone)
-    return
+  const shippingPhone = order.shipping_address?.phone;
+  const customerName = order.shipping_address?.first_name ?? order.shipping_address?.company ?? "Cliente";
+
+  // Opcional: Token de confirmación
+  const configModule = container.resolve("configModule");
+  const jwtSecret = configModule.projectConfig.http.jwtSecret;
+
+  const token = generateJwtToken(
+    {
+      payment_id: data.id,
+      order_id: order.id,
+    },
+    {
+      secret: jwtSecret,
+      expiresIn: "24h",
+    }
+  );
+
+  try {
+    await notificationService.createNotifications({
+      to: order.email,
+      channel: "email",
+      template: EmailTemplates.INVITE_USER,
+      data: {
+        emailOptions: {
+          replyTo: "info@myurbanscoot.com",
+          subject: "¡Gracias por tu pedido!",
+        },
+        inviteLink: `${STORE_CORS}/es/confirm-cod-payment?token=${token}`,
+        preview: "Tu pedido ya fue recibido.",
+        whatsapp: shippingPhone,
+        whatsappTemplate: "whatsapp-product-status-update",
+        whatsappData: {
+          customer_name: customerName,
+          order_id: order.display_id,
+          status_display: "Recibido",
+        },
+        order_items: order.items.map((i) => ({
+          title: i.title,
+          quantity: i.quantity,
+        })),
+      },
+    });
+
+    logger.info(`✅ Email y WhatsApp enviados a ${order.email} y ${shippingPhone}`);
+  } catch (err: any) {
+    logger.error(`❌ Error al enviar notificación: ${err.message}`);
   }
-
-  const message = `
-¡Hola ${order.shipping_address.first_name || ""}! Tu pedido #${order.display_id} fue confirmado.
-
-📦 Productos:
-${order.items.map(i => `• ${i.title} x${i.quantity}`).join("\n")}
-
-💰 Total: $${(order.total)}
-Ver detalles en: https://tutienda.com/orden/${order.id}`
-
-  await sendWhatsAppMessage(phone, message)
 }
 
 export const config: SubscriberConfig = {
-  event: "order.placed"
-}
+  event: "order.placed",
+};
