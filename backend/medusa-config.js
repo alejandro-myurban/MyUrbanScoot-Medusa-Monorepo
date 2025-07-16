@@ -231,16 +231,21 @@ const medusaConfig = {
       },
     },
     {
+      key: Modules.TAX,
       resolve: "@medusajs/medusa/tax",
-      options:{
-        providers:[
+      options: {
+        providers: [
           {
-            resolve:"./src/modules/canary-tax",
+            resolve: "@medusajs/medusa/tax-system",
+            id: "system",
+          },
+          {
+            resolve: "./src/modules/canary-tax",
             id: "canary-tax",
-          }
-        ]
-      }
-    }
+          },
+        ],
+      },
+    },
   ],
   plugins: [
     {
