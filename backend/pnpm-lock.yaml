@@ -136,6 +136,9 @@ importers:
       sharp:
         specifier: ^0.34.1
         version: 0.34.1
+      twilio:
+        specifier: ^5.7.3
+        version: 5.7.3
       ulid:
         specifier: ^2.4.0
         version: 2.4.0
@@ -7651,6 +7654,9 @@ packages:
   scheduler@0.23.2:
     resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
 
+  scmp@2.1.0:
+    resolution: {integrity: sha512-o/mRQGk9Rcer/jEEw/yw4mwo3EU/NvYvp577/Btqrym9Qy5/MdWGBqipbALgd2lrdWTJ5/gqDusxfnQBxOxT2Q==}
+
   scrypt-kdf@2.0.1:
     resolution: {integrity: sha512-dMhpgBVJPDWZP5erOCwTjI6oAO9hKhFAjZsdSQ0spaWJYHuA/wFNF2weQQfsyCIk8eNKoLfEDxr3zAtM+gZo0Q==}
     engines: {node: '>=8.5.0'}
@@ -8096,6 +8102,10 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
+  twilio@5.7.3:
+    resolution: {integrity: sha512-RuCjbQRLorFZrqd52KZ4JzeUbCbs/3KJVdawcAQ2yR53S2D0VwBQ+1Pkcnc20Y8QLKCP41TkQ98MHbF7upRhtA==}
+    engines: {node: '>=14.0'}
+
   type-detect@4.0.8:
     resolution: {integrity: sha512-0fr/mIH1dlO+x7TlcMy+bIDqKPsw/70tVyeHW787goQjhmqaZe10uwLujubK9q9Lg6Fiho1KUKDYz0Z7k7g5/g==}
     engines: {node: '>=4'}
@@ -8464,6 +8474,10 @@ packages:
   xmlbuilder@11.0.1:
     resolution: {integrity: sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==}
     engines: {node: '>=4.0'}
+
+  xmlbuilder@13.0.2:
+    resolution: {integrity: sha512-Eux0i2QdDYKbdbA6AM6xE4m6ZTZr4G4xF9kahI2ukSEMCzwce2eX9WlTI5J3s+NU7hpasFsr8hWIONae7LluAQ==}
+    engines: {node: '>=6.0'}
 
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
@@ -17909,6 +17923,8 @@ snapshots:
     dependencies:
       loose-envify: 1.4.0
 
+  scmp@2.1.0: {}
+
   scrypt-kdf@2.0.1: {}
 
   selderee@0.11.0:
@@ -18453,6 +18469,19 @@ snapshots:
 
   tslib@2.8.1: {}
 
+  twilio@5.7.3:
+    dependencies:
+      axios: 1.9.0
+      dayjs: 1.11.13
+      https-proxy-agent: 5.0.0
+      jsonwebtoken: 9.0.2
+      qs: 6.14.0
+      scmp: 2.1.0
+      xmlbuilder: 13.0.2
+    transitivePeerDependencies:
+      - debug
+      - supports-color
+
   type-detect@4.0.8: {}
 
   type-fest@0.20.2: {}
@@ -18738,6 +18767,8 @@ snapshots:
       xmlbuilder: 11.0.1
 
   xmlbuilder@11.0.1: {}
+
+  xmlbuilder@13.0.2: {}
 
   xtend@4.0.2: {}
 
