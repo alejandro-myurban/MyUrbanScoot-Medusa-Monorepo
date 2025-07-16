@@ -3,7 +3,7 @@ import { Modules } from "@medusajs/framework/utils";
 import { SubscriberArgs, SubscriberConfig } from "@medusajs/medusa";
 import { sendWhatsAppMessage } from "../modules/whatsapp-notifications/twilio-whatsapp";
 
-export default async function whatsappOrderPlacedHandler({
+export default async function sendNotificationOnOrder({
   event: { data },
   container,
 }: SubscriberArgs<any>) {
