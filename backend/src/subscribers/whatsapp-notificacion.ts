@@ -1,83 +1,79 @@
-import {
-  ContainerRegistrationKeys,
-  generateJwtToken,
-  Modules,
-} from "@medusajs/framework/utils";
-import {
-  IOrderModuleService,
-  INotificationModuleService,
-} from "@medusajs/framework/types";
+// src/subscribers/whatsapp-order-placed.ts
+import { Modules } from "@medusajs/framework/utils";
 import { SubscriberArgs, SubscriberConfig } from "@medusajs/medusa";
-import { EmailTemplates } from "../modules/email-notifications/templates";
-import { STORE_CORS } from "../lib/constants";
+import { sendWhatsAppMessage } from "../modules/whatsapp-notifications/twilio-whatsapp";
 
 export default async function sendNotificationOnOrder({
   event: { data },
   container,
 }: SubscriberArgs<any>) {
-  const logger = container.resolve("logger");
-  logger.info("📦 Nuevo pedido detectado, preparando email y WhatsApp...");
-
-  const orderModuleService = container.resolve<IOrderModuleService>(
-    Modules.ORDER
-  );
-
-  const notificationService: INotificationModuleService = container.resolve(
-    Modules.NOTIFICATION
-  );
-
-  // Obtené la orden completa
-  const order = await orderModuleService.retrieveOrder(data.id, {
-    relations: ["items", "shipping_address"],
-  });
-
-  const shippingPhone = order.shipping_address?.phone;
-  const customerName = order.shipping_address?.first_name ?? order.shipping_address?.company ?? "Cliente";
-
-  // Opcional: Token de confirmación
-  const configModule = container.resolve("configModule");
-  const jwtSecret = configModule.projectConfig.http.jwtSecret;
-
-  const token = generateJwtToken(
-    {
-      payment_id: data.id,
-      order_id: order.id,
-    },
-    {
-      secret: jwtSecret,
-      expiresIn: "24h",
-    }
-  );
+  console.log("🔥 Subscriber WhatsApp activado");
+  console.log("📦 Event data:", JSON.stringify(data, null, 2));
 
   try {
-    await notificationService.createNotifications({
-      to: order.email,
-      channel: "email",
-      template: EmailTemplates.INVITE_USER,
-      data: {
-        emailOptions: {
-          replyTo: "info@myurbanscoot.com",
-          subject: "¡Gracias por tu pedido!",
-        },
-        inviteLink: `${STORE_CORS}/es/confirm-cod-payment?token=${token}`,
-        preview: "Tu pedido ya fue recibido.",
-        whatsapp: shippingPhone,
-        whatsappTemplate: "whatsapp-product-status-update",
-        whatsappData: {
-          customer_name: customerName,
-          order_id: order.display_id,
-          status_display: "Recibido",
-        },
-        order_items: order.items.map((i) => ({
-          title: i.title,
-          quantity: i.quantity,
-        })),
-      },
-    });
+    const orderModuleService = container.resolve(Modules.ORDER);
 
-    logger.info(`✅ Email y WhatsApp enviados a ${order.email} y ${shippingPhone}`);
-  } catch (err: any) {
-    logger.error(`❌ Error al enviar notificación: ${err.message}`);
+    // Primero obtenemos la orden sin relaciones para ver qué tiene
+    console.log("🔍 Obteniendo orden básica...");
+    const basicOrder = await orderModuleService.retrieveOrder(data.id);
+    console.log("📋 Orden básica:", JSON.stringify(basicOrder, null, 2));
+
+    // Intentamos con diferentes relaciones disponibles en Medusa v2
+    console.log("🔍 Obteniendo orden con relaciones...");
+    const order = await orderModuleService.retrieveOrder(data.id, {
+      relations: ["items", "summary", "shipping_address"],
+    });
+    console.log("📦 Orden completa:", JSON.stringify(order, null, 2));
+
+    // Log para ver qué propiedades tiene la shipping_address
+    console.log(
+      "📍 Shipping address:",
+      JSON.stringify(order.shipping_address, null, 2)
+    );
+
+    const phone = order.shipping_address?.phone?.trim();
+    console.log("📱 Teléfono extraído:", phone);
+
+    if (!phone?.startsWith("+")) {
+      console.warn("⚠️ Número inválido:", phone);
+      return;
+    }
+
+    // Para obtener información del customer, necesitamos usar el Customer Module
+    let customerName = order.shipping_address?.first_name || "";
+
+    // Si hay customer_id en la orden, intentamos obtener el customer
+    if (order.customer_id) {
+      console.log("👤 Customer ID encontrado:", order.customer_id);
+      try {
+        const customerModuleService = container.resolve(Modules.CUSTOMER);
+        const customer = await customerModuleService.retrieveCustomer(
+          order.customer_id
+        );
+        console.log("👤 Customer data:", JSON.stringify(customer, null, 2));
+        customerName = customer.first_name || customer.email || customerName;
+      } catch (customerError) {
+        console.warn("⚠️ Error obteniendo customer:", customerError.message);
+      }
+    }
+
+    const message = `
+¡Hola ${customerName}! Tu pedido #${order.display_id} fue confirmado.
+
+📦 Productos:
+${order.items.map((i) => `• ${i.title} x${i.quantity}`).join("\n")}
+
+💰 Total: $${order.total}
+Ver detalles en: https://tutienda.com/orden/${order.id}`;
+
+    console.log("💬 Mensaje a enviar:", message);
+    console.log("📱 Enviando a:", phone);
+
+    await sendWhatsAppMessage(phone, message);
+    console.log("✅ Mensaje de WhatsApp enviado exitosamente");
+  } catch (error) {
+    console.error("❌ Error en subscriber WhatsApp:", error);
+    console.error("📄 Stack trace:", error.stack);
   }
 }
 

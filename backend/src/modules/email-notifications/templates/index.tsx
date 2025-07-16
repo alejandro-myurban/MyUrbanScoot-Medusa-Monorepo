@@ -22,7 +22,7 @@ import OrderPlacedAdminTemplate, {
 import {
   isProductDeliveredData,
   PRODUCT_DELIVERED,
-  ProductDelivered,
+  ProductDeliveredTemplate,
 } from "./product-delivered";
 import { ResetPassword, RESET_PASSWORD, isResetPasswordData } from "./reset-password";
 
@@ -95,7 +95,7 @@ export function generateEmailTemplate(
           `Invalid data for template "${EmailTemplates.PRODUCT_DELIVERED}"`
         );
       }
-      return <ProductDelivered {...data} />;
+      return <ProductDeliveredTemplate {...data} />;
 
     case EmailTemplates.RESET_PASSWORD:
       if (!isResetPasswordData(data)) {
