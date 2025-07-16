@@ -142,7 +142,7 @@ const ShippingAddress = ({
 
         fieldsToSync.forEach((field) => {
           const serverValue =
-          //@ts-ignore
+            //@ts-ignore
             cart.shipping_address?.[field.replace("shipping_address.", "")] ||
             ""
           if (!prev[field] && serverValue) {
@@ -210,6 +210,7 @@ const ShippingAddress = ({
           data-testid="shipping-country-select"
         />
         <Input
+          autoFocus
           label={t("checkout.shipping_address_form.first_name")}
           name="shipping_address.first_name"
           autoComplete="given-name"
