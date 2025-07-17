@@ -5,6 +5,7 @@ import { getRegion } from "./regions"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 import { sortProducts } from "@lib/util/sort-products"
 import { StoreProductListResponse } from "@medusajs/types"
+import { buildRateLimiter } from "../util/rate-limiter"
 
 export const getProductsByTagName = cache(async function ({
   tagName,
@@ -75,6 +76,9 @@ export const getProductsById = cache(async function ({
     )
 })
 
+const isBuildTime =
+  process.env.NODE_ENV === "production" && process.argv.includes("build")
+
 export const getProductByHandle = cache(async function (
   handle: string,
   regionId: string,
@@ -84,9 +88,48 @@ export const getProductByHandle = cache(async function (
     ? `,+translations.${countryCode},+options.translations.${countryCode},+options.values.translations.${countryCode}`
     : ""
 
-  // Agregar delay antes de la request
-  await delay(100) // 100ms de delay
+  // Durante el build, usar el rate limiter
+  if (isBuildTime) {
+    return buildRateLimiter.add(async () => {
+      return sdk.store.product
+        .list(
+          {
+            handle,
+            region_id: regionId,
+            fields: `*variants.calculated_price,+variants.inventory_quantity,+categories.*,+tags,+metadata${translationsField}`,
+          },
+          { next: { tags: ["products"] } }
+        )
+        .then(({ products }) => {
+          const product = products[0]
+          if (product && countryCode) {
+            return {
+              ...product,
+              options: product.options?.map((option) => ({
+                ...option,
+                translations: countryCode
+                  ? //@ts-ignore
+                    option.translations?.[countryCode]
+                  : undefined,
+                values: option.values?.map((value) => ({
+                  ...value,
+                  translations: countryCode
+                    ? //@ts-ignore
+                      value.translations?.[countryCode]
+                    : undefined,
+                })),
+              })),
+              translations: countryCode
+                ? product.translations?.[countryCode]
+                : undefined,
+            }
+          }
+          return product
+        })
+    })
+  }
 
+  // En runtime, sin delay
   return sdk.store.product
     .list(
       {
@@ -101,8 +144,6 @@ export const getProductByHandle = cache(async function (
       if (product && countryCode) {
         return {
           ...product,
-          // assign the translations for the desired language directly to the product
-          // so that the country code is not needed anymore
           options: product.options?.map((option) => ({
             ...option,
             translations: countryCode

@@ -63,7 +63,7 @@ export default async function whatsappOrderPlacedHandler({
 📦 Productos:
 ${order.items.map((i) => `• ${i.title} x${i.quantity}`).join("\n")}
 
-💰 Total: $${order.total}
+💰 Total: $${order.summary.current_order_total}
 Ver detalles en: https://tutienda.com/orden/${order.id}`;
 
     console.log("💬 Mensaje a enviar:", message);
