@@ -11,7 +11,7 @@ import {
 } from "../../../../../types/medusa-extend"
 
 // Esto fuerza SSR en lugar de SSG
-// export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic"
 
 type Props = {
   params: { countryCode: string; handle: string }
