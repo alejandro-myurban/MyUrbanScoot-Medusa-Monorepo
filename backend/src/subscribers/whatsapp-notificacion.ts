@@ -61,7 +61,7 @@ export default async function sendNotificationOnOrder({
       ¡Hola ${customerName}! Tu pedido #${order.display_id} fue confirmado.
 
     📦 Productos:
-      ${order.items.map((i) => `• ${i.title} x${i.quantity}`).join("\n")}
+      ${order.items.map((i) => `• ${i.title} x${i.quantity}`).join("\n")}`
 
 
     console.log("💬 Mensaje a enviar:", message);
