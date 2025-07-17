@@ -63,8 +63,6 @@ export default async function sendNotificationOnOrder({
     📦 Productos:
       ${order.items.map((i) => `• ${i.title} x${i.quantity}`).join("\n")}
 
-    💰 Total: $${order.total}
-      Ver detalles en: https://tutienda.com/orden/${order.id}`;
 
     console.log("💬 Mensaje a enviar:", message);
     console.log("📱 Enviando a:", phone);

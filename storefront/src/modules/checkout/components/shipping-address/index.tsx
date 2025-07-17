@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import AddressSelect from "../address-select"
 import CountrySelect from "../country-select"
 import { useTranslation } from "react-i18next"
+import PhoneInput from "../phone-input"
 
 const ShippingAddress = ({
   customer,
@@ -20,11 +21,11 @@ const ShippingAddress = ({
   onChange: () => void
 }) => {
   const [formData, setFormData] = useState<Record<string, any>>({})
+  const [phonePrefix, setPhonePrefix] = useState("+34") // 🆕 Estado del prefijo
   const { t } = useTranslation()
+
   const countriesInRegion = useMemo(() => {
     const countries = cart?.region?.countries?.map((c) => c.iso_2) || []
-
-    // Ordenar para que "es" aparezca primero
     return countries.sort((a, b) => {
       if (a === "es") return -1
       if (b === "es") return 1
@@ -42,11 +43,36 @@ const ShippingAddress = ({
     [customer?.addresses, countriesInRegion]
   )
 
+  // 🆕 Función para parsear teléfono completo
+  const parsePhoneNumber = (fullPhone: string) => {
+    if (!fullPhone) return { prefix: "+34", number: "" }
+
+    const prefixes = ["+351", "+34", "+33", "+39", "+49", "+44", "+1"]
+
+    for (const prefix of prefixes) {
+      if (fullPhone.startsWith(prefix)) {
+        return {
+          prefix,
+          number: fullPhone.substring(prefix.length).trim(),
+        }
+      }
+    }
+
+    return { prefix: "+34", number: fullPhone }
+  }
+
   const setFormAddress = (
     address?: HttpTypes.StoreCartAddress,
     email?: string
   ) => {
     if (address) {
+      // 🆕 Parsear el teléfono si existe
+      let parsedPhone = { prefix: "+34", number: "" }
+      if (address.phone) {
+        parsedPhone = parsePhoneNumber(address.phone)
+        setPhonePrefix(parsedPhone.prefix)
+      }
+
       setFormData((prevState: Record<string, any>) => ({
         ...prevState,
         "shipping_address.first_name": address?.first_name || "",
@@ -57,7 +83,7 @@ const ShippingAddress = ({
         "shipping_address.city": address?.city || "",
         "shipping_address.country_code": address?.country_code || "",
         "shipping_address.province": address?.province || "",
-        "shipping_address.phone": address?.phone || "",
+        "shipping_address.phone": parsedPhone.number, // 🆕 Solo el número sin prefijo
       }))
     }
 
@@ -69,13 +95,18 @@ const ShippingAddress = ({
     }
   }
 
-  // ✅ INICIALIZACIÓN MEJORADA - Solo una vez
   useEffect(() => {
     const initializeFormData = () => {
       const initialData: Record<string, any> = {}
 
-      // Inicializar con datos del cart si existen
       if (cart?.shipping_address) {
+        // 🆕 Parsear teléfono del cart
+        let parsedPhone = { prefix: "+34", number: "" }
+        if (cart.shipping_address.phone) {
+          parsedPhone = parsePhoneNumber(cart.shipping_address.phone)
+          setPhonePrefix(parsedPhone.prefix)
+        }
+
         initialData["shipping_address.first_name"] =
           cart.shipping_address.first_name || ""
         initialData["shipping_address.last_name"] =
@@ -91,10 +122,8 @@ const ShippingAddress = ({
           cart.shipping_address.country_code || ""
         initialData["shipping_address.province"] =
           cart.shipping_address.province || ""
-        initialData["shipping_address.phone"] =
-          cart.shipping_address.phone || ""
+        initialData["shipping_address.phone"] = parsedPhone.number // 🆕 Solo el número
       } else {
-        // Valores por defecto si no hay datos del cart
         initialData["shipping_address.first_name"] = ""
         initialData["shipping_address.last_name"] = ""
         initialData["shipping_address.address_1"] = ""
@@ -107,28 +136,22 @@ const ShippingAddress = ({
         initialData["shipping_address.phone"] = ""
       }
 
-      // Email del cart o del customer
       initialData.email = cart?.email || customer?.email || ""
-
       console.log("🔄 Inicializando formulario con:", initialData)
       setFormData(initialData)
     }
 
-    // ✅ CAMBIO: Solo inicializar si formData está completamente vacío
     if (Object.keys(formData).length === 0 || !formData.email) {
       initializeFormData()
     }
-  }, [cart?.id, customer?.id, countriesInRegion]) // ✅ Dependencias más específicas
+  }, [cart?.id, customer?.id, countriesInRegion])
 
-  // ✅ SINCRONIZACIÓN CON DATOS DEL SERVIDOR (sin sobrescribir lo que el usuario escribe)
   useEffect(() => {
     if (cart?.shipping_address && Object.keys(formData).length > 0) {
-      // Solo actualizar campos que están vacíos para no sobrescribir lo que el usuario escribe
       setFormData((prev) => {
         const updated = { ...prev }
         let hasChanges = false
 
-        // Solo actualizar si el campo está vacío
         const fieldsToSync = [
           "shipping_address.first_name",
           "shipping_address.last_name",
@@ -137,7 +160,6 @@ const ShippingAddress = ({
           "shipping_address.postal_code",
           "shipping_address.country_code",
           "shipping_address.province",
-          "shipping_address.phone",
         ]
 
         fieldsToSync.forEach((field) => {
@@ -151,7 +173,18 @@ const ShippingAddress = ({
           }
         })
 
-        // Email
+        // 🆕 Manejo especial para el teléfono
+        if (
+          !prev["shipping_address.phone"] &&
+          cart.shipping_address &&
+          cart.shipping_address.phone
+        ) {
+          const parsedPhone = parsePhoneNumber(cart.shipping_address.phone)
+          updated["shipping_address.phone"] = parsedPhone.number
+          setPhonePrefix(parsedPhone.prefix)
+          hasChanges = true
+        }
+
         if (!prev.email && cart.email) {
           updated.email = cart.email
           hasChanges = true
@@ -166,18 +199,38 @@ const ShippingAddress = ({
     }
   }, [cart?.shipping_address, cart?.email])
 
-  // ✅ MANEJO DE CAMBIOS MEJORADO
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target
-
     console.log(`📝 Campo cambiado: ${name} = ${value}`)
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }))
+  }
+
+  // 🆕 Manejadores para el teléfono
+  const handlePhoneChange = (phoneNumber: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      "shipping_address.phone": phoneNumber,
+    }))
+  }
+
+  const handlePrefixChange = (prefix: string) => {
+    setPhonePrefix(prefix)
+  }
+
+  // 🆕 Función para obtener el teléfono completo (para enviar al servidor)
+  const getFormDataForSubmit = () => {
+    const phoneNumber = formData["shipping_address.phone"] || ""
+    const fullPhone = phoneNumber ? `${phonePrefix}${phoneNumber}` : ""
+
+    return {
+      ...formData,
+      "shipping_address.phone": fullPhone, // ← Teléfono completo con +
+    }
   }
 
   return (
@@ -286,14 +339,24 @@ const ShippingAddress = ({
           required
           data-testid="shipping-email-input"
         />
-        <Input
+        <PhoneInput
           label={t("checkout.shipping_address_form.phone_number")}
-          name="shipping_address.phone"
-          autoComplete="tel"
+          name="shipping_address.phone_display"
           value={formData["shipping_address.phone"] || ""}
-          onChange={handleChange}
+          phonePrefix={phonePrefix}
+          onPhoneChange={handlePhoneChange}
+          onPrefixChange={handlePrefixChange}
           required
+          placeholder="123-456-789"
           data-testid="shipping-phone-input"
+        />
+        <input
+          type="hidden"
+          name="shipping_address.phone"
+          value={(() => {
+            const phoneNumber = formData["shipping_address.phone"] || ""
+            return phoneNumber ? `${phonePrefix}${phoneNumber}` : ""
+          })()}
         />
       </div>
 
