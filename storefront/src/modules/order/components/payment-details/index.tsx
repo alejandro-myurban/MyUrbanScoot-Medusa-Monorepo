@@ -15,18 +15,18 @@ const PaymentDetails = ({ order }: PaymentDetailsProps) => {
   console.log("PAYMENT", payment )
   return (
     <div>
-      <Heading level="h2" className="flex flex-row text-3xl-regular my-6">
-        Payment
+      <Heading level="h2" className="flex flex-row text-2xl text-black/90 my-6 font-archivoBlack uppercase font-bold">
+        Pago
       </Heading>
       <div>
         {payment && (
           <div className="flex items-start gap-x-1 w-full">
             <div className="flex flex-col w-1/3">
-              <Text className="txt-medium-plus text-ui-fg-base mb-1">
+              <Text className="txt-medium-plus text-ui-fg-base mb-1 font-archivo">
                 Payment method
               </Text>
               <Text
-                className="txt-medium text-ui-fg-subtle"
+                className="txt-medium text-ui-fg-subtle font-archivo"
                 data-testid="payment-method"
               >
                 {paymentInfoMap[payment.provider_id]?.title ||
@@ -34,14 +34,14 @@ const PaymentDetails = ({ order }: PaymentDetailsProps) => {
               </Text>
             </div>
             <div className="flex flex-col w-2/3">
-              <Text className="txt-medium-plus text-ui-fg-base mb-1">
+              <Text className="txt-medium-plus text-ui-fg-base mb-1 font-archivo">
                 Payment details
               </Text>
               <div className="flex gap-2 txt-medium text-ui-fg-subtle items-center">
                 <Container className="flex items-center h-7 w-fit p-2 bg-ui-button-neutral-hover">
                   {paymentInfoMap[payment.provider_id]?.icon ?? <IdCardIcon />}
                 </Container>
-                <Text data-testid="payment-amount">
+                <Text className="font-archivo" data-testid="payment-amount">
                   {isStripe(payment.provider_id) && payment.data?.card_last4
                     ? `**** **** **** ${payment.data.card_last4}`
                     : `${convertToLocale({
