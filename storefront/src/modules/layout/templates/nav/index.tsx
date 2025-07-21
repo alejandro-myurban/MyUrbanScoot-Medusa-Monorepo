@@ -58,20 +58,6 @@ export default async function Nav() {
         <div className="hidden lg:flex flex-1 justify-center">
           <NavigationMenu>
             <NavigationMenuList className="flex gap-6">
-              {/* <NavigationMenuItem>
-                <LocalizedClientLink href="/category/noticias-patinete-electrico">
-                  <NavigationMenuLink className="text-black/80 hover:text-black ">
-                    <ActiveNavItem
-                      href="/blog"
-                      matchPatterns={["/category/"]}
-                      className="text-black/80 hover:text-black"
-                    >
-                      Blog
-                    </ActiveNavItem>
-                  </NavigationMenuLink>
-                </LocalizedClientLink>
-              </NavigationMenuItem> */}
-
               <NavigationMenuItem>
                 <DarkVinylNavDropdown
                   isDark={true}
@@ -112,6 +98,22 @@ export default async function Nav() {
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
+
+              {/* NUEVO: Centro de Ayuda / FAQ para mainNavbar */}
+              <NavigationMenuItem>
+                <LocalizedClientLink href="/help-center">
+                  <NavigationMenuLink className="text-black/80 hover:text-black">
+                    <ActiveNavItem
+                      className="text-black/80 hover:text-black after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
+                      href="/help-center"
+                      translationKey="navigation.help_center"
+                    >
+                      Centro de Ayuda
+                    </ActiveNavItem>
+                  </NavigationMenuLink>
+                </LocalizedClientLink>
+              </NavigationMenuItem>
+
             </NavigationMenuList>
           </NavigationMenu>
         </div>
@@ -176,18 +178,6 @@ export default async function Nav() {
         <div className="hidden lg:flex flex-1 justify-center">
           <NavigationMenu>
             <NavigationMenuList className="flex gap-6">
-              {/* <NavigationMenuItem>
-                <LocalizedClientLink href="/category/noticias-patinete-electrico">
-                  <NavigationMenuLink className="text-white/80 hover:text-white ">
-                    <ActiveNavItem
-                      className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
-                      href="/blog"
-                      translationKey="navigation.blog"
-                    />
-                  </NavigationMenuLink>
-                </LocalizedClientLink>
-              </NavigationMenuItem> */}
-
               <NavigationMenuItem>
                 <DarkVinylNavDropdown
                   isDark={false}
@@ -200,7 +190,7 @@ export default async function Nav() {
                   <NavigationMenuLink className="text-white/80 hover:text-white">
                     <ActiveNavItem
                       className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
-                      href="/spare_parts"
+                      href="/spare-parts"
                       translationKey="navigation.spare_parts"
                     />
                   </NavigationMenuLink>
@@ -228,6 +218,22 @@ export default async function Nav() {
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
+
+              {/* NUEVO: Centro de Ayuda / FAQ para darkNavbar */}
+              <NavigationMenuItem>
+                <LocalizedClientLink href="/help-center">
+                  <NavigationMenuLink className="text-white/80 hover:text-white">
+                    <ActiveNavItem
+                      className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
+                      href="/help-center"
+                      translationKey="navigation.help_center"
+                    >
+                      Centro de Ayuda
+                    </ActiveNavItem>
+                  </NavigationMenuLink>
+                </LocalizedClientLink>
+              </NavigationMenuItem>
+
             </NavigationMenuList>
           </NavigationMenu>
         </div>
