@@ -58,7 +58,6 @@ export default async function RelatedProducts({
     )
   })
 
-  console.log(products)
 
   if (!products.length) {
     return null
