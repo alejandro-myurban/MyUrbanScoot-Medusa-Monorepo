@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+// Asegúrate de que estas rutas sean correctas para tu proyecto
 import ContactForm from "../../../../modules/common/components/contact/contact-form";
 import ContactInfoSection from "../../../../modules/common/components/contact/contact-info";
 import SubmissionStatusDisplay from "../../../../modules/common/components/contact/contact-submission-status";
@@ -40,21 +41,21 @@ export default function ContactPage() {
     console.log("📞 Enviando mensaje con datos:", formData);
 
     try {
-      // CAMBIO CLAVE: Llama a tu nuevo API Route
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      // REVERTIDO: Simulación de llamada a la API (como estaba originalmente)
+      const response = await new Promise((resolve, reject) => {
+        setTimeout(() => {
+          // Simula éxito o fallo
+          const success = Math.random() > 0.1; // 90% de probabilidad de éxito
+          if (success) {
+            console.log("✅ Mensaje enviado exitosamente (simulado)");
+            resolve({ status: 200, message: "Mensaje enviado con éxito" });
+          } else {
+            console.log("❌ Error al enviar mensaje (simulado)");
+            reject(new Error("Error de red o servicio al enviar el mensaje."));
+          }
+        }, 2000); // Simula 2 segundos de retraso de red
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al enviar el mensaje.');
-      }
-
-      console.log("✅ Mensaje enviado exitosamente");
       setSubmissionStatus("success");
       setFormData({
         fullName: "",
@@ -62,7 +63,7 @@ export default function ContactPage() {
         subject: "",
         phone: "",
         message: "",
-      });
+      }); // Limpia el formulario en caso de éxito
     } catch (error) {
       console.error("❌ Error en el envío del formulario:", error);
       setSubmissionStatus("error");
@@ -80,7 +81,7 @@ export default function ContactPage() {
     if (submissionStatus === "success") {
       const timer = setTimeout(() => {
         setSubmissionStatus("idle");
-      }, 5000);
+      }, 5000); // Restablece después de 5 segundos
       return () => clearTimeout(timer);
     }
   }, [submissionStatus]);
@@ -88,10 +89,10 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center py-12 font-inter">
       <div className="max-w-[90vw] w-full bg-white rounded-3xl shadow-xl p-6 sm:p-8 lg:p-10">
-        <div className="text-center font-archivoBlack mb-10">
+        <div className="text-center font-archivoBlack mb-20">
           <h1
             className="
-              text-3xl font-semibold uppercase mb-6 text-gray-900
+              text-4xl sm:text-5xl font-archivoBlack uppercase font-bold text-gray-800 mb-4
               relative 
               w-max 
               mx-auto 
@@ -105,7 +106,7 @@ export default function ContactPage() {
           >
             Contacta con nosotros
           </h1>
-          <p className="mt-4 text-lg sm:text-xl text-gray-700">
+          <p className="mt-4 text-lg sm:text-xl text-gray-700 font-archivo">
             ¿Tienes alguna pregunta sobre nuestros patinetes eléctricos?{" "}
             Estamos aquí para ayudarte.
           </p>
