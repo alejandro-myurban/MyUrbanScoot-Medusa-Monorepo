@@ -24,7 +24,7 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
     currency_code,
     total,
     subtotal,
-    tax_total, // Asegúrate de que este valor viene del backend de Medusa
+    // tax_total, 
     shipping_total,
     discount_total,
     gift_card_total,
@@ -65,7 +65,7 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
           </span>
         </div>
         
-        {typeof tax_total === 'number' && tax_total > 0 && (
+        {/* {typeof tax_total === 'number' && tax_total > 0 && (
           <div className="flex justify-between">
             <span className="flex gap-x-1 items-center ">
               {t("checkout.summary.taxes") || "IVA"} 
@@ -77,7 +77,7 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
               {convertToLocale({ amount: tax_total ?? 0, currency_code })}
             </span>
           </div>
-        )}
+        )} */}
 
         {!!gift_card_total && (
           <div className="flex items-center justify-between">
