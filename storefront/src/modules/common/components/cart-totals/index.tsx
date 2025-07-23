@@ -24,7 +24,7 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
     currency_code,
     total,
     subtotal,
-    tax_total,
+    // tax_total, 
     shipping_total,
     discount_total,
     gift_card_total,
@@ -64,12 +64,21 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
             {convertToLocale({ amount: shipping_total ?? 0, currency_code })}
           </span>
         </div>
-        {/* <div className="flex justify-between">
-          <span className="flex gap-x-1 items-center ">Taxes</span>
-          <span data-testid="cart-taxes" data-value={tax_total || 0}>
-            {convertToLocale({ amount: tax_total ?? 0, currency_code })}
-          </span>
-        </div> */}
+        
+        {/* {typeof tax_total === 'number' && tax_total > 0 && (
+          <div className="flex justify-between">
+            <span className="flex gap-x-1 items-center ">
+              {t("checkout.summary.taxes") || "IVA"} 
+              <Tooltip content="El IVA se calcula al finalizar la compra.">
+                <InformationCircleSolid className="w-4 h-4 text-ui-fg-muted" />
+              </Tooltip>
+            </span>
+            <span data-testid="cart-taxes" data-value={tax_total || 0}>
+              {convertToLocale({ amount: tax_total ?? 0, currency_code })}
+            </span>
+          </div>
+        )} */}
+
         {!!gift_card_total && (
           <div className="flex items-center justify-between">
             <span>Gift card</span>
