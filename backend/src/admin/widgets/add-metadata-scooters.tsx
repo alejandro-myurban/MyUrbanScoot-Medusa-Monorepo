@@ -1,6 +1,6 @@
 // components/ScooterMetadataWidget.tsx
-import React, { useEffect, useState } from 'react';
-import { DetailWidgetProps, AdminProduct } from '@medusajs/framework/types';
+import React, { useEffect, useState, useMemo } from 'react';
+import { DetailWidgetProps, AdminProduct, Product } from '@medusajs/framework/types';
 import { sdk } from '../lib/sdk';
 import { defineWidgetConfig } from "@medusajs/admin-sdk";
 import {
@@ -10,7 +10,7 @@ import {
   toast,
   Select,
   Heading,
-  Label
+  Label,
 } from "@medusajs/ui";
 
 interface ScooterMetadata {
@@ -35,6 +35,22 @@ const motorTypeOptions = ["single", "dual"];
 const hydraulicBrakesOptions = ["yes", "no"];
 const gripTypeOptions = ["offroad (Taco)", "smooth", "mixed"];
 const tireTypeOptions = ["Tubeless", "Tube", "Solid"];
+
+const labelMap: Record<string, string> = {
+  tire_size: 'Tamaño Neumático',
+  warranty_months: 'Garantía',
+  breakes_details: 'Detalles de Frenado',
+  dgt: 'Homologación DGT',
+  motor_type: 'Tipo de Motor',
+  hydraulic_brakes: 'Frenos Hidráulicos',
+  tire_grip_type: 'Tipo de Agarre Neumático',
+  tire_type: 'Tipo de Neumático',
+  autonomy_km: 'Autonomía (km)',
+  motor_power_w: 'Potencia Motor (W)',
+  battery_voltage_v: 'Voltaje Batería (V)',
+  weight_kg: 'Peso (kg)',
+  max_speed_kmh: 'Velocidad Máxima (km/h)',
+};
 
 const ScooterMetadataWidget: React.FC<DetailWidgetProps<AdminProduct>> = ({ data }) => {
   const productId = data.id;
@@ -63,72 +79,64 @@ const ScooterMetadataWidget: React.FC<DetailWidgetProps<AdminProduct>> = ({ data
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
 
-  useEffect(() => {
-    setMetadata(getInitialMetadata());
-    setErrors({});
-  }, [data.metadata, productId]);
+  // Determine if the product belongs to the "patinetes-electricos" category
+  const isScooterCategory = useMemo(() => {
+    return data.categories?.some(
+      (category: Product['categories']) => category.handle === 'patinetes-electricos'
+    );
+  }, [data.categories]);
 
-  const labelMap: Record<string, string> = {
-    tire_size: 'Tamaño Neumático',
-    warranty_months: 'Garantía',
-    breakes_details: 'Detalles de Frenado',
+  useEffect(() => {
+    if (isScooterCategory) {
+      setMetadata(getInitialMetadata());
+      setErrors({});
+    }
+  }, [data.metadata, productId, isScooterCategory]);
+
+  const validateField = (name: string, value: string | undefined): string | null => {
+    const stringValue = String(value || '').trim();
+
+    if ((name === 'warranty_months' || name === 'breakes_details') && stringValue !== '') {
+      const isOnlyNumbers = /^[0-9]+$/.test(stringValue);
+      if (isOnlyNumbers) {
+        return `El campo '${labelMap[name]}' no puede contener solo números. Por favor, agregue texto descriptivo.`;
+      }
+    } else if (name === 'tire_size' && stringValue !== '') {
+      const isOnlyLetters = /^[a-zA-Z\s]+$/.test(stringValue);
+      if (isOnlyLetters) {
+        return `El campo '${labelMap[name]}' no puede contener solo letras. Debe incluir números (ej. "10x3").`;
+      }
+    }
+    return null;
   };
 
   const handleChange = (name: string, value: string | number | undefined, type?: string) => {
     let newValue: string | number | undefined = value;
-    let errorMessage: string | null = null;
 
     if (type === 'number') {
-      newValue = (value as string).trim() === '' ? undefined : (isNaN(Number(value)) ? 0 : Number(value));
-    } else { // Validaciones para campos de texto
-      const stringValue = String(value || '').trim();
-      
-      if (name === 'warranty_months' || name === 'breakes_details') {
-        // Para Garantía y Frenado: no puede contener SOLO números
-        const isOnlyNumbers = /^[0-9]+$/.test(stringValue); 
-        if (isOnlyNumbers && stringValue !== '') {
-          errorMessage = `El campo '${labelMap[name]}' no puede contener solo números. Por favor, agregue texto descriptivo.`;
-        }
-      } else if (name === 'tire_size') {
-        // Para Tamaño Neumático: no puede contener SOLO letras
-        const isOnlyLetters = /^[a-zA-Z\s]+$/.test(stringValue); // Permite letras y espacios
-        if (isOnlyLetters && stringValue !== '') {
-          errorMessage = `El campo '${labelMap[name]}' no puede contener solo letras. Debe incluir números (ej. "10x3").`;
-        }
-      }
+      newValue = (value as string).trim() === '' ? undefined : (isNaN(Number(value)) ? undefined : Number(value));
     }
-    
+
     setMetadata(prev => ({ ...prev, [name]: newValue }));
-    setErrors(prev => ({ ...prev, [name]: errorMessage }));
+    setErrors(prev => ({ ...prev, [name]: validateField(name, String(newValue)) }));
   };
 
   const handleSave = async () => {
     let hasErrors = false;
     const newErrors: Record<string, string | null> = {};
 
-    // Re-validar los campos de texto sensibles justo antes de guardar
-    const textFieldsToValidate = ['tire_size', 'warranty_months', 'breakes_details'];
-    textFieldsToValidate.forEach(key => {
-      const stringValue = String(metadata[key as keyof ScooterMetadata] || '').trim();
-      
-      if (key === 'warranty_months' || key === 'breakes_details') {
-        const isOnlyNumbers = /^[0-9]+$/.test(stringValue);
-        if (isOnlyNumbers && stringValue !== '') {
-          newErrors[key] = `El campo '${labelMap[key]}' no puede contener solo números. Por favor, agregue texto descriptivo.`;
-          hasErrors = true;
-        } else {
-          newErrors[key] = null;
-        }
-      } else if (key === 'tire_size') {
-        const isOnlyLetters = /^[a-zA-Z\s]+$/.test(stringValue);
-        if (isOnlyLetters && stringValue !== '') {
-          newErrors[key] = `El campo '${labelMap[key]}' no puede contener solo letras. Debe incluir números (ej. "10x3").`;
+    // Re-validate all fields before saving
+    for (const key in metadata) {
+      if (Object.prototype.hasOwnProperty.call(metadata, key)) {
+        const error = validateField(key, String(metadata[key as keyof ScooterMetadata]));
+        if (error) {
+          newErrors[key] = error;
           hasErrors = true;
         } else {
           newErrors[key] = null;
         }
       }
-    });
+    }
 
     setErrors(newErrors);
     if (hasErrors) {
@@ -143,9 +151,10 @@ const ScooterMetadataWidget: React.FC<DetailWidgetProps<AdminProduct>> = ({ data
       for (const key in metadata) {
         const value = metadata[key as keyof ScooterMetadata];
 
+        // Remove if empty or undefined, otherwise set the value
         if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
           if (Object.prototype.hasOwnProperty.call(updatedProductMetadata, key)) {
-             delete updatedProductMetadata[key];
+            delete updatedProductMetadata[key];
           }
         } else {
           updatedProductMetadata[key] = value;
@@ -161,6 +170,10 @@ const ScooterMetadataWidget: React.FC<DetailWidgetProps<AdminProduct>> = ({ data
       setSaving(false);
     }
   };
+
+  if (!isScooterCategory) {
+    return null; // Don't render the widget if it's not a scooter product
+  }
 
   return (
     <Container className="p-3 bg-ui-bg-base rounded-lg shadow-sm">
