@@ -1,21 +1,22 @@
-"use client";
+"use client"
 
-import React from "react";
-import { SubmitButton } from "@/modules/checkout/components/submit-button"; // Asegúrate de que esta ruta sea correcta
+import React from "react"
+import { SubmitButton } from "@/modules/checkout/components/submit-button" // Asegúrate de que esta ruta sea correcta
+import Input from "../input"
 
 interface ContactFormProps {
   formData: {
-    fullName: string;
-    email: string;
-    subject: string;
-    phone: string;
-    message: string;
-  };
+    fullName: string
+    email: string
+    subject: string
+    phone: string
+    message: string
+  }
   handleChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => void;
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
-  loading: boolean;
+  ) => void
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>
+  loading: boolean
 }
 
 const ContactForm: React.FC<ContactFormProps> = ({
@@ -25,8 +26,8 @@ const ContactForm: React.FC<ContactFormProps> = ({
   loading,
 }) => {
   return (
-    <div className="bg-gray-50 p-6 sm:p-8 rounded-2xl shadow-md border border-gray-200">
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">
+    <div className="lg:bg-gray-50 lg:p-6 sm:p-8 rounded-2xl lg:shadow-md lg:border border-gray-200">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 font-archivoBlack uppercase ">
         ENVÍANOS UN MENSAJE
       </h2>
       <form className="space-y-5" onSubmit={handleSubmit}>
@@ -34,14 +35,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
           <label htmlFor="fullName" className="sr-only">
             Nombre completo
           </label>
-          <input
+          <Input
             type="text"
             id="fullName"
             name="fullName"
-            placeholder="Nombre completo"
+            label="Nombre completo"
             value={formData.fullName}
             onChange={handleChange}
-            className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200 text-gray-800"
             required
           />
         </div>
@@ -49,14 +49,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
           <label htmlFor="email" className="sr-only">
             Email
           </label>
-          <input
+          <Input
             type="email"
             id="email"
             name="email"
-            placeholder="Email"
+            label="Email"
             value={formData.email}
             onChange={handleChange}
-            className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200 text-gray-800"
             required
           />
         </div>
@@ -64,14 +63,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
           <label htmlFor="subject" className="sr-only">
             Asunto
           </label>
-          <input
+          <Input
             type="text"
             id="subject"
             name="subject"
-            placeholder="Asunto"
+            label="Asunto"
             value={formData.subject}
             onChange={handleChange}
-            className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200 text-gray-800"
             required
           />
         </div>
@@ -79,14 +77,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
           <label htmlFor="phone" className="sr-only">
             Teléfono
           </label>
-          <input
+          <Input
             type="tel"
             id="phone"
             name="phone"
-            placeholder="Teléfono"
+            label="Teléfono"
             value={formData.phone}
             onChange={handleChange}
-            className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200 text-gray-800"
           />
         </div>
         <div>
@@ -100,16 +97,19 @@ const ContactForm: React.FC<ContactFormProps> = ({
             placeholder="Escribe tu mensaje aquí..."
             value={formData.message}
             onChange={handleChange}
-            className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200 resize-y text-gray-800"
+            className="w-full px-5 py-3 border border-gray-300 rounded-xl ring-0 transition duration-200 hover:bg-gray-100 resize-y text-gray-800 focus:ring-0 focus:outline-none active:ring-0 focus:border-gray-300 active:border-gray-300"
             required
           ></textarea>
         </div>
-        <SubmitButton data-testid="send-mail"className="w-full bg-gradient-to-r from-gray-800 to-gray-700 text-white py-3 px-6 rounded-xl font-semibold text-lg hover:from-gray-700 hover:to-gray-600 transition duration-300 shadow-lg uppercase font-dmSans">
-          Enviar Mensaje
+        <SubmitButton
+          data-testid="send-mail"
+          className="w-full bg-gradient-to-r bg-black/90 text-white py-3 px-6 rounded-xl font-bold  uppercase font-archivoBlack text-lg hover:from-gray-700 hover:to-gray-600 transition duration-300 shadow-lg"
+        >
+          Enviar
         </SubmitButton>
       </form>
     </div>
-  );
-};
+  )
+}
 
-export default ContactForm;
+export default ContactForm
