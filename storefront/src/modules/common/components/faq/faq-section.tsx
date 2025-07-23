@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
 
@@ -19,6 +19,7 @@ const FAQsSection: React.FC<FAQsSectionProps> = ({ searchTerm }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openFAQ, setOpenFAQ] = useState<string | null>(null);
+  const contentRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     const fetchFaqs = async () => {
@@ -32,11 +33,6 @@ const FAQsSection: React.FC<FAQsSectionProps> = ({ searchTerm }) => {
           question: `Pregunta frecuente ${i + 1}: ¿Cómo funciona ${Math.random().toString(36).substring(7)}?`,
           answer: `Esta es la respuesta a la pregunta frecuente número ${i + 1}. Aquí se explica cómo funciona ${Math.random().toString(36).substring(7)}. Es una respuesta un poco más larga para demostrar el contenido.`,
         }));
-
-        // 🔴 Esta línea era la responsable del error aleatorio. La eliminamos:
-        // if (Math.random() < 0.1) {
-        //   throw new Error("Error simulado al cargar las preguntas frecuentes.");
-        // }
 
         setFaqs(generatedFaqs);
       } catch (err: any) {
@@ -60,7 +56,7 @@ const FAQsSection: React.FC<FAQsSectionProps> = ({ searchTerm }) => {
 
   return (
     <div className="lg:col-span-3 space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+      <h2 className="text-2xl font-bold font-archivoBlack uppercase text-gray-800 mb-6">
         Todas las preguntas
         <span className="block text-base font-normal text-gray-600">
           {loading ? "Cargando..." : `${filteredFaqs.length} preguntas encontradas`}
@@ -79,26 +75,37 @@ const FAQsSection: React.FC<FAQsSectionProps> = ({ searchTerm }) => {
         filteredFaqs.map((faq) => (
           <div
             key={faq.id}
-            className="bg-white rounded-xl shadow-lg border border-gray-200"
+            className="bg-white rounded-xl shadow-lg border font-archivo border-gray-200 overflow-hidden transform transition-all duration-300 hover:shadow-xl"
           >
             <button
-              className="flex justify-between items-center w-full p-6 text-left text-lg font-semibold text-gray-800 focus:outline-none"
+              className="flex justify-between items-center w-full p-6 text-left text-lg font-semibold text-gray-800 focus:outline-none hover:bg-gray-50 transition-colors duration-200"
               onClick={() => toggleFAQ(faq.id)}
             >
               {faq.question}
               <FontAwesomeIcon
                 icon={openFAQ === faq.id ? faChevronUp : faChevronDown}
-                className="text-gray-600 ml-4"
+                className={`text-gray-600 ml-4 transform transition-transform duration-300 ${
+                  openFAQ === faq.id ? 'rotate-180' : 'rotate-0'
+                }`}
               />
             </button>
+            
             <div
-              className={`
-                overflow-hidden transition-all duration-300 ease-in-out
-                ${openFAQ === faq.id ? 'max-h-screen px-6 pb-6' : 'max-h-0 px-6'}
-                text-gray-700
-              `}
+        
+              ref={(el) => (contentRefs.current[faq.id] = el)}
+              className="overflow-hidden transition-all duration-500 ease-in-out"
+              style={{
+                maxHeight: openFAQ === faq.id 
+                  ? contentRefs.current[faq.id]?.scrollHeight + 'px' 
+                  : '0px',
+                opacity: openFAQ === faq.id ? 1 : 0,
+              }}
             >
-              <p>{faq.answer}</p>
+              <div className="px-6 pb-6 text-gray-700">
+                <div className="pt-2 border-t border-gray-100">
+                  <p className="leading-relaxed">{faq.answer}</p>
+                </div>
+              </div>
             </div>
           </div>
         ))

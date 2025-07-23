@@ -51,7 +51,6 @@ export const getRegion = cache(async function (countryCode?: string) {
   }
   
   const regions = await listRegions() // Ya viene ordenado con España primero
-  console.log(regions[0].countries)
   if (!regions) return null
   
   regions.forEach((region) => {

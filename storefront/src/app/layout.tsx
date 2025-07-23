@@ -55,7 +55,7 @@ export default function RootLayout(props: {
 
   return (
     <html lang={countryCode} data-mode="light">
-      <body className={`${poppins.variable} ${dmSans.variable} ${archivoBlack.variable} ${archivo.variable} font-dmSans`}>
+      <body className={`${poppins.variable} ${dmSans.variable} ${archivoBlack.variable} ${archivo.variable} font-archivo`}>
         <I18nProvider countryCode={countryCode}>
           <main className="relative">{props.children}</main>
         </I18nProvider>

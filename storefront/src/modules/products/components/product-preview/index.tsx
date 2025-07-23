@@ -34,6 +34,9 @@ export default async function ProductPreview({
     product: pricedProduct,
   })
 
+  // console.log("PRODUCTOOO", product.variants[0].calculated_price);
+  
+
   // Process discount if available
   let discountedPrice = null
   if (cheapestPrice && discount) {
@@ -131,7 +134,7 @@ export default async function ProductPreview({
             </div>
 
             {/* Precios */}
-            <div className="flex items-end gap-x-3 mt-2 flex-wrap">
+            <div className="flex items-center sm:items-end gap-x-3 mt-2 flex-wrap">
               {discountedPrice ? (
                 <>
                   {/* Precio con descuento */}

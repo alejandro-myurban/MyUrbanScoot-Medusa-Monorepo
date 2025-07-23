@@ -10,22 +10,24 @@ import {
 import * as React from "react";
 import { Base } from "./base";
 
-export const PRODUCT_DELIVERED = "product-delivered";
+export const PRODUCT_DELIVERED_EN = "product-delivered-en";
 
-export interface ProductDeliveredProps {
+export interface ProductDeliveredEnProps {
   greeting: string;
   actionUrl: string;
   preview?: string;
 }
 
-export const isProductDeliveredData = (data: any): data is ProductDeliveredProps =>
+export const isProductDeliveredEnData = (
+  data: any
+): data is ProductDeliveredEnProps =>
   typeof data.greeting === "string" && typeof data.actionUrl === "string";
 
-export const ProductDeliveredTemplate = ({
+export const ProductDeliveredEnTemplate = ({
   greeting,
   actionUrl,
-  preview = "Tu pedido ha sido enviado",
-}: ProductDeliveredProps) => (
+  preview = "Your order has been shipped",
+}: ProductDeliveredEnProps) => (
   <Base preview={preview}>
     {/* Container principal con ancho máximo */}
     <Section
@@ -37,12 +39,10 @@ export const ProductDeliveredTemplate = ({
       }}
     >
       <Text className="text-[32px] font-light text-[#888888] text-center m-0 mb-8">
-        En Camino
+        On Its Way
       </Text>
 
-      <Text className="text-[14px] text-[#111111] m-0 mb-8">
-        {greeting}
-      </Text>
+      <Text className="text-[14px] text-[#111111] m-0 mb-8">{greeting}</Text>
 
       {/* Information Table - Estilo Apple */}
       <Section
@@ -55,9 +55,9 @@ export const ProductDeliveredTemplate = ({
             style={{ width: "100%", padding: "20px", textAlign: "center" }}
           >
             <Text className="text-[10px] text-[#666666] m-0 leading-[1.4] mb-2">
-              ESTADO DE ENVÍO
+              SHIPPING STATUS
             </Text>
-            
+
             <div
               style={{
                 backgroundColor: "#e3f2fd",
@@ -68,15 +68,15 @@ export const ProductDeliveredTemplate = ({
                 fontWeight: "600",
                 textAlign: "center",
                 marginBottom: "16px",
-                border: "1px solid #bbdefb"
+                border: "1px solid #bbdefb",
               }}
             >
-              🚚 Enviado - En Tránsito
+              🚚 Shipped - In Transit
             </div>
 
             <Text className="text-[12px] text-[#333333] m-0 leading-[1.4] mb-4">
-              Tu pedido ha salido de nuestro almacén y está en camino hacia ti. 
-              Recibirás actualizaciones sobre el progreso de la entrega.
+              Your order has left our warehouse and is on its way to you. You'll
+              receive updates about the delivery progress.
             </Text>
 
             {/* Botón de acción */}
@@ -94,12 +94,12 @@ export const ProductDeliveredTemplate = ({
                   display: "inline-block",
                 }}
               >
-                Rastrear Pedido
+                Track Order
               </Link>
             </Section>
 
             <Text className="text-[10px] text-[#666666] m-0 leading-[1.4]">
-              Haz clic en el botón para seguir el estado de tu envío en tiempo real
+              Click the button to follow your shipment status in real time
             </Text>
           </Column>
         </Row>
@@ -113,19 +113,19 @@ export const ProductDeliveredTemplate = ({
         <Row>
           <Column style={{ padding: "16px" }}>
             <Text className="text-[10px] text-[#666666] m-0 leading-[1.4] mb-2">
-              INFORMACIÓN DE ENTREGA
+              DELIVERY INFORMATION
             </Text>
             <Text className="text-[12px] text-[#333333] m-0 leading-[1.4] mb-2">
-              • Tiempo estimado: 2-5 días hábiles
+              • Estimated time: 2-5 business days
             </Text>
             <Text className="text-[12px] text-[#333333] m-0 leading-[1.4] mb-2">
-              • Recibirás notificaciones de seguimiento
+              • You'll receive tracking notifications
             </Text>
             <Text className="text-[12px] text-[#333333] m-0 leading-[1.4] mb-2">
-              • El paquete requiere firma al recibir
+              • Package requires signature upon delivery
             </Text>
             <Text className="text-[12px] text-[#333333] m-0 leading-[1.4]">
-              • Asegúrate de estar disponible en la dirección de entrega
+              • Make sure to be available at the delivery address
             </Text>
           </Column>
         </Row>
@@ -134,15 +134,15 @@ export const ProductDeliveredTemplate = ({
       {/* Enlaces adicionales */}
       <Section className="text-center mb-8">
         <Text className="text-[12px] text-[#666666] m-0 mb-3">
-          ¿Necesitas cambiar algo?
+          Need to change something?
         </Text>
         <div className="text-[12px]">
           <Link href="#" className="text-[#0070c9] no-underline mr-4">
-            Cambiar Dirección
+            Change Address
           </Link>
           <span className="mx-1 text-[#333333] font-light">|</span>
           <Link href="#" className="text-[#0070c9] no-underline ml-4">
-            Contactar Soporte
+            Contact Support
           </Link>
         </div>
       </Section>
@@ -158,10 +158,11 @@ export const ProductDeliveredTemplate = ({
       }}
     >
       <Text className="text-[14px] text-[#111111] m-0 mb-4">
-        Gracias por elegir MyUrbanScoot. Estamos emocionados de que recibas tu pedido.
+        Thank you for choosing MyUrbanScoot. We're excited for you to receive
+        your order.
       </Text>
       <Text className="text-[14px] text-[#111111] m-0">
-        ¡Pronto estará contigo!
+        It will be with you soon!
       </Text>
     </Section>
 
@@ -187,10 +188,10 @@ export const ProductDeliveredTemplate = ({
 );
 
 // Add preview props for the email dev server
-ProductDeliveredTemplate.PreviewProps = {
-  greeting: "¡Hola! Tu pedido ha sido enviado y está en camino.",
+ProductDeliveredEnTemplate.PreviewProps = {
+  greeting: "Hello! Your order has been shipped and is on its way.",
   actionUrl: "https://myurbanscoot.com/orders/track/123456",
-  preview: "Tu pedido de MyUrbanScoot ha sido enviado",
-} as ProductDeliveredProps;
+  preview: "Your MyUrbanScoot order has been shipped",
+} as ProductDeliveredEnProps;
 
-export default ProductDeliveredTemplate;
+export default ProductDeliveredEnTemplate;

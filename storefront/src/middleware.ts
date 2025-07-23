@@ -31,7 +31,6 @@ async function getRegionMap() {
       },
     }).then((res) => res.json())
 
-    console.log("Fetched regions from Medusa:", regions)
 
     if (!regions?.length) {
       notFound()

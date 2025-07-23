@@ -28,10 +28,10 @@ export default function HelpCenterPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   return (
-    <div className="min-h-screen bg-white text-gray-800 font-inter">
+    <div className="min-h-screen max-w-screen-large mx-auto px-6 bg-white text-gray-800 font-inter">
       <HeroSection searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
       <CTACards />
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="container mx-auto py-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
         <SidebarFAQ categories={categories} popularQuestions={popularQuestions} />
         <FAQsSection searchTerm={searchTerm} />
       </div>
