@@ -14,21 +14,21 @@ import { faSearch } from "@fortawesome/free-solid-svg-icons";
   setSearchTerm,
  }) => {
   return (
-   <div className="py-16 px-4 sm:px-6 lg:px-8 text-center text-gray-800">
+   <div className="py-16 sm:px-6 lg:px-8 text-center text-gray-800">
     <h1 className="
      text-4xl sm:text-5xl font-archivoBlack uppercase font-bold text-gray-800 mb-4
      relative
      inline-block
-     after:content-['']
-     after:absolute
-     after:left-0 after:bottom-0
-     after:w-full
-     after:h-1
-     after:bg-mysGreen-100
+     lg:after:content-['']
+     lg:after:absolute
+     lg:after:left-0 after:bottom-0
+     lg:after:w-full
+     lg:after:h-1
+     lg:after:bg-mysGreen-100
     ">
      Centro de Ayuda
     </h1>
-    <p className="text-lg sm:text-xl text-gray-800-300 mb-8">
+    <p className="text-lg sm:text-xl font-archivo text-gray-800-300 mb-8">
      Encuentra respuestas rápidas a tus preguntas más frecuentes
     </p>
     <div className="relative max-w-2xl mx-auto">
