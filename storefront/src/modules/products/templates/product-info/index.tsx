@@ -5,20 +5,32 @@ import { ProductAverageReview } from "@modules/product-reviews/components/Produc
 import ReviewButton from "@modules/product-reviews/components/ReviewButton"
 import Accordion from "@modules/products/components/product-info-accordion"
 import CompatibleScooters from "../../components/product-compatible/compatible-scooters"
+import CompatibleSquareParts from "../../components/product-compatible/product-compatible-square-parts/compatible-square-parts"
 
 type ProductInfoProps = {
   product: HttpTypes.StoreProduct
 }
 
 const ProductInfo = ({ product }: ProductInfoProps) => {
+  console.log("🚀 ProductInfo COMPONENT RENDERIZADO");
+
+  let compatibleComponent = null;
+  console.log("😜 VIEWER", product.categories)
+
+  if (product.categories?.some((category) => (category.handle === "vinilos") || (category.handle === "modelos"))) {
+    console.log("😜CONDICIÓN CUMPLIDA: El producto tiene la categoría 'vinilos' o 'spare-parts'. Renderizando CompatibleScooters.");
+    compatibleComponent = <CompatibleScooters product={product} />; 
+  } 
   const accordionItems = [
-    {
-      id: "modelos-compatibles",
-      title: "MODELOS COMPATIBLES",
-      content: (
-        <CompatibleScooters />
-      ),
-    },
+    ...(compatibleComponent
+      ? [
+          {
+            id: "modelos-compatibles",
+            title: "MODELOS COMPATIBLES",
+            content: compatibleComponent,
+          },
+        ]
+      : []),
     {
       id: "ver-detalles",
       title: "VER DETALLES",
@@ -116,7 +128,7 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
         </Text>
 
         <Accordion
-          className="font-archivo  text-gray-500"
+          className="font-archivo text-gray-500"
           items={accordionItems}
         />
 
