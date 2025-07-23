@@ -24,7 +24,15 @@ import {
   PRODUCT_DELIVERED,
   ProductDeliveredTemplate,
 } from "./product-delivered";
-import { ResetPassword, RESET_PASSWORD, isResetPasswordData } from "./reset-password";
+import {
+  ResetPassword,
+  RESET_PASSWORD,
+  isResetPasswordData,
+} from "./reset-password";
+import ProductDeliveredEnTemplate, {
+  isProductDeliveredEnData,
+  PRODUCT_DELIVERED_EN,
+} from "./product-delivered-en";
 
 export const EmailTemplates = {
   INVITE_USER,
@@ -33,7 +41,8 @@ export const EmailTemplates = {
   PRODUCT_STATUS,
   ORDER_PLACED_ADMIN,
   PRODUCT_DELIVERED,
-  RESET_PASSWORD
+  RESET_PASSWORD,
+  PRODUCT_DELIVERED_EN,
 } as const;
 
 export type EmailTemplateType = keyof typeof EmailTemplates;
@@ -105,6 +114,15 @@ export function generateEmailTemplate(
         );
       }
       return <ResetPassword {...data} />;
+
+    case EmailTemplates.PRODUCT_DELIVERED_EN:
+      if (!isProductDeliveredEnData(data)) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Invalid data for template "${EmailTemplates.PRODUCT_DELIVERED_EN}"`
+        );
+      }
+      return <ProductDeliveredEnTemplate {...data} />;
 
     default:
       throw new MedusaError(
