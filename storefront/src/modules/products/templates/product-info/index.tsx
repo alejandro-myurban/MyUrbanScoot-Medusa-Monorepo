@@ -4,6 +4,7 @@ import LocalizedClientLink from "@modules/common/components/localized-client-lin
 import { ProductAverageReview } from "@modules/product-reviews/components/ProductAverageReview"
 import ReviewButton from "@modules/product-reviews/components/ReviewButton"
 import Accordion from "@modules/products/components/product-info-accordion"
+import CompatibleScooters from "../../components/product-compatible/compatible-scooters"
 
 type ProductInfoProps = {
   product: HttpTypes.StoreProduct
@@ -15,14 +16,7 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
       id: "modelos-compatibles",
       title: "MODELOS COMPATIBLES",
       content: (
-        <div>
-          <p>Compatible con los siguientes modelos:</p>
-          <ul className="list-disc list-inside mt-2 space-y-1">
-            <li>Modelo A</li>
-            <li>Modelo B</li>
-            <li>Modelo C</li>
-          </ul>
-        </div>
+        <CompatibleScooters />
       ),
     },
     {

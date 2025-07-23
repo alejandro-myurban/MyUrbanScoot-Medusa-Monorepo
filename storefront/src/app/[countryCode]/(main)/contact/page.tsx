@@ -77,6 +77,7 @@ export default function ContactPage() {
     }
   }
 
+  // Auto reset después del éxito
   useEffect(() => {
     if (submissionStatus === "success") {
       const timer = setTimeout(() => {
@@ -112,6 +113,7 @@ export default function ContactPage() {
           </p>
         </div>
 
+        {/* Estado del envío */}
         <SubmissionStatusDisplay
           loading={loading}
           submissionStatus={submissionStatus}
@@ -119,6 +121,7 @@ export default function ContactPage() {
           onTryAgain={() => setSubmissionStatus("idle")}
         />
 
+        {/* Formulario y datos de contacto */}
         {submissionStatus === "idle" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 lg:gap-12 mb-24">
             <ContactForm
@@ -131,6 +134,7 @@ export default function ContactPage() {
           </div>
         )}
 
+        {/* Mapa interactivo */}
         <InteractiveMap />
       </div>
     </div>
