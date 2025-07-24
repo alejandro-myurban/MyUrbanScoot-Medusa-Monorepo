@@ -14,13 +14,17 @@ type ProductInfoProps = {
 const ProductInfo = ({ product }: ProductInfoProps) => {
   console.log("🚀 ProductInfo COMPONENT RENDERIZADO");
 
-  let compatibleComponent = null;
-  console.log("😜 VIEWER", product.categories)
+  let compatibleComponent = null
+  
+  // Modelos compatibles (por categoría)
+  if (
+    product.categories?.some(
+      (category) => category.handle === "vinilos" || category.handle === "modelos"
+    )
+  ) {
+    compatibleComponent = <CompatibleScooters product={product} />
+  }
 
-  if (product.categories?.some((category) => (category.handle === "vinilos") || (category.handle === "modelos"))) {
-    console.log("😜CONDICIÓN CUMPLIDA: El producto tiene la categoría 'vinilos' o 'spare-parts'. Renderizando CompatibleScooters.");
-    compatibleComponent = <CompatibleScooters product={product} />; 
-  } 
   const accordionItems = [
     ...(compatibleComponent
       ? [
