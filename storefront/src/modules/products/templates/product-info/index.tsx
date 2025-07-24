@@ -1,3 +1,4 @@
+'use client'
 import { HttpTypes } from "@medusajs/types"
 import { Heading, Text } from "@medusajs/ui"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
@@ -5,36 +6,18 @@ import { ProductAverageReview } from "@modules/product-reviews/components/Produc
 import ReviewButton from "@modules/product-reviews/components/ReviewButton"
 import Accordion from "@modules/products/components/product-info-accordion"
 import CompatibleScooters from "../../components/product-compatible/compatible-scooters"
-import CompatibleSquareParts from "../../components/product-compatible/product-compatible-square-parts/compatible-square-parts"
 
 type ProductInfoProps = {
   product: HttpTypes.StoreProduct
 }
 
 const ProductInfo = ({ product }: ProductInfoProps) => {
-  console.log("🚀 ProductInfo COMPONENT RENDERIZADO");
-
-  let compatibleComponent = null
-  
-  // Modelos compatibles (por categoría)
-  if (
-    product.categories?.some(
-      (category) => category.handle === "vinilos" || category.handle === "modelos"
-    )
-  ) {
-    compatibleComponent = <CompatibleScooters product={product} />
-  }
-
   const accordionItems = [
-    ...(compatibleComponent
-      ? [
-          {
-            id: "modelos-compatibles",
-            title: "MODELOS COMPATIBLES",
-            content: compatibleComponent,
-          },
-        ]
-      : []),
+    {
+      id: "modelos-compatibles",
+      title: "MODELOS COMPATIBLES",
+      content: <CompatibleScooters product={product} />,
+    },
     {
       id: "ver-detalles",
       title: "VER DETALLES",
