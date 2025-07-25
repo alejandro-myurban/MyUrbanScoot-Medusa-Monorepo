@@ -6,9 +6,10 @@ import {
 import { SubscriberArgs, SubscriberConfig } from "@medusajs/medusa";
 import { EmailTemplates } from "../modules/email-notifications/templates";
 import { sendWhatsAppMessage } from "../modules/whatsapp-notifications/twilio-whatsapp";
+import { SupportedLanguage } from "modules/email-notifications/templates/product-delivered";
 
 // 🌍 CONFIGURACIÓN DE IDIOMAS
-const getLanguage = (countryCode: string): string => {
+const getLanguage = (countryCode: string): SupportedLanguage => {
   const code = countryCode?.toLowerCase();
   
   if (['gb', 'us', 'ca', 'au'].includes(code)) return 'en';
@@ -22,7 +23,7 @@ const getLanguage = (countryCode: string): string => {
   return 'es'; // Default español
 };
 
-const getMessages = (lang: string) => {
+const getMessages = (lang: SupportedLanguage) => {
   const messages = {
     en: {
       subject: "Your product has been shipped",
@@ -157,28 +158,20 @@ export default async function orderDeliveredHandler({
 
     console.log("📦 Orden completa:", JSON.stringify(order, null, 2));
 
-    // Trigger del evento MeiliSearch
-    await eventBusService.emit({
-      name: "meilisearch.sync",
-      data: "",
-    });
-    console.log("🔍 MeiliSearch sync event triggered");
 
     // 🌍 DETECCIÓN DE IDIOMA
     const lang = getLanguage(order.shipping_address?.country_code || 'es');
     const messages = getMessages(lang);
     
-    // 📧 ENVÍO DE EMAIL
+    console.log(`🌍 Idioma detectado: ${lang.toUpperCase()}`);
+    
+    // 📧 ENVÍO DE EMAIL CON TEMPLATE DINÁMICA
     console.log(`📧 Enviando notificación por email en ${lang.toUpperCase()}...`);
     try {
-      // Obtener template según idioma (fallback a español si no existe)
-      const templateKey = `PRODUCT_DELIVERED${lang === 'es' ? '' : '_' + lang.toUpperCase()}`;
-      const template = EmailTemplates[templateKey] || EmailTemplates.PRODUCT_DELIVERED;
-      
       await notificationModuleService.createNotifications({
         to: order.email,
         channel: "email",
-        template: template,
+        template: EmailTemplates.PRODUCT_DELIVERED, 
         data: {
           emailOptions: {
             replyTo: "info@myurbanscoot.com",
@@ -187,6 +180,7 @@ export default async function orderDeliveredHandler({
           greeting: messages.greeting,
           actionUrl: "https://misitio.com/orden/detalle",
           preview: messages.preview,
+          language: lang, 
         },
       });
       console.log("✅ Email enviado exitosamente");

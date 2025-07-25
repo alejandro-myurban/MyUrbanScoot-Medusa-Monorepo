@@ -16,7 +16,7 @@ type InputProps = Omit<
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ type, name, label, touched, required, topLabel, ...props }, ref) => {
+  ({ type, name, label, touched, required, topLabel, errors, ...props }, ref) => {
     const inputRef = React.useRef<HTMLInputElement>(null)
     const [showPassword, setShowPassword] = useState(false)
     const [inputType, setInputType] = useState(type)
@@ -33,6 +33,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
     useImperativeHandle(ref, () => inputRef.current!)
 
+    // Comprobar si hay error para este campo
+    const hasError = errors?.[name] && touched?.[name]
+    const errorMessage = errors?.[name] as string
+
     return (
       <div className="flex flex-col w-full">
         {topLabel && (
@@ -44,9 +48,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             name={name}
             placeholder=" "
             required={required}
-            className="pt-4 border border-[#e6e6e6] rounded-lg shadow-[0px_1px_1px_rgba(0,0,0,0.03),0px_3px_6px_rgba(0,0,0,0.02)] pb-1 block w-full h-11 px-4 mt-0 font-archivo bg-white appearance-none focus:outline-none focus:ring-0 focus:border-[#e6e6e6] focus:shadow-borders-interactive-with-active border-ui-border-base hover:bg-ui-bg-field-hover !outline-none !ring-0 focus:!outline-none focus:!ring-0 focus:!shadow-none"
-            style={{ 
-              outline: 'none', 
+            className={`pt-4 border rounded-lg shadow-[0px_1px_1px_rgba(0,0,0,0.03),0px_3px_6px_rgba(0,0,0,0.02)] pb-1 block w-full h-11 px-4 mt-0 font-archivo bg-white appearance-none focus:outline-none focus:ring-0 focus:shadow-borders-interactive-with-active border-ui-border-base hover:bg-ui-bg-field-hover !outline-none !ring-0 focus:!outline-none focus:!ring-0 focus:!shadow-none ${
+              hasError
+                ? "border-red-300 focus:border-red-300 bg-red-50"
+                : "border-[#e6e6e6] focus:border-[#e6e6e6]"
+            }`}
+            style={{
+              outline: 'none',
               boxShadow: 'none',
               // Sobrescribir cualquier outline del navegador
               WebkitTapHighlightColor: 'transparent'
@@ -57,7 +65,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <label
             htmlFor={name}
             onClick={() => inputRef.current?.focus()}
-            className="flex items-center font-archivo justify-center mx-3 px-1 transition-all absolute duration-300 top-3 -z-1 origin-0 text-gray-500"
+            className={`flex items-center font-archivo justify-center mx-3 px-1 transition-all absolute duration-300 top-3 -z-1 origin-0 ${
+              hasError ? "text-red-500" : "text-gray-500"
+            }`}
           >
             {label}
             {required && <span className="text-rose-500">*</span>}
@@ -72,6 +82,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </button>
           )}
         </div>
+        
+        {/* AÑADIDO: Mostrar mensaje de error */}
+        {hasError && errorMessage && (
+          <p className="mt-1 text-sm text-red-600 font-archivo">
+            {errorMessage}
+          </p>
+        )}
       </div>
     )
   }

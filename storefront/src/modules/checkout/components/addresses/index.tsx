@@ -31,6 +31,7 @@ import {
 } from "@stripe/react-stripe-js"
 import { StripeContext } from "@modules/checkout/components/payment-wrapper/stripe-wrapper"
 import { listCartShippingMethods } from "@lib/data/fulfillment"
+import { validateAddressForm } from "@/lib/schemas/shipping-address"
 
 const Addresses = ({
   cart,
@@ -54,6 +55,11 @@ const Addresses = ({
   const [canMakePaymentStatus, setCanMakePaymentStatus] = useState<
     "first_load" | "available" | "unavailable"
   >("first_load")
+  const shippingAddressRef = useRef<{
+    validateForm: () => boolean
+    getFormDataForSubmit: () => Record<string, any>
+    hasErrors: boolean
+  }>(null)
 
   const { t } = useTranslation()
 
@@ -79,7 +85,7 @@ const Addresses = ({
   }
 
   const [message, formAction] = useFormState(setAddresses, null)
-  
+
   // Efecto simplificado para navegar tras éxito del formulario
   useEffect(() => {
     // Solo navegar si no hay errores después de un submit exitoso
@@ -715,7 +721,7 @@ const Addresses = ({
       setExpressCheckoutLoading(false)
     }
   }
-  
+
   const onShippingAddressChange = async (event: any) => {
     console.log("📍 Cambio de dirección:", event.address)
 
@@ -866,9 +872,18 @@ const Addresses = ({
 
   const handleSubmit = async (formData: FormData) => {
     console.log("📝 Enviando formulario...")
+
+    // Validar usando el ref
+    if (shippingAddressRef.current) {
+      const isValid = shippingAddressRef.current.validateForm()
+      if (!isValid) {
+        console.log("❌ Formulario inválido, no enviando")
+        return
+      }
+    }
+
     setSubmitCount((prev) => prev + 1)
     formAction(formData)
-    console.log("🔍 Formulario enviado manualmente")
   }
 
   // Skeleton mientras carga
@@ -997,6 +1012,7 @@ const Addresses = ({
         <form ref={formRef} action={handleSubmit} key={submitCount}>
           <div className="pb-4">
             <ShippingAddress
+              ref={shippingAddressRef}
               customer={customer}
               checked={sameAsBilling}
               onChange={toggleSameAsBilling}
@@ -1015,10 +1031,10 @@ const Addresses = ({
                 <BillingAddress cart={cart} />
               </div>
             )}
-            
+
             <ErrorMessage error={message} data-testid="address-error-message" />
           </div>
-          
+
           {/* Botón Continuar - siempre visible y funcional */}
           <div className="">
             <SubmitButton
@@ -1041,7 +1057,7 @@ const Addresses = ({
                     data-testid="shipping-address-summary"
                   >
                     <Text className="font-semibold font-archivo text-ui-fg-base mb-1">
-                       {t("checkout.address_info.shipping_address")}
+                      {t("checkout.address_info.shipping_address")}
                     </Text>
                     <Text className="txt-medium font-archivo text-ui-fg-subtle">
                       {cart.shipping_address.first_name}{" "}

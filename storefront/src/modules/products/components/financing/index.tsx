@@ -227,7 +227,7 @@ export default function Financing({ price, productName }: FinancingProps) {
       </p>
 
       <Button
-        className="w-64 mt-4 h-10 hover:bg-mysRed-100 rounded-3xl border-none uppercase"
+        className="w-full mt-4 h-10 hover:bg-mysGreen-100 bg-mysGreen-100/70 text-black font-archivoBlack font-semibold border-none uppercase"
         onClick={() => setShowForm(true)}
       >
         Quiero financiarlo

@@ -1,14 +1,24 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-// Asegúrate de que estas rutas sean correctas para tu proyecto
-import ContactForm from "../../../../modules/common/components/contact/contact-form"
-import ContactInfoSection from "../../../../modules/common/components/contact/contact-info"
-import SubmissionStatusDisplay from "../../../../modules/common/components/contact/contact-submission-status"
-import InteractiveMap from "../../../../modules/common/components/contact/contact-map-holder"
+import ContactForm from "@/modules/common/components/contact/contact-form"
+import ContactInfoSection from "@/modules/common/components/contact/contact-info"
+import SubmissionStatusDisplay from "@/modules/common/components/contact/contact-submission-status"
+import InteractiveMap from "@/modules/common/components/contact/contact-map-holder"
+import { sdk } from "@/lib/config"
+import { validateContactForm } from "@/lib/schemas/contact-form"
+
+// Define ContactFormData locally to ensure all fields are required strings
+type ContactFormData = {
+  fullName: string
+  email: string
+  subject: string
+  phone: string
+  message: string
+}
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ContactFormData>({
     fullName: "",
     email: "",
     subject: "",
@@ -21,6 +31,7 @@ export default function ContactPage() {
     "idle" | "success" | "error"
   >("idle")
   const [errorMessage, setErrorMessage] = useState("")
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]> | null>(null)
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -30,6 +41,16 @@ export default function ContactPage() {
       ...prevData,
       [name]: value,
     }))
+
+    // Limpiar errores de validación del campo cuando el usuario empieza a escribir
+    if (validationErrors?.[name]) {
+      setValidationErrors((prev) => {
+        if (!prev) return null
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        return Object.keys(newErrors).length > 0 ? newErrors : null
+      })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -37,25 +58,39 @@ export default function ContactPage() {
     setLoading(true)
     setSubmissionStatus("idle")
     setErrorMessage("")
+    setValidationErrors(null)
 
     console.log("📞 Enviando mensaje con datos:", formData)
 
-    try {
-      // REVERTIDO: Simulación de llamada a la API (como estaba originalmente)
-      const response = await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          // Simula éxito o fallo
-          const success = Math.random() > 0.1 // 90% de probabilidad de éxito
-          if (success) {
-            console.log("✅ Mensaje enviado exitosamente (simulado)")
-            resolve({ status: 200, message: "Mensaje enviado con éxito" })
-          } else {
-            console.log("❌ Error al enviar mensaje (simulado)")
-            reject(new Error("Error de red o servicio al enviar el mensaje."))
-          }
-        }, 2000) // Simula 2 segundos de retraso de red
-      })
+    // Validación del frontend
+    const validation = validateContactForm(formData)
+    
+    if (!validation.success) {
+      console.log("❌ Errores de validación:", validation.errors)
+      setValidationErrors(
+        validation.errors
+          ? Object.fromEntries(
+              Object.entries(validation.errors).filter(
+                ([, v]) => Array.isArray(v)
+              ) as [string, string[]][]
+            )
+          : null
+      )
+      setLoading(false)
+      return
+    }
 
+    try {
+      // Llamada a tu backend de Medusa
+      const response = await sdk.client.fetch(
+        `/store/contact`,
+        {
+          method: "POST",
+          body: validation.data, // Usar datos validados
+        }
+      )
+
+      console.log("✅ Mensaje enviado exitosamente")
       setSubmissionStatus("success")
       setFormData({
         fullName: "",
@@ -63,10 +98,12 @@ export default function ContactPage() {
         subject: "",
         phone: "",
         message: "",
-      }) // Limpia el formulario en caso de éxito
+      })
     } catch (error) {
       console.error("❌ Error en el envío del formulario:", error)
       setSubmissionStatus("error")
+      
+      // Manejar errores específicos del backend
       if (error instanceof Error) {
         setErrorMessage(error.message)
       } else {
@@ -89,7 +126,7 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen max-w-screen-large mx-auto text-white flex flex-col items-center py-12 font-inter">
-      <div className="lg:max-w-[90vw] w-full bg-white rounded-3xl  p-6 sm:p-8 lg:p-10">
+      <div className="lg:max-w-[90vw] w-full bg-white rounded-3xl p-6 sm:p-8 lg:p-10">
         <div className="text-center font-archivoBlack mb-20">
           <h1
             className="
@@ -121,6 +158,7 @@ export default function ContactPage() {
           onTryAgain={() => setSubmissionStatus("idle")}
         />
 
+
         {/* Formulario y datos de contacto */}
         {submissionStatus === "idle" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 lg:gap-12 mb-24">
@@ -129,6 +167,7 @@ export default function ContactPage() {
               handleChange={handleChange}
               handleSubmit={handleSubmit}
               loading={loading}
+              validationErrors={validationErrors}
             />
             <ContactInfoSection />
           </div>
