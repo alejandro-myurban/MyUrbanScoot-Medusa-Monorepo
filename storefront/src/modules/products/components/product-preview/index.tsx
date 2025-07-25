@@ -102,6 +102,8 @@ export default async function ProductPreview({
     discountPercent = Math.round((1 - calc / orig) * 100)
   }
 
+  console.log("DESCUENTO PERCENT", discountPercent)
+
   return (
     <LocalizedClientLink href={`/producto/${product.handle}`} className="group">
       <div

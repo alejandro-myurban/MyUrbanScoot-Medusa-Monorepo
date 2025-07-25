@@ -249,7 +249,6 @@ export const OrderPlacedTemplate: React.FC<OrderPlacedTemplateProps> & {
       </Section>
 
       <Section
-        className="text-center flex justify-center items-center mt-8 max-w-[600px] mx-auto px-4"
         style={{
           maxWidth: "600px",
           margin: "32px auto 0",
@@ -257,12 +256,29 @@ export const OrderPlacedTemplate: React.FC<OrderPlacedTemplateProps> & {
           textAlign: "center",
         }}
       >
-        <Img
-          src="https://myurbanscoot.com/wp-content/uploads/2025/05/cropped-logo-myurbanscoot-vertical-2025-05-382x101.png"
-          alt="MyUrbanScoot Logo"
-          style={{ maxWidth: "250px", height: "auto" }}
-        />
-        <Text className="text-[12px] text-[#888888] text-center m-0 mt-8">
+        {/* Contenedor para el logo centrado */}
+        <div style={{ textAlign: "center", width: "100%" }}>
+          <Img
+            src="https://myurbanscoot.com/wp-content/uploads/2025/05/cropped-logo-myurbanscoot-vertical-2025-05-382x101.png"
+            alt="MyUrbanScoot Logo"
+            style={{
+              display: "block",
+              margin: "0 auto",
+              maxWidth: "250px",
+              height: "auto",
+              textAlign: "center",
+            }}
+          />
+        </div>
+
+        <Text
+          style={{
+            fontSize: "12px",
+            color: "#888888",
+            textAlign: "center",
+            margin: "16px 0 0 0",
+          }}
+        >
           © {new Date().getFullYear()} MyUrbanScoot. All rights reserved.
         </Text>
       </Section>

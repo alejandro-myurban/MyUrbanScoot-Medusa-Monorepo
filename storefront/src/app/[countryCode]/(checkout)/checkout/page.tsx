@@ -41,7 +41,7 @@ export default async function Checkout() {
   }
   
   return (
-    <div className="w-full">
+    <div className="w-full min-h-screen">
       {/* Layout para mobile */}
       <div className="block small:hidden">
         {/* Resumen sticky en mobile */}
@@ -65,11 +65,11 @@ export default async function Checkout() {
       </div>
 
       {/* Layout para desktop */}
-      <div className="hidden small:block overflow-x-hidden">
+      <div className="hidden small:block">
         <div className="grid grid-cols-[1fr_600px] w-full max-w-screen-large pl-4 pr-4 mx-auto gap-x-8 py-4 sm:py-12">
           
           {/* Columna del formulario */}
-          <div>
+          <div className="min-h-0"> {/* min-h-0 ayuda con el sticky */}
             <Wrapper cart={cart}>
               <CheckoutForm 
                 initialCart={cart}
@@ -81,12 +81,18 @@ export default async function Checkout() {
           </div>
           
           {/* Columna del resumen */}
-          <div className="relative">
+          <div className="relative min-h-0"> {/* min-h-0 ayuda con el sticky */}
             {/* Fondo gris que se extiende hasta el borde derecho */}
             <div className="absolute inset-y-0 left-0 right-0 bg-gray-200 -mr-[100vw]" />
             
             {/* Contenido del resumen - sticky en desktop */}
-            <div className="sticky top-2 z-10">
+            <div 
+              className="sticky z-10"
+              style={{ 
+                top: '1rem', // 16px from top
+                alignSelf: 'flex-start' // Importante para grid/flex
+              }}
+            >
               <CheckoutSummary cart={cart} />
             </div>
           </div>

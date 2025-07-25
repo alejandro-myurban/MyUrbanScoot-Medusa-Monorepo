@@ -1,13 +1,11 @@
 import { 
   AbstractFulfillmentProviderService,
-  // you can import the type for clarity 
 } from "@medusajs/framework/utils";
 import { 
   ValidateFulfillmentDataContext,
   CalculateShippingOptionPriceDTO,
   CartLineItemDTO, 
 } from "@medusajs/framework/types";
-import { sdk } from "admin/lib/sdk";
 
 type CartLineItemWithVariant = CartLineItemDTO & {
   variant?: { weight?: number };
@@ -26,6 +24,12 @@ class MiFulfillmentProviderService extends AbstractFulfillmentProviderService {
   async canCalculate(data): Promise<boolean> {
     // we support calculated
     return true;
+  }
+
+  async validateOption(data: Record<string, unknown>): Promise<boolean> {
+    // Validar que la opción sea válida
+    const validOptions = ["standard", "express"];
+    return validOptions.includes(data.id as string);
   }
 
   async validateFulfillmentData(
@@ -122,6 +126,108 @@ class MiFulfillmentProviderService extends AbstractFulfillmentProviderService {
       calculated_amount: price,
       is_calculated_price_tax_inclusive: true,
     };
+  }
+
+  // *** MÉTODO OBLIGATORIO QUE FALTABA ***
+  async createFulfillment(
+    data: Record<string, unknown>,
+    items: any[],
+    order: any,
+    fulfillment: Record<string, unknown>
+  ): Promise<any> {
+    console.log("Creando fulfillment para orden:", {
+      orderId: order?.id,
+      fulfillmentId: fulfillment.id,
+      shippingOption: data
+    });
+
+    try {
+      // Para un provider calculado, aquí manejarías:
+      // 1. Generar número de tracking
+      // 2. Notificar al carrier si es necesario
+      // 3. Actualizar sistemas externos
+      
+      const trackingNumber = `CALC_${Date.now()}_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      
+      // Determinar el tipo de servicio basado en los datos
+      const serviceType = data.id === "express" ? "express" : "standard";
+      
+      console.log(`Fulfillment creado con tracking: ${trackingNumber}, servicio: ${serviceType}`);
+
+      // Retornar datos que se guardarán en fulfillment.data
+      return {
+        data: {
+          tracking_number: trackingNumber,
+          service_type: serviceType,
+          carrier: "calculated-fulfillment",
+          created_at: new Date().toISOString(),
+          estimated_delivery: this.calculateEstimatedDelivery(serviceType),
+          // Guardar información del cálculo original si es útil
+          calculated_price: data.calculated_amount,
+          weight_based: true,
+        },
+      };
+    } catch (error) {
+      console.error("Error creando fulfillment:", error);
+      throw new Error(`Error en createFulfillment: ${error.message}`);
+    }
+  }
+
+  // Método auxiliar para calcular entrega estimada
+  private calculateEstimatedDelivery(serviceType: string): string {
+    const now = new Date();
+    const deliveryDays = serviceType === "express" ? 1 : 3;
+    const estimatedDate = new Date(now.getTime() + (deliveryDays * 24 * 60 * 60 * 1000));
+    return estimatedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+  }
+
+  // Método para cancelar fulfillments
+  async cancelFulfillment(data: Record<string, unknown>): Promise<any> {
+    console.log("Cancelando fulfillment:", data);
+    
+    const { tracking_number, service_type } = data as {
+      tracking_number?: string;
+      service_type?: string;
+    };
+
+    // Aquí cancelarías el envío si tienes integración con carrier
+    console.log(`Cancelando envío con tracking: ${tracking_number}, servicio: ${service_type}`);
+
+    return {
+      cancelled: true,
+      cancelled_at: new Date().toISOString(),
+      reason: "Cancelled by admin",
+    };
+  }
+
+  // Método para obtener documentos del fulfillment (etiquetas, etc.)
+  async getFulfillmentDocuments(data: any): Promise<never[]> {
+    // Para un provider calculado podrías retornar:
+    // - Etiquetas de envío generadas
+    // - Documentos de tracking
+    // - Comprobantes de envío
+    return [];
+  }
+
+  // Método para devoluciones
+  async createReturnFulfillment(fulfillment: Record<string, unknown>): Promise<any> {
+    console.log("Creando fulfillment de devolución:", fulfillment);
+    
+    const returnTrackingNumber = `RETURN_${Date.now()}_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    
+    return {
+      data: {
+        return_tracking_number: returnTrackingNumber,
+        return_service: "standard",
+        created_at: new Date().toISOString(),
+        type: "return",
+      },
+    };
+  }
+
+  // Método para obtener documentos de devolución
+  async getReturnDocuments(data: any): Promise<never[]> {
+    return [];
   }
 }
 

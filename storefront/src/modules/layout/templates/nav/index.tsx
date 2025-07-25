@@ -113,7 +113,6 @@ export default async function Nav() {
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
-
             </NavigationMenuList>
           </NavigationMenu>
         </div>
@@ -197,11 +196,11 @@ export default async function Nav() {
                 </LocalizedClientLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <LocalizedClientLink href="/spare-parts">
+                <LocalizedClientLink href="/categories/patinetes-electricos">
                   <NavigationMenuLink className="text-white/80 hover:text-white">
                     <ActiveNavItem
                       className="text-white/80 hover:text-white after:bg-mysGreen-100 after:absolute after:h-0.5 after:rounded-xl after:w-0 after:bottom-0.5 after:left-0 hover:after:w-full after:transition-all after:duration-300"
-                      href="/blog"
+                      href="/categories/patinetes-electricos"
                       translationKey="navigation.scoot"
                     />
                   </NavigationMenuLink>
@@ -233,7 +232,6 @@ export default async function Nav() {
                   </NavigationMenuLink>
                 </LocalizedClientLink>
               </NavigationMenuItem>
-
             </NavigationMenuList>
           </NavigationMenu>
         </div>

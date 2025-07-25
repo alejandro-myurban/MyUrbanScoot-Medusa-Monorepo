@@ -33,6 +33,10 @@ import ProductDeliveredEnTemplate, {
   isProductDeliveredEnData,
   PRODUCT_DELIVERED_EN,
 } from "./product-delivered-en";
+import ContactFormTemplate, {
+  isContactFormData,
+  CONTACT_FORM,
+} from "./contact-form";
 
 export const EmailTemplates = {
   INVITE_USER,
@@ -43,6 +47,7 @@ export const EmailTemplates = {
   PRODUCT_DELIVERED,
   RESET_PASSWORD,
   PRODUCT_DELIVERED_EN,
+  CONTACT_FORM,
 } as const;
 
 export type EmailTemplateType = keyof typeof EmailTemplates;
@@ -123,6 +128,15 @@ export function generateEmailTemplate(
         );
       }
       return <ProductDeliveredEnTemplate {...data} />;
+
+    case EmailTemplates.CONTACT_FORM:
+      if (!isContactFormData(data)) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Invalid data for template "${EmailTemplates.PRODUCT_DELIVERED_EN}"`
+        );
+      }
+      return <ContactFormTemplate {...data} />;
 
     default:
       throw new MedusaError(
