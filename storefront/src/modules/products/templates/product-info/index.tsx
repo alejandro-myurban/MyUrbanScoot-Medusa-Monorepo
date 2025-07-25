@@ -1,3 +1,4 @@
+'use client'
 import { HttpTypes } from "@medusajs/types"
 import { Heading, Text } from "@medusajs/ui"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
@@ -11,14 +12,20 @@ type ProductInfoProps = {
 }
 
 const ProductInfo = ({ product }: ProductInfoProps) => {
+  const hasCompatibleCategory = product.categories?.some(
+    (c) => c.handle === "vinilos" || c.handle === "modelos"
+  )
+
   const accordionItems = [
-    {
-      id: "modelos-compatibles",
-      title: "MODELOS COMPATIBLES",
-      content: (
-        <CompatibleScooters />
-      ),
-    },
+    ...(hasCompatibleCategory
+      ? [
+          {
+            id: "modelos-compatibles",
+            title: "MODELOS COMPATIBLES",
+            content: <CompatibleScooters product={product} />,
+          },
+        ]
+      : []),
     {
       id: "ver-detalles",
       title: "VER DETALLES",
@@ -58,8 +65,7 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
       ),
     },
   ]
-  // 1. Extraer los precios de las variantes (en céntimos) y filtrar los valores válidos.
-  //    Si product.variants es undefined, rawPrices será [].
+
   const rawPrices: number[] =
     product.variants
       ?.map((v) => v.calculated_price?.calculated_amount)
@@ -116,7 +122,7 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
         </Text>
 
         <Accordion
-          className="font-archivo  text-gray-500"
+          className="font-archivo text-gray-500"
           items={accordionItems}
         />
 

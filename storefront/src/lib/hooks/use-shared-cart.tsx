@@ -67,16 +67,15 @@ export async function addToCart({
     throw new Error("Error retrieving or creating cart")
   }
 
-  await sdk.store.cart
-    .createLineItem(
-      cart.id,
-      {
-        variant_id: variantId,
-        quantity,
-      },
-      {},
-      getAuthHeaders()
-    )
+await sdk.store.cart
+    .createLineItem(cart.id, {
+     variant_id: variantId,
+      quantity,
+    }, {}, getAuthHeaders())
+    .catch((err) => {
+      console.error("Error al añadir al carrito:", err)
+      throw new Error("El servidor no pudo procesar el ítem. Verifica el variant ID.")
+    })
     .then(() => {
       // Revalidar el carrito si usas SWR o React Query
       if (typeof window !== "undefined") {
