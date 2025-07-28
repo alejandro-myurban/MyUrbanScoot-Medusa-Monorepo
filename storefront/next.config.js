@@ -70,10 +70,25 @@ const nextConfig = {
   serverRuntimeConfig: {
     port: process.env.PORT || 3000,
   },
-  experimental: {
-  // Limits to 2 pages at a time
-  staticGenerationMaxConcurrency: 2
-}
+  // NUEVA CONFIGURACIÓN PARA LIMITAR CONCURRENCIA
+  webpack: (config, { isServer, dev }) => {
+    if (isServer && !dev) {
+      // Limita la concurrencia durante el build
+      config.parallelism = 1
+
+      // También limita el número de workers
+      if (config.optimization) {
+        config.optimization.minimize = false
+      }
+    }
+    return config
+  },
+
+  // Configuración adicional para reducir carga
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 1,
+  },
 }
 
 module.exports = nextConfig
