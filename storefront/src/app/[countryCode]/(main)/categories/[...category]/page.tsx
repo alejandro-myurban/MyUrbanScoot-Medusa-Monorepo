@@ -7,6 +7,9 @@ import { StoreProductCategory, StoreRegion } from "@medusajs/types"
 import CategoryTemplate from "@modules/categories/templates"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 
+// ISR: Revalida cada 8 horas (las categorías cambian ocasionalmente)
+export const revalidate = 28800
+
 type Props = {
   params: { category: string[]; countryCode: string }
   searchParams: {
@@ -20,30 +23,34 @@ type Props = {
 }
 
 export async function generateStaticParams() {
-  const product_categories = await listCategories()
+  try {
+    // Solo genera páginas para tus mercados principales
+    const mainCountries = ['es', 'fr', 'de', 'it', 'pt'] // Ajusta según tus mercados
+    
+    const product_categories = await listCategories()
 
-  if (!product_categories) {
-    return []
-  }
+    if (!product_categories) {
+      return []
+    }
 
-  const countryCodes = await listRegions().then((regions: StoreRegion[]) =>
-    regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
-  )
-
-  const categoryHandles = product_categories.map(
-    (category: any) => category.handle
-  )
-
-  const staticParams = countryCodes
-    ?.map((countryCode: string | undefined) =>
-      categoryHandles.map((handle: any) => ({
+    // Limita a las categorías principales (primeras 10)
+    const topCategories = product_categories.slice(0, 10)
+    
+    // Genera combinaciones solo para categorías principales y países principales
+    const staticParams = mainCountries.map((countryCode: string) =>
+      topCategories.map((category: any) => ({
         countryCode,
-        category: [handle],
+        category: [category.handle],
       }))
-    )
-    .flat()
+    ).flat()
 
-  return staticParams
+    console.log(`Generando ${staticParams.length} páginas de categorías estáticas en build time`)
+    return staticParams
+
+  } catch (error) {
+    console.error('Error generando static params para categorías:', error)
+    return [] // Si falla, no genera ninguna página en build time
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

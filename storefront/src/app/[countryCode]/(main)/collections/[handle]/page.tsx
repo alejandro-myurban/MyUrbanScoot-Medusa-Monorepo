@@ -10,6 +10,9 @@ import { StoreCollection, StoreRegion } from "@medusajs/types"
 import CollectionTemplate from "@modules/collections/templates"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 
+// ISR: Revalida cada 12 horas (las colecciones cambian menos frecuentemente)
+export const revalidate = 43200
+
 type Props = {
   params: { handle: string; countryCode: string }
   searchParams: {
@@ -21,34 +24,34 @@ type Props = {
 export const PRODUCT_LIMIT = 12
 
 export async function generateStaticParams() {
-  const { collections } = await getCollectionsList()
+  try {
+    // Solo genera páginas para tus mercados principales
+    const mainCountries = ['es', 'fr', 'de', 'it', 'pt'] // Ajusta según tus mercados
+    
+    const { collections } = await getCollectionsList()
 
-  if (!collections) {
-    return []
-  }
+    if (!collections) {
+      return []
+    }
 
-  const countryCodes = await listRegions().then(
-    (regions: StoreRegion[]) =>
-      regions
-        ?.map((r) => r.countries?.map((c) => c.iso_2))
-        .flat()
-        .filter(Boolean) as string[]
-  )
-
-  const collectionHandles = collections.map(
-    (collection: StoreCollection) => collection.handle
-  )
-
-  const staticParams = countryCodes
-    ?.map((countryCode: string) =>
-      collectionHandles.map((handle: string | undefined) => ({
+    // Limita a las colecciones más importantes (primeras 8)
+    const topCollections = collections.slice(0, 8)
+    
+    // Genera combinaciones solo para colecciones principales y países principales
+    const staticParams = mainCountries.map((countryCode: string) =>
+      topCollections.map((collection: StoreCollection) => ({
         countryCode,
-        handle,
+        handle: collection.handle,
       }))
-    )
-    .flat()
+    ).flat()
 
-  return staticParams
+    console.log(`Generando ${staticParams.length} páginas de colecciones estáticas en build time`)
+    return staticParams
+
+  } catch (error) {
+    console.error('Error generando static params para colecciones:', error)
+    return [] // Si falla, no genera ninguna página en build time
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
