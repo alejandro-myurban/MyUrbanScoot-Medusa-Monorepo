@@ -11,7 +11,7 @@
     "wait": "await-backend",
     "launcher": "launch-storefront",
     "dev": "npm run wait && npm run launcher dev",
-    "build": "npm run wait && npm run launcher build",
+    "build": "UV_THREADPOOL_SIZE=2 npm run wait && npm run launcher build",
     "start": "npm run launcher start",
     "build:next": "next build",
     "lint": "next lint",
