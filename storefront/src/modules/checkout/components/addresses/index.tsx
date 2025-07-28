@@ -871,7 +871,7 @@ const Addresses = ({
   }
 
   const handleSubmit = async (formData: FormData) => {
-    console.log("📝 Enviando formulario...")
+    console.log("📝 Enviando formulario...", cart)
 
     // Validar usando el ref
     if (shippingAddressRef.current) {

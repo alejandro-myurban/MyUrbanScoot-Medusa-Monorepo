@@ -70,6 +70,10 @@ const nextConfig = {
   serverRuntimeConfig: {
     port: process.env.PORT || 3000,
   },
+  experimental: {
+  // Limits to 2 pages at a time
+  staticGenerationMaxConcurrency: 2
+}
 }
 
 module.exports = nextConfig
