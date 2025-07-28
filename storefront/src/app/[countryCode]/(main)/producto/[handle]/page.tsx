@@ -10,44 +10,45 @@ import {
   hasTranslations
 } from "../../../../../types/medusa-extend"
 
-// Esto fuerza SSR en lugar de SSG
-export const dynamic = "force-dynamic"
+// ISR: Revalida cada 24 horas
+export const revalidate = 86400
 
 type Props = {
   params: { countryCode: string; handle: string }
 }
 
 export async function generateStaticParams() {
-  const countryCodes = await listRegions().then(
-    (regions) =>
-      regions
-        ?.map((r) => r.countries?.map((c) => c.iso_2))
-        .flat()
-        .filter(Boolean) as string[]
-  )
-
-  if (!countryCodes) {
-    return null
-  }
-
-  const products = await Promise.all(
-    countryCodes.map((countryCode) => {
-      return getProductsList({ countryCode })
+  try {
+    // Solo genera páginas para tus mercados principales
+    const mainCountries = ['es', 'fr', 'de', 'it', 'pt'] // Ajusta según tus mercados
+    
+    // Obtén solo los productos más populares/importantes
+    const topProducts = await getProductsList({ 
+      countryCode: 'es', // Usa tu país principal como referencia
+      queryParams: {
+        limit: 15 // Solo los primeros 15 productos más importantes
+      }
     })
-  ).then((responses) =>
-    responses.map(({ response }) => response.products).flat()
-  )
 
-  const staticParams = countryCodes
-    ?.map((countryCode) =>
-      products.map((product) => ({
+    if (!topProducts.response?.products) {
+      return []
+    }
+
+    // Genera combinaciones solo para productos top y países principales
+    const staticParams = mainCountries.map((countryCode) =>
+      topProducts.response.products.slice(0, 10).map((product) => ({
         countryCode,
         handle: product.handle,
       }))
-    )
-    .flat()
+    ).flat()
 
-  return staticParams
+    console.log(`Generando ${staticParams.length} páginas estáticas en build time`)
+    return staticParams
+
+  } catch (error) {
+    console.error('Error generando static params:', error)
+    return [] // Si falla, no genera ninguna página en build time
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -154,12 +155,6 @@ export default async function ProductPage({ params }: Props) {
     subtitle: productWithPotentialTranslations.translations?.subtitle || productWithPotentialTranslations.subtitle,
     options: translatedOptions || null,
   }
-
-  // console.log("AAAAA", pricedProduct.options)
-  // console.log("AAAAA", pricedProduct)
-  // console.log(pricedProduct.options?.[0]?.values ?? [])
-  // console.log("TRANSLATED", translatedProduct)
-//  console.log("CALCULATED PRICE", translatedProduct.variants[0].calculated_price);
 
   return (
     <>
