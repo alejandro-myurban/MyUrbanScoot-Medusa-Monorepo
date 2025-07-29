@@ -1,0 +1,251 @@
+diff --git a/.medusa/server/src/api/admin/tolgee/options/route.js b/.medusa/server/src/api/admin/tolgee/options/route.js
+index 8d6971e4fc089dd4cb86afdadaee96d26bb85698..f410a9fd08180c11e5866181c425735c5bce36ec 100644
+--- a/.medusa/server/src/api/admin/tolgee/options/route.js
++++ b/.medusa/server/src/api/admin/tolgee/options/route.js
+@@ -3,14 +3,28 @@ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.GET = void 0;
+ const tolgee_1 = require("../../../../modules/tolgee");
+ const GET = async (req, res) => {
+-    const translationModule = req.scope.resolve(tolgee_1.TOLGEE_MODULE);
+-    try {
+-        const options = await translationModule.getOptions();
+-        return res.json(options);
+-    }
+-    catch (e) {
+-        return res.status(500).json(e);
+-    }
++   const translationModule = req.scope.resolve(tolgee_1.TOLGEE_MODULE);
++   
++   try {
++       console.log('=== TOLGEE OPTIONS DEBUG ===');
++       console.log('Translation module exists:', !!translationModule);
++       
++       const options = await translationModule.getOptions();
++       console.log('Options retrieved successfully:', options);
++       
++       return res.json(options);
++   } catch (e) {
++       console.error('=== TOLGEE OPTIONS ERROR ===');
++       console.error('Error details:', e);
++       console.error('Error message:', e.message);
++       console.error('Error stack:', e.stack);
++       console.error('=============================');
++       
++       return res.status(500).json({
++           error: e.message,
++           details: e.toString()
++       });
++   }
+ };
+ exports.GET = GET;
+ //# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicm91dGUuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi8uLi8uLi8uLi8uLi8uLi9zcmMvYXBpL2FkbWluL3RvbGdlZS9vcHRpb25zL3JvdXRlLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7OztBQUNBLHVEQUEyRDtBQUVwRCxNQUFNLEdBQUcsR0FBRyxLQUFLLEVBQUUsR0FBa0IsRUFBRSxHQUFtQixFQUFFLEVBQUU7SUFDbkUsTUFBTSxpQkFBaUIsR0FBRyxHQUFHLENBQUMsS0FBSyxDQUFDLE9BQU8sQ0FBQyxzQkFBYSxDQUFDLENBQUM7SUFFM0QsSUFBSSxDQUFDO1FBQ0gsTUFBTSxPQUFPLEdBQUcsTUFBTSxpQkFBaUIsQ0FBQyxVQUFVLEVBQUUsQ0FBQztRQUNyRCxPQUFPLEdBQUcsQ0FBQyxJQUFJLENBQUMsT0FBTyxDQUFDLENBQUM7SUFDM0IsQ0FBQztJQUFDLE9BQU8sQ0FBQyxFQUFFLENBQUM7UUFDWCxPQUFPLEdBQUcsQ0FBQyxNQUFNLENBQUMsR0FBRyxDQUFDLENBQUMsSUFBSSxDQUFDLENBQUMsQ0FBQyxDQUFDO0lBQ2pDLENBQUM7QUFDSCxDQUFDLENBQUM7QUFUVyxRQUFBLEdBQUcsT0FTZCJ9
+\ No newline at end of file
+diff --git a/.medusa/server/src/api/store/shipping-options/tolgee/route.js b/.medusa/server/src/api/store/shipping-options/tolgee/route.js
+index 753539ce46e56315b7501315efdebe8bfdfd0e40..1546af424e5575b06201ff35f87c11cbf73aede2 100644
+--- a/.medusa/server/src/api/store/shipping-options/tolgee/route.js
++++ b/.medusa/server/src/api/store/shipping-options/tolgee/route.js
+@@ -7,15 +7,30 @@ exports.GET = void 0;
+ const shipping_options_with_translations_1 = __importDefault(require("../../../../workflows/shipping-options-with-translations"));
+ const GET = async (req, res) => {
+     const { cart_id, is_return, country_code } = req.query;
++    
++    console.log('🔍 [Backend] req.query completo:', req.query);
++    console.log('🔍 [Backend] country_code extraído:', country_code);
++    console.log('🔍 [Backend] tipo de country_code:', typeof country_code);
++    
+     try {
+         const workflow = (0, shipping_options_with_translations_1.default)(req.scope);
++        
++        const input = { cart_id: cart_id, is_return: !!is_return, country_code: country_code };
++        
++        console.log('🔍 [Backend] Input que enviamos al workflow:', input);
++        console.log('🔍 [Backend] country_code en el input:', input.country_code);
++        
+         const { result: shipping_options } = await workflow.run({
+-            input: { cart_id: cart_id, is_return: !!is_return, country_code: country_code },
++            input: input,
+         });
++        
++        console.log('🔍 [Backend] Resultado del workflow:', shipping_options);
++        console.log('🔍 [Backend] Cantidad de opciones:', shipping_options?.length || 0);
++        
+         res.json({ shipping_options });
+     }
+     catch (e) {
+-        console.log(e);
++        console.error('❌ [Backend] Error en endpoint:', e);
+         res.status(500).json({ message: e.message });
+     }
+ };
+diff --git a/.medusa/server/src/workflows/shipping-options-with-translations.js b/.medusa/server/src/workflows/shipping-options-with-translations.js
+index 9bb34158060a859c54678af89603d9dbd3232b6d..f36f1ab727b3dc46da9440bd32ef97169595113b 100644
+--- a/.medusa/server/src/workflows/shipping-options-with-translations.js
++++ b/.medusa/server/src/workflows/shipping-options-with-translations.js
+@@ -21,6 +21,12 @@ const cartFieldsForPricingContext = [
+     "customer.groups.id",
+ ];
+ const listShippingOptionsForCartWithTranslationsWorkflow = (0, workflows_sdk_1.createWorkflow)(exports.listShippingOptionsForCartWorkflowId, (input) => {
++    // 🔍 Log del input inicial
++    
++    console.log('🔍 [Workflow] ===== INICIO DE WORKFLOW =====');
++    console.log('🔍 [Workflow] Input RECIBIDO:', input);
++    console.log('🔍 [Workflow] country_code RECIBIDO:', input.country_code)
++    
+     const cartQuery = (0, core_flows_1.useQueryGraphStep)({
+         entity: "cart",
+         filters: { id: input.cart_id },
+@@ -34,11 +40,17 @@ const listShippingOptionsForCartWithTranslationsWorkflow = (0, workflows_sdk_1.c
+         ],
+         options: { throwIfKeyNotFound: true },
+     }).config({ name: "get-cart" });
+-    const cart = (0, workflows_sdk_1.transform)({ cartQuery }, ({ cartQuery }) => cartQuery.data[0]);
++    
++    const cart = (0, workflows_sdk_1.transform)({ cartQuery }, ({ cartQuery }) => {
++        console.log('🔍 [Workflow] Cart obtenido:', cartQuery.data[0]);
++        return cartQuery.data[0];
++    });
++    
+     (0, core_flows_1.validatePresenceOfStep)({
+         entity: cart,
+         fields: ["sales_channel_id", "region_id", "currency_code"],
+     });
++    
+     const scFulfillmentSetQuery = (0, core_flows_1.useQueryGraphStep)({
+         entity: "sales_channels",
+         filters: { id: cart.sales_channel_id },
+@@ -49,7 +61,12 @@ const listShippingOptionsForCartWithTranslationsWorkflow = (0, workflows_sdk_1.c
+             "stock_locations.address.*",
+         ],
+     }).config({ name: "sales_channels-fulfillment-query" });
+-    const scFulfillmentSets = (0, workflows_sdk_1.transform)({ scFulfillmentSetQuery }, ({ scFulfillmentSetQuery }) => scFulfillmentSetQuery.data[0]);
++    
++    const scFulfillmentSets = (0, workflows_sdk_1.transform)({ scFulfillmentSetQuery }, ({ scFulfillmentSetQuery }) => {
++        console.log('🔍 [Workflow] Sales channel fulfillment sets:', scFulfillmentSetQuery.data[0]);
++        return scFulfillmentSetQuery.data[0];
++    });
++    
+     const { fulfillmentSetIds } = (0, workflows_sdk_1.transform)({ scFulfillmentSets }, ({ scFulfillmentSets }) => {
+         const fulfillmentSetIds = new Set();
+         scFulfillmentSets.stock_locations.forEach((stockLocation) => {
+@@ -57,12 +74,14 @@ const listShippingOptionsForCartWithTranslationsWorkflow = (0, workflows_sdk_1.c
+                 fulfillmentSetIds.add(fulfillmentSet.id);
+             });
+         });
++        console.log('🔍 [Workflow] Fulfillment set IDs:', Array.from(fulfillmentSetIds));
+         return {
+             fulfillmentSetIds: Array.from(fulfillmentSetIds),
+         };
+     });
++    
+     const queryVariables = (0, workflows_sdk_1.transform)({ input, fulfillmentSetIds, cart }, ({ input, fulfillmentSetIds, cart }) => {
+-        return {
++        const variables = {
+             id: input.option_ids,
+             context: {
+                 is_return: input.is_return ? "true" : "false",
+@@ -73,7 +92,7 @@ const listShippingOptionsForCartWithTranslationsWorkflow = (0, workflows_sdk_1.c
+                         : "false",
+             },
+             filters: {
+-                fulfillment_set_id: fulfillmentSetIds,
++                // fulfillment_set_id: fulfillmentSetIds,
+                 address: {
+                     country_code: cart.shipping_address?.country_code,
+                     province_code: cart.shipping_address?.province,
+@@ -84,7 +103,14 @@ const listShippingOptionsForCartWithTranslationsWorkflow = (0, workflows_sdk_1.c
+             calculated_price: { context: cart },
+             translations: { context: { country_code: input.country_code } }
+         };
++        
++        console.log('🔍 [Workflow] Query variables generadas:', variables);
++        console.log('🔍 [Workflow] Address filters:', variables.filters.address);
++        console.log('🔍 [Workflow] Translations context:', variables.translations);
++        
++        return variables;
+     });
++    
+     const shippingOptions = (0, core_flows_1.useRemoteQueryStep)({
+         entry_point: "shipping_options",
+         fields: [
+@@ -115,30 +141,62 @@ const listShippingOptionsForCartWithTranslationsWorkflow = (0, workflows_sdk_1.c
+         ],
+         variables: queryVariables,
+     }).config({ name: "shipping-options-query" });
+-    const shippingOptionsWithPrice = (0, workflows_sdk_1.transform)({ shippingOptions, cart }, ({ shippingOptions, cart }) => shippingOptions.map((shippingOption) => {
+-        const price = shippingOption.calculated_price;
+-        const locationId = shippingOption.service_zone.fulfillment_set.location.id;
+-        const itemsAtLocationWithoutAvailableQuantity = cart.items.filter((item) => {
+-            if (!item.variant?.manage_inventory) {
+-                return false;
+-            }
+-            return item.variant.inventory_items.some((inventoryItem) => {
+-                if (!inventoryItem.inventory.requires_shipping) {
++    
++    const shippingOptionsWithPrice = (0, workflows_sdk_1.transform)({ shippingOptions, cart }, ({ shippingOptions, cart }) => {
++        console.log('🔍 [Workflow] Shipping options raw del query:', shippingOptions);
++        console.log('🔍 [Workflow] Cantidad de shipping options:', shippingOptions?.length || 0);
++        
++        // Log detallado de cada shipping option
++        if (shippingOptions && shippingOptions.length > 0) {
++            shippingOptions.forEach((option, index) => {
++                console.log(`🔍 [Workflow] Shipping option ${index}:`, {
++                    id: option.id,
++                    name: option.name,
++                    translations: option.translations,
++                    hasTranslations: option.translations && option.translations.length > 0
++                });
++            });
++        } else {
++            console.warn('⚠️ [Workflow] No se encontraron shipping options en el query');
++        }
++        
++        return shippingOptions.map((shippingOption) => {
++            const price = shippingOption.calculated_price;
++            const locationId = shippingOption.service_zone.fulfillment_set.location.id;
++            const itemsAtLocationWithoutAvailableQuantity = cart.items.filter((item) => {
++                if (!item.variant?.manage_inventory) {
+                     return false;
+                 }
+-                const level = inventoryItem.inventory.location_levels.find((locationLevel) => {
+-                    return locationLevel.location_id === locationId;
++                return item.variant.inventory_items.some((inventoryItem) => {
++                    if (!inventoryItem.inventory.requires_shipping) {
++                        return false;
++                    }
++                    const level = inventoryItem.inventory.location_levels.find((locationLevel) => {
++                        return locationLevel.location_id === locationId;
++                    });
++                    return !level ? true : level.available_quantity < item.quantity;
+                 });
+-                return !level ? true : level.available_quantity < item.quantity;
+             });
++            
++            const finalOption = {
++                ...shippingOption,
++                amount: price?.calculated_amount,
++                is_tax_inclusive: !!price?.is_calculated_price_tax_inclusive,
++                insufficient_inventory: itemsAtLocationWithoutAvailableQuantity.length > 0,
++            };
++            
++            console.log(`🔍 [Workflow] Opción final procesada:`, {
++                id: finalOption.id,
++                name: finalOption.name,
++                amount: finalOption.amount,
++                translations: finalOption.translations
++            });
++            
++            return finalOption;
+         });
+-        return {
+-            ...shippingOption,
+-            amount: price?.calculated_amount,
+-            is_tax_inclusive: !!price?.is_calculated_price_tax_inclusive,
+-            insufficient_inventory: itemsAtLocationWithoutAvailableQuantity.length > 0,
+-        };
+-    }));
++    });
++    
++    console.log('🔍 [Workflow] Retornando resultado final');
+     return new workflows_sdk_1.WorkflowResponse(shippingOptionsWithPrice);
+ });
+ exports.default = listShippingOptionsForCartWithTranslationsWorkflow;
