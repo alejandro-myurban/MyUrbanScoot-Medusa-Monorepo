@@ -20,10 +20,8 @@ import {
 import PriceFilterWrapper from "@modules/products/components/price-filter-wrapper"
 import { SubcategoryCardLight } from "../components/subcategory-card"
 
-// Importamos el nuevo componente contenedor cliente
-import ScootersFiltersContainer from "../components/scootets-filters-container" // <-- Nuevo componente contenedor
+import ScootersFiltersContainer from "../components/scootets-filters-container" 
 
-// --- Función de ayuda para aplicar los filtros de scooter (EN EL SERVIDOR) ---
 const applyScooterFilters = (
   products: HttpTypes.StoreProduct[],
   searchParams: { [key: string]: string | string[] | undefined }
@@ -148,7 +146,6 @@ export default async function CategoryTemplate({
     notFound()
   }
 
-  // Obtén todos los productos de la categoría *sin filtros iniciales de scooter*
   const {
     response: { products: allCategoryProducts },
   } = await getProductsListWithSort({
