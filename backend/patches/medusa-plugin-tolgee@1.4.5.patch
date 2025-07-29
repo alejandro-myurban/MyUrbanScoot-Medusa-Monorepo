@@ -1,0 +1,55 @@
+diff --git a/.medusa/server/src/api/admin/tolgee/options/route.js b/.medusa/server/src/api/admin/tolgee/options/route.js
+index 8d6971e4fc089dd4cb86afdadaee96d26bb85698..f410a9fd08180c11e5866181c425735c5bce36ec 100644
+--- a/.medusa/server/src/api/admin/tolgee/options/route.js
++++ b/.medusa/server/src/api/admin/tolgee/options/route.js
+@@ -3,14 +3,28 @@ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.GET = void 0;
+ const tolgee_1 = require("../../../../modules/tolgee");
+ const GET = async (req, res) => {
+-    const translationModule = req.scope.resolve(tolgee_1.TOLGEE_MODULE);
+-    try {
+-        const options = await translationModule.getOptions();
+-        return res.json(options);
+-    }
+-    catch (e) {
+-        return res.status(500).json(e);
+-    }
++   const translationModule = req.scope.resolve(tolgee_1.TOLGEE_MODULE);
++   
++   try {
++       console.log('=== TOLGEE OPTIONS DEBUG ===');
++       console.log('Translation module exists:', !!translationModule);
++       
++       const options = await translationModule.getOptions();
++       console.log('Options retrieved successfully:', options);
++       
++       return res.json(options);
++   } catch (e) {
++       console.error('=== TOLGEE OPTIONS ERROR ===');
++       console.error('Error details:', e);
++       console.error('Error message:', e.message);
++       console.error('Error stack:', e.stack);
++       console.error('=============================');
++       
++       return res.status(500).json({
++           error: e.message,
++           details: e.toString()
++       });
++   }
+ };
+ exports.GET = GET;
+ //# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicm91dGUuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi8uLi8uLi8uLi8uLi8uLi9zcmMvYXBpL2FkbWluL3RvbGdlZS9vcHRpb25zL3JvdXRlLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7OztBQUNBLHVEQUEyRDtBQUVwRCxNQUFNLEdBQUcsR0FBRyxLQUFLLEVBQUUsR0FBa0IsRUFBRSxHQUFtQixFQUFFLEVBQUU7SUFDbkUsTUFBTSxpQkFBaUIsR0FBRyxHQUFHLENBQUMsS0FBSyxDQUFDLE9BQU8sQ0FBQyxzQkFBYSxDQUFDLENBQUM7SUFFM0QsSUFBSSxDQUFDO1FBQ0gsTUFBTSxPQUFPLEdBQUcsTUFBTSxpQkFBaUIsQ0FBQyxVQUFVLEVBQUUsQ0FBQztRQUNyRCxPQUFPLEdBQUcsQ0FBQyxJQUFJLENBQUMsT0FBTyxDQUFDLENBQUM7SUFDM0IsQ0FBQztJQUFDLE9BQU8sQ0FBQyxFQUFFLENBQUM7UUFDWCxPQUFPLEdBQUcsQ0FBQyxNQUFNLENBQUMsR0FBRyxDQUFDLENBQUMsSUFBSSxDQUFDLENBQUMsQ0FBQyxDQUFDO0lBQ2pDLENBQUM7QUFDSCxDQUFDLENBQUM7QUFUVyxRQUFBLEdBQUcsT0FTZCJ9
+\ No newline at end of file
+diff --git a/.medusa/server/src/workflows/shipping-options-with-translations.js b/.medusa/server/src/workflows/shipping-options-with-translations.js
+index 77764d02ae39a35d8c20290b47031c885cf9ef6f..4d4a3debaeaf266e7cf3a8aad4ce8925fe88dd38 100644
+--- a/.medusa/server/src/workflows/shipping-options-with-translations.js
++++ b/.medusa/server/src/workflows/shipping-options-with-translations.js
+@@ -73,7 +73,7 @@ const listShippingOptionsForCartWithTranslationsWorkflow = (0, workflows_sdk_1.c
+                         : "false",
+             },
+             filters: {
+-                fulfillment_set_id: fulfillmentSetIds,
++                // fulfillment_set_id: fulfillmentSetIds,
+                 address: {
+                     country_code: cart.shipping_address?.country_code,
+                     province_code: cart.shipping_address?.province,

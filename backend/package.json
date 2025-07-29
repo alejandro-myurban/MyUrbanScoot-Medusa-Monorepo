@@ -98,7 +98,7 @@
   "pnpm": {
     "patchedDependencies": {
       "@lambdacurry/medusa-product-reviews": "patches/@lambdacurry__medusa-product-reviews.patch",
-      "medusa-plugin-tolgee@1.1.1": "patches/medusa-plugin-tolgee@1.1.1.patch"
+      "medusa-plugin-tolgee@1.4.5": "patches/medusa-plugin-tolgee@1.4.5.patch"
     },
     "overrides": {
       "zod": "^3.23.0"
