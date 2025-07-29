@@ -154,6 +154,8 @@ export default function CheckoutForm({
     return null
   }
 
+  console.log("aaaaaaaaaaaaaaaa", shippingMethods)
+
   return (
     <div>
       {/* Indicador de inicialización */}

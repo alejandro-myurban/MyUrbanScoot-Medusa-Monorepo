@@ -256,7 +256,7 @@ const medusaConfig = {
       options: {
         baseURL: process.env.TOLGEE_API_URL,
         apiKey: process.env.TOLGEE_API_KEY,
-        projectId: "17702",
+        projectId: "2",
         requestDelay: 100, // ms entre requests
         maxConcurrentRequests: 5,
         keys: {

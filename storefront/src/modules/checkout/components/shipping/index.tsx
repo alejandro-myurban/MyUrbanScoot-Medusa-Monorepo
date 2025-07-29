@@ -603,7 +603,8 @@ const Shipping: React.FC<ShippingProps> = ({
                               )}
                             </div>
                             <span className="font-medium text-gray-900">
-                              {option.name}
+                              {/* @ts-ignore */}
+                              {option.translations?.name ? option.translations?.name : option.name}
                             </span>
                           </div>
                           <span className="font-black text-lg font-archivoBlack text-gray-900">
