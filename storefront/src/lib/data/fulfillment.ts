@@ -41,8 +41,7 @@ export const listCartShippingMethodsWithTranslations = async (
           headers: {
             "Content-Type": "application/json",
           },
-          next: { revalidate: 300 },
-          cache: "no-cache", // Temporalmente para debugging
+          cache: "no-cache", // Para debugging en producción
         }
       )
 
