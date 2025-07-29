@@ -23,7 +23,7 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
     currency_code,
     total,
     subtotal,
-    tax_total,
+    tax_total, 
     shipping_total,
     discount_total,
     gift_card_total,
@@ -39,7 +39,6 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
   const showVATDiscount = tax_total && tax_total > 0
 
   console.log("TOTALES", totals)
-   
   return (
     <div>
       <div className="flex flex-col gap-y-2 txt-medium sm:text-xl text-black/90 font-archivo ">
@@ -47,8 +46,8 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
           <span className="flex gap-x-1 items-center">
             {t("checkout.summary.subtotal")}
           </span>
-          <span data-testid="cart-subtotal" data-value={originalSubtotal || 0}>
-            {convertToLocale({ amount: originalSubtotal ?? 0, currency_code })}
+          <span data-testid="cart-subtotal" data-value={subtotal || 0}>
+            {convertToLocale({ amount: item_subtotal ?? 0, currency_code })}
           </span>
         </div>
         
@@ -92,6 +91,20 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
             {convertToLocale({ amount: shipping_total ?? 0, currency_code })}
           </span>
         </div>
+        
+        {/* {typeof tax_total === 'number' && tax_total > 0 && (
+          <div className="flex justify-between">
+            <span className="flex gap-x-1 items-center ">
+              {t("checkout.summary.taxes") || "IVA"} 
+              <Tooltip content="El IVA se calcula al finalizar la compra.">
+                <InformationCircleSolid className="w-4 h-4 text-ui-fg-muted" />
+              </Tooltip>
+            </span>
+            <span data-testid="cart-taxes" data-value={tax_total || 0}>
+              {convertToLocale({ amount: tax_total ?? 0, currency_code })}
+            </span>
+          </div>
+        )} */}
 
         {!!gift_card_total && (
           <div className="flex items-center justify-between">
@@ -107,7 +120,6 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
           </div>
         )}
       </div>
-             
       <div className="flex items-center mt-2 justify-between text-black/90 font-bold text-xl sm:text-2xl mb-2 txt-medium font-dmSans ">
         <span>{t("checkout.summary.total")}</span>
         <span

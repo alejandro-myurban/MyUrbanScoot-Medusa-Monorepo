@@ -10,8 +10,8 @@ import {
   hasTranslations
 } from "../../../../../types/medusa-extend"
 
-// Esto fuerza SSR en lugar de SSG
-export const dynamic = "force-dynamic"
+// SSG PURO - Comentado ISR para prueba
+// export const revalidate = 86400
 
 type Props = {
   params: { countryCode: string; handle: string }
@@ -154,12 +154,6 @@ export default async function ProductPage({ params }: Props) {
     subtitle: productWithPotentialTranslations.translations?.subtitle || productWithPotentialTranslations.subtitle,
     options: translatedOptions || null,
   }
-
-  // console.log("AAAAA", pricedProduct.options)
-  // console.log("AAAAA", pricedProduct)
-  // console.log(pricedProduct.options?.[0]?.values ?? [])
-  // console.log("TRANSLATED", translatedProduct)
-//  console.log("CALCULATED PRICE", translatedProduct.variants[0].calculated_price);
 
   return (
     <>
