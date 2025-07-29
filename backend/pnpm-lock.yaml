@@ -12,7 +12,7 @@ patchedDependencies:
     hash: hanlmly3m2atqbmdgc4kyirwle
     path: patches/@lambdacurry__medusa-product-reviews.patch
   medusa-plugin-tolgee@1.4.5:
-    hash: un2i7hs45gjlv7dcezumhyh5ay
+    hash: jgmqj6aw6owux76x5itgmy7kfm
     path: patches/medusa-plugin-tolgee@1.4.5.patch
 
 importers:
@@ -111,7 +111,7 @@ importers:
         version: 9.0.2
       medusa-plugin-tolgee:
         specifier: ^1.1.1
-        version: 1.4.5(patch_hash=un2i7hs45gjlv7dcezumhyh5ay)(mrmepyirwbhhbk6ctv62dvadjy)
+        version: 1.4.5(patch_hash=jgmqj6aw6owux76x5itgmy7kfm)(mrmepyirwbhhbk6ctv62dvadjy)
       medusa-variant-images:
         specifier: ^1.1.1
         version: 1.1.2(i6ws4i2t3ct3gncvtgfxj37ss4)
@@ -16879,7 +16879,7 @@ snapshots:
     dependencies:
       cssom: 0.5.0
 
-  medusa-plugin-tolgee@1.4.5(patch_hash=un2i7hs45gjlv7dcezumhyh5ay)(mrmepyirwbhhbk6ctv62dvadjy):
+  medusa-plugin-tolgee@1.4.5(patch_hash=jgmqj6aw6owux76x5itgmy7kfm)(mrmepyirwbhhbk6ctv62dvadjy):
     dependencies:
       '@medusajs/admin-sdk': 2.8.7
       '@medusajs/cli': 2.8.7(@mikro-orm/core@6.4.3)(@mikro-orm/knex@6.4.3(@mikro-orm/core@6.4.3)(pg@8.16.3))(@mikro-orm/migrations@6.4.3(@mikro-orm/core@6.4.3)(@types/node@20.19.9)(pg@8.16.3))(@mikro-orm/postgresql@6.4.3(@mikro-orm/core@6.4.3))(awilix@8.0.1)(ioredis@5.6.1)(pg@8.16.3)(vite@5.4.19(@types/node@20.19.9))
