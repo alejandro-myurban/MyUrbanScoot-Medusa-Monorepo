@@ -25,27 +25,41 @@ if (fs.existsSync(envPath)) {
   );
 }
 
-// 4. **Copia tu patch** a .medusa/server/patches
-const patchSrc = path.join(
-  ROOT,
-  'patches',
-  '@lambdacurry__medusa-product-reviews.patch'  // ✅ la ruta real y nombre con doble "_"
-)
+// Crear directorio de patches si no existe
 const serverPatchesDir = path.join(MEDUSA_SERVER_PATH, 'patches')
-const patchDest = path.join(
-  serverPatchesDir,
-  '@lambdacurry__medusa-product-reviews.patch'  // Medusa espera dobles guiones bajos
-)
-
 if (!fs.existsSync(serverPatchesDir)) {
   fs.mkdirSync(serverPatchesDir, { recursive: true })
 }
-fs.copyFileSync(patchSrc, patchDest)
-console.log('➜ Patch copied to .medusa/server/patches')
+
+// ✅ Copiar patch de @lambdacurry/medusa-product-reviews
+const patchSrc1 = path.join(
+  ROOT,
+  'patches',
+  '@lambdacurry__medusa-product-reviews.patch'
+)
+const patchDest1 = path.join(
+  serverPatchesDir,
+  '@lambdacurry__medusa-product-reviews.patch'
+)
+fs.copyFileSync(patchSrc1, patchDest1)
+console.log('➜ @lambdacurry/medusa-product-reviews patch copied to .medusa/server/patches')
+
+// ✅ Copiar patch de medusa-plugin-tolgee
+const patchSrc2 = path.join(
+  ROOT,
+  'patches',
+  'medusa-plugin-tolgee@1.4.5.patch'
+)
+const patchDest2 = path.join(
+  serverPatchesDir,
+  'medusa-plugin-tolgee@1.4.5.patch'
+)
+fs.copyFileSync(patchSrc2, patchDest2)
+console.log('➜ medusa-plugin-tolgee patch copied to .medusa/server/patches')
 
 // Install dependencies
 console.log('Installing dependencies in .medusa/server...');
-execSync('pnpm i --prod --frozen-lockfile', { 
+execSync('pnpm i --prod --frozen-lockfile', {
   cwd: MEDUSA_SERVER_PATH,
   stdio: 'inherit'
 });
