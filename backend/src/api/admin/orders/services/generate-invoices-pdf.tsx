@@ -217,7 +217,7 @@ export async function generateInvoicePDF(
         };
 
         const headerY = doc.y;
-        const headers = ["QTY", "DESCRIPTION", "UNIT PRICE", "TOTAL"];
+        const headers = ["CANT", "DESCRIPTION", "UNIT PRICE", "TOTAL"];
         headers.forEach((header, i) => {
           const cellX = tableX + colWidths.slice(0, i).reduce((sum, w) => sum + w, 0);
           const align = (i === 1) ? "left" : "center";
