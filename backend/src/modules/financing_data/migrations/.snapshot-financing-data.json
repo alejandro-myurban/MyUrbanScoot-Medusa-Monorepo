@@ -15,15 +15,6 @@
           "nullable": false,
           "mappedType": "text"
         },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "email": {
           "name": "email",
           "type": "text",
@@ -33,8 +24,8 @@
           "nullable": false,
           "mappedType": "text"
         },
-        "phone": {
-          "name": "phone",
+        "identity_front_file_id": {
+          "name": "identity_front_file_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -42,8 +33,8 @@
           "nullable": false,
           "mappedType": "text"
         },
-        "product": {
-          "name": "product",
+        "identity_back_file_id": {
+          "name": "identity_back_file_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -51,23 +42,186 @@
           "nullable": false,
           "mappedType": "text"
         },
-        "months": {
-          "name": "months",
-          "type": "integer",
+        "income": {
+          "name": "income",
+          "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "text"
         },
-        "price": {
-          "name": "price",
-          "type": "integer",
+        "paysheet_file_id": {
+          "name": "paysheet_file_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "contract_type": {
+          "name": "contract_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "company_position": {
+          "name": "company_position",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "company_start_date": {
+          "name": "company_start_date",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "freelance_rental_file_id": {
+          "name": "freelance_rental_file_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "freelance_quote_file_id": {
+          "name": "freelance_quote_file_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "pensioner_proof_file_id": {
+          "name": "pensioner_proof_file_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "bank_account_proof_file_id": {
+          "name": "bank_account_proof_file_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "financing_installment_count": {
+          "name": "financing_installment_count",
+          "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "mappedType": "integer"
+          "mappedType": "text"
+        },
+        "housing_type": {
+          "name": "housing_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "housing_type_details": {
+          "name": "housing_type_details",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "civil_status": {
+          "name": "civil_status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "marital_status_details": {
+          "name": "marital_status_details",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "postal_code": {
+          "name": "postal_code",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "province": {
+          "name": "province",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "phone_mumber": {
+          "name": "phone_mumber",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "doubts": {
+          "name": "doubts",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
         },
         "requested_at": {
           "name": "requested_at",

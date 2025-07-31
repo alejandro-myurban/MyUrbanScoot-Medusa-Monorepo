@@ -63,7 +63,8 @@ const Shipping: React.FC<ShippingProps> = ({
 
   // ✅ NUEVO: Estados para navegación automática con envío gratis
   const [freeShippingApplied, setFreeShippingApplied] = useState(false)
-  const [autoNavigationTimeout, setAutoNavigationTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [autoNavigationTimeout, setAutoNavigationTimeout] =
+    useState<NodeJS.Timeout | null>(null)
 
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -106,7 +107,7 @@ const Shipping: React.FC<ShippingProps> = ({
     return availableShippingMethods?.find(
       (method) =>
         method.name.toLowerCase().includes("gratis") ||
-        method.name.toLowerCase().includes("free") 
+        method.name.toLowerCase().includes("free")
     )
   }, [availableShippingMethods])
 
@@ -120,18 +121,17 @@ const Shipping: React.FC<ShippingProps> = ({
         cartId: cart.id,
         shippingMethodId: freeMethod.id,
       })
-      
+
       console.log("✅ Método de envío gratis aplicado exitosamente")
-      
+
       // ✅ NUEVO: Forzar refresh para asegurar que los datos se actualicen
       router.refresh()
-      
+
       // ✅ NUEVO: Esperar un poco después del refresh antes de marcar como aplicado
       setTimeout(() => {
         console.log("🎯 Marcando freeShippingApplied como true")
         setFreeShippingApplied(true)
       }, 800)
-      
     } catch (error) {
       console.error("❌ Error aplicando envío gratis automático:", error)
     }
@@ -195,11 +195,12 @@ const Shipping: React.FC<ShippingProps> = ({
 
   // ✅ FIX 2: Navegación automática sin bucles - usar ref para evitar re-renders
   const navigationScheduledRef = useRef(false)
-  
+
   useEffect(() => {
     const freeMethod = findFreeShippingMethod()
-    const isCurrentlyFreeShipping = selectedShippingMethod?.id === freeMethod?.id
-    
+    const isCurrentlyFreeShipping =
+      selectedShippingMethod?.id === freeMethod?.id
+
     console.log("🔍 Debug navegación automática:", {
       isOpen,
       freeShippingApplied,
@@ -209,7 +210,7 @@ const Shipping: React.FC<ShippingProps> = ({
       selectedMethodId: selectedShippingMethod?.id,
       freeMethodId: freeMethod?.id,
     })
-    
+
     // Solo programar navegación si:
     // 1. Está abierto el step
     // 2. Se aplicó envío gratis
@@ -217,20 +218,20 @@ const Shipping: React.FC<ShippingProps> = ({
     // 4. Se cumplen las condiciones
     // 5. NO se ha programado ya la navegación
     if (
-      isOpen && 
-      freeShippingApplied && 
-      isCurrentlyFreeShipping && 
+      isOpen &&
+      freeShippingApplied &&
+      isCurrentlyFreeShipping &&
       shouldApplyFreeShipping() &&
       !navigationScheduledRef.current
     ) {
       console.log("🚀 Programando navegación automática (SOLO UNA VEZ)...")
       navigationScheduledRef.current = true
-      
+
       // Limpiar timeout anterior si existe
       if (autoNavigationTimeout) {
         clearTimeout(autoNavigationTimeout)
       }
-      
+
       // Programar navegación después de 3 segundos
       const timeout = setTimeout(() => {
         console.log("✅ Ejecutando navegación automática a payment...")
@@ -239,14 +240,16 @@ const Shipping: React.FC<ShippingProps> = ({
         setFreeShippingApplied(false)
         navigationScheduledRef.current = false
       }, 1000)
-      
+
       setAutoNavigationTimeout(timeout)
     }
-    
+
     // Reset si las condiciones ya no se cumplen
     if (!isOpen || !isCurrentlyFreeShipping || !shouldApplyFreeShipping()) {
       if (navigationScheduledRef.current) {
-        console.log("🔄 Cancelando navegación programada - condiciones cambiaron")
+        console.log(
+          "🔄 Cancelando navegación programada - condiciones cambiaron"
+        )
         navigationScheduledRef.current = false
       }
       if (autoNavigationTimeout) {
@@ -256,7 +259,7 @@ const Shipping: React.FC<ShippingProps> = ({
     }
   }, [
     isOpen,
-    freeShippingApplied, 
+    freeShippingApplied,
     selectedShippingMethod?.id, // Solo el ID, no todo el objeto
     cart?.item_total,
     cart?.shipping_address?.country_code, // Solo country_code específico
@@ -321,28 +324,31 @@ const Shipping: React.FC<ShippingProps> = ({
 
   // Función principal para seleccionar método de envío
   const set = async (id: string) => {
+    console.log("1️⃣ INICIO de set() con ID:", id)
+
     setIsLoading(true)
     setHasUserSelectedShipping(true)
-    setError(null) // Limpiar errores previos
+    setError(null)
 
     try {
-      console.log("🔄 Seleccionando método de envío:", id)
+      console.log("2️⃣ ANTES de llamar setShippingMethod")
+
       await setShippingMethod({ cartId: cart.id, shippingMethodId: id })
 
-      // Forzar un refresh del server state en Next.js
+      console.log("3️⃣ DESPUÉS de setShippingMethod - éxito")
+
       router.refresh()
 
-      console.log("✅ Método de envío seleccionado exitosamente:", id)
-
-      // Pequeño delay para que el refresh tome efecto, luego verificar
       setTimeout(() => {
+        console.log("4️⃣ Llamando triggerAutoSubmit")
         triggerAutoSubmit()
       }, 300)
     } catch (err: any) {
-      console.error("❌ Error seleccionando método de envío:", err)
+      console.log("❌ CATCH en set():", err)
       setError(err.message || "Error al seleccionar el método de envío")
       setPendingAutoSubmit(false)
     } finally {
+      console.log("5️⃣ FINALLY de set()")
       setIsLoading(false)
     }
   }
@@ -479,27 +485,31 @@ const Shipping: React.FC<ShippingProps> = ({
   // ✅ NUEVO: Componente para mostrar mensaje de envío gratis con countdown
   const FreeShippingMessage = () => {
     const [countdown, setCountdown] = useState(3)
-    
+
     useEffect(() => {
       if (freeShippingApplied && countdown > 0) {
         const timer = setTimeout(() => {
-          setCountdown(prev => prev - 1)
+          setCountdown((prev) => prev - 1)
         }, 1000)
-        
+
         return () => clearTimeout(timer)
       }
     }, [freeShippingApplied, countdown])
-    
-    if (!shouldApplyFreeShipping() || selectedShippingMethod?.id !== findFreeShippingMethod()?.id) {
+
+    if (
+      !shouldApplyFreeShipping() ||
+      selectedShippingMethod?.id !== findFreeShippingMethod()?.id
+    ) {
       return null
     }
-    
+
     return (
       <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 text-green-600">🎉</div>
           <Text className="text-sm text-green-700 font-medium">
-            ¡Envío gratis aplicado! Tu pedido supera los 100€ y el destino es España.
+            ¡Envío gratis aplicado! Tu pedido supera los 100€ y el destino es
+            España.
             {freeShippingApplied && countdown > 0 && (
               <span className="block mt-1 text-xs">
                 Continuando automáticamente en {countdown} segundos...
@@ -604,7 +614,9 @@ const Shipping: React.FC<ShippingProps> = ({
                             </div>
                             <span className="font-medium text-gray-900">
                               {/* @ts-ignore */}
-                              {option.translations?.name ? option.translations?.name : option.name}
+                              {option.translations?.name
+                                ? option.translations?.name
+                                : option.name}
                             </span>
                           </div>
                           <span className="font-black text-lg font-archivoBlack text-gray-900">

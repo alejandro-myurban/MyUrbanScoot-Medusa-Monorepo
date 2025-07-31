@@ -2,13 +2,30 @@ import { model } from "@medusajs/framework/utils"
 
 const FinancingData = model.define("financing_data", {
   id: model.id().primaryKey(),
-  name: model.text(),
   email: model.text(),
-  phone: model.text(),
-  product: model.text(), 
-  months: model.number(), 
-  price: model.number(), 
-  requested_at: model.dateTime() 
+  identity_front_file_id: model.text(),
+  identity_back_file_id: model.text(),
+  income: model.text(),
+  paysheet_file_id: model.text().nullable(), 
+  contract_type: model.text().nullable(),
+  company_position: model.text().nullable(),
+  company_start_date: model.dateTime().nullable(),
+  freelance_rental_file_id: model.text().nullable(), 
+  freelance_quote_file_id: model.text().nullable(),  
+  pensioner_proof_file_id: model.text().nullable(),  
+  bank_account_proof_file_id: model.text().nullable(), 
+  financing_installment_count: model.text(),
+  housing_type: model.text(),
+  housing_type_details: model.text().nullable(),
+  civil_status: model.text(),
+  marital_status_details: model.text().nullable(),
+  address: model.text(),
+  postal_code: model.text(),
+  city: model.text(),
+  province: model.text(),
+  phone_mumber: model.text(),
+  doubts: model.text().nullable(),
+  requested_at: model.dateTime()
 })
 
 export default FinancingData

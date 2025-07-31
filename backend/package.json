@@ -50,6 +50,7 @@
     "file-type": "16.5.4",
     "html-pdf-node": "^1.0.8",
     "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.534.0",
     "medusa-plugin-tolgee": "^1.1.1",
     "medusa-variant-images": "^1.1.1",
     "medusajs-launch-utils": "^0.0.15",

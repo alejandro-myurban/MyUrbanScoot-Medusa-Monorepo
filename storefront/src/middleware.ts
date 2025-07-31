@@ -31,7 +31,6 @@ async function getRegionMap() {
       },
     }).then((res) => res.json())
 
-
     if (!regions?.length) {
       notFound()
     }
@@ -92,9 +91,82 @@ async function getCountryCode(
 }
 
 /**
- * Middleware to handle region selection and onboarding status.
+ * 🆕 NUEVA FUNCIÓN: Verificar restricciones de acceso
+ */
+function checkAccessRestrictions(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl
+  
+  // Rutas que siempre están permitidas (públicas)
+  const allowedPublicPaths = [
+    '/financing-products',
+    '/financing-success',
+    '/api', // APIs necesarias para el funcionamiento
+    '/_next', // Assets de Next.js
+    '/favicon.ico',
+    '/robots.txt',
+    '/sitemap.xml'
+  ]
+  
+  // Rutas del sistema de login de desarrollo
+  const devLoginPaths = ['/dev-login', '/api/dev-auth']
+  
+  // 🔧 IMPORTANTE: También incluir rutas con código de país
+  const pathWithoutCountry = pathname.replace(/^\/[a-z]{2}\//, '/') // Remueve /es/, /en/, etc.
+  
+  // Verificar si la ruta actual está en las permitidas públicamente
+  const isPublicPath = allowedPublicPaths.some(path => 
+    pathname.startsWith(path) || pathWithoutCountry.startsWith(path)
+  )
+  
+  // Verificar si es una ruta del sistema de login de desarrollo
+  const isDevLoginPath = devLoginPaths.some(path => 
+    pathname.startsWith(path) || pathWithoutCountry.startsWith(path)
+  )
+  
+  // 🔧 NUEVO: Verificar si ya estamos EN financing-products para evitar bucles
+  const isAlreadyOnFinancingData = pathname === '/financing-products' || 
+    pathWithoutCountry === '/financing-products' ||
+    pathname.includes('/financing-products')
+  
+  // Si es una ruta pública, del login de desarrollo, o ya está en financing-products, permitir continuar
+  if (isPublicPath || isDevLoginPath || isAlreadyOnFinancingData) {
+    return null // null significa "continuar con el procesamiento normal"
+  }
+  
+  // Verificar si el usuario tiene la cookie de desarrollo
+  const devCookie = request.cookies.get('dev-access')
+  const isDevAuthenticated = devCookie?.value === 'authenticated'
+  
+  // Si está autenticado como desarrollador, permitir continuar
+  if (isDevAuthenticated) {
+    return null // null significa "continuar con el procesamiento normal"
+  }
+  
+  // 🚫 Si llegamos aquí, el acceso está restringido
+  // Redirigir a financing-products manteniendo el país si existe
+  const pathSegments = pathname.split('/').filter(Boolean)
+  const firstSegment = pathSegments[0]
+  
+  // Si el primer segmento es un código de país (2 letras), mantenerlo
+  const isCountryCode = firstSegment && firstSegment.length === 2 && /^[a-z]{2}$/.test(firstSegment)
+  const redirectPath = isCountryCode 
+    ? `/${firstSegment}/financing-products` 
+    : '/financing-products'
+    
+  return NextResponse.redirect(new URL(redirectPath, request.url))
+}
+
+/**
+ * Middleware to handle region selection, onboarding status, and access restrictions.
  */
 export async function middleware(request: NextRequest) {
+  // 🆕 PRIMERO: Verificar restricciones de acceso
+  const accessCheck = checkAccessRestrictions(request)
+  if (accessCheck) {
+    return accessCheck // Si hay restricción, redirigir inmediatamente
+  }
+  
+  // 🔄 CONTINUAR: Lógica original de Medusa si el acceso está permitido
   const searchParams = request.nextUrl.searchParams
   const isOnboarding = searchParams.get("onboarding") === "true"
   const cartId = searchParams.get("cart_id")

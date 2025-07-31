@@ -43,9 +43,8 @@ export default async function Checkout({ params }: Props) {
   const storedValue = cookieStore.get("i18next")?.value
 
   // Obtener datos necesarios para el checkout
-  const shippingMethods = await listCartShippingMethodsWithTranslations(
+  const shippingMethods = await listCartShippingMethods(
     cart.id,
-    storedValue
   )
   const paymentMethods = await listCartPaymentMethods(cart.region?.id ?? "")
 
