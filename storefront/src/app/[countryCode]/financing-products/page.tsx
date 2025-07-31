@@ -13,6 +13,7 @@ import {
 import { FormSelect } from "@/modules/financing/components/select-input"
 import { FormTextarea } from "@/modules/financing/components/textarea-input"
 import { sdk } from "@/lib/config"
+import WhatsApp from "@/modules/common/icons/whatsapp"
 
 // --- Tipos de datos ---
 interface FinancingFormData {
@@ -644,6 +645,7 @@ export default function FinancingPage() {
                       <option value="24">24 meses</option>
                       <option value="36">36 meses</option>
                       <option value="48">48 meses</option>
+                      <option value="60">60 meses</option>
                     </FormSelect>
                   </div>
                 </div>
@@ -687,8 +689,37 @@ export default function FinancingPage() {
                 </div>
               )}
 
-              {/* Botón de envío mejorado con estado de éxito */}
+              {/* Botón de WhatsApp mejorado */}
               <div className="border-t border-gray-100 pt-10">
+                <a
+                  href="https://wa.me/34633695703?text=Hola%20MyUrbanScoot.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex justify-center items-center py-4 px-8 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] mb-6 relative overflow-hidden"
+                >
+                  {/* Efecto de brillo animado */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+
+                  <div className="flex items-center gap-3 relative z-10">
+                    <div className="bg-white/20 p-2 rounded-full group-hover:bg-white/30 transition-colors duration-300">
+                      <WhatsApp className="w-6 h-6" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold text-lg">
+                        ¿Tienes alguna pregunta?
+                      </p>
+                      <p className="text-sm text-green-100 group-hover:text-white transition-colors duration-300">
+                        Contáctanos por WhatsApp
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Indicador de disponibilidad */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1">
+                    <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
+                    <span className="text-xs text-green-100">En línea</span>
+                  </div>
+                </a>
                 <button
                   type="submit"
                   disabled={submitting || submitted}
