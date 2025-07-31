@@ -1,3 +1,4 @@
+// modules/store/components/refinement-list/price-range-filter.tsx
 "use client"
 
 import type React from "react"
@@ -25,36 +26,52 @@ export const PriceRangeFilter = ({
 
   useEffect(() => {
     if (products.length) {
-      const prices = products
-        .map((p) => p.variants?.[0]?.calculated_price?.calculated_amount ?? null)
-        .filter((p): p is number => p !== null)
+      // MODIFICACIÓN CLAVE AQUÍ:
+      // Recopilar TODOS los precios de las variantes de TODOS los productos
+      const allProductVariantPrices: number[] = []
+      products.forEach((product) => {
+        product.variants?.forEach((variant) => {
+          const price = variant.calculated_price?.calculated_amount
+          if (typeof price === "number" && !isNaN(price)) {
+            allProductVariantPrices.push(price)
+          }
+        })
+      })
 
-      if (prices.length) {
-        const calculatedMin = Math.floor(Math.min(...prices))
-        const calculatedMax = Math.ceil(Math.max(...prices))
-        
+      if (allProductVariantPrices.length) {
+        const calculatedMin = Math.floor(Math.min(...allProductVariantPrices))
+        const calculatedMax = Math.ceil(Math.max(...allProductVariantPrices))
+
         setMinPrice(calculatedMin)
         setMaxPrice(calculatedMax)
-        
+
+        // Asegurarse de que el rango inicial esté dentro de los límites calculados
         const rangeMin = initialMin !== undefined ? Math.max(initialMin, calculatedMin) : calculatedMin
         const rangeMax = initialMax !== undefined ? Math.min(initialMax, calculatedMax) : calculatedMax
-        
+
         setPriceRange([rangeMin, rangeMax])
+        setIsInitialized(true)
+      } else {
+        // Si no se encuentran precios válidos para los productos, resetear al rango por defecto
+        setMinPrice(0)
+        setMaxPrice(100)
+        setPriceRange([0, 100])
         setIsInitialized(true)
       }
     } else {
+      // Si no hay productos, resetear al rango por defecto
       setMinPrice(0)
       setMaxPrice(100)
       setPriceRange([0, 100])
       setIsInitialized(true)
     }
-  }, [products, initialMin, initialMax])
+  }, [products, initialMin, initialMax]) // Dependencias correctas para re-ejecutar cuando cambien
 
   useEffect(() => {
     if (isInitialized) {
       onPriceChange(priceRange)
     }
-  }, [minPrice, maxPrice, isInitialized])
+  }, [minPrice, maxPrice, isInitialized]) // Las dependencias deben incluir minPrice y maxPrice
 
   const getPercentage = (value: number) => {
     if (maxPrice === minPrice) return 0
@@ -112,16 +129,16 @@ export const PriceRangeFilter = ({
       // Agregar eventos de mouse
       document.addEventListener("mousemove", handlePointerMove)
       document.addEventListener("mouseup", handlePointerUp)
-      
+
       // Agregar eventos táctiles
       document.addEventListener("touchmove", handlePointerMove)
       document.addEventListener("touchend", handlePointerUp)
-      
+
       return () => {
         // Remover eventos de mouse
         document.removeEventListener("mousemove", handlePointerMove)
         document.removeEventListener("mouseup", handlePointerUp)
-        
+
         // Remover eventos táctiles
         document.removeEventListener("touchmove", handlePointerMove)
         document.removeEventListener("touchend", handlePointerUp)

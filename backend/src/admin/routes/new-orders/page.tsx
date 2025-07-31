@@ -376,8 +376,39 @@ const OrdersPage = () => {
         }
       },
     }),
+    // NUEVO COMANDO: Exportar Invoices (PDF)
+// ... (resto del código del frontend) ...
 
-    // Puedes añadir más comandos aquí
+    commandHelper.command({
+      label: "Exportar Facturas (PDF)",
+      shortcut: "F",
+      action: async (selection) => {
+        const ids = Object.keys(selection);
+        if (!ids.length) {
+          toast.info("Selecciona al menos una orden para exportar la factura.");
+          return;
+        }
+
+        try {
+          const queryParams = new URLSearchParams();
+          ids.forEach((id) => queryParams.append("ids", id));
+          const url = `/admin/orders/export-pdf-invoices?${queryParams.toString()}`;
+
+          // Abre la URL en una nueva pestaña para disparar la descarga.
+          // Tu backend está enviando el PDF directamente como respuesta.
+          window.open(url, "_blank");
+          toast.success("¡PDF de facturas generado correctamente!");
+        } catch (err) {
+          console.error(err);
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : "Error al exportar las facturas."
+          );
+        }
+      },
+    }),
+// ... (resto del código del frontend) ...    // Puedes añadir más comandos aquí
   ];
 
   const filters = [
@@ -595,6 +626,12 @@ const OrdersPage = () => {
                       P:
                     </span>
                     Exportar Packing Slips como PDF
+                  </p>
+                  <p className="flex gap-2 text-ui-fg-subtle">
+                    <span className=" font-bold text-black dark:text-white">
+                      F:
+                    </span>
+                    Exportar Facturas como PDF
                   </p>
                   <div className="flex gap-2 items-end ">
                     Filtros
