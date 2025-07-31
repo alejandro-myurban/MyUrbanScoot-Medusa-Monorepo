@@ -194,7 +194,7 @@ export default function FinancingPage() {
 
       // ✅ Redirigir después de 2 segundos para mostrar el estado de éxito
       setTimeout(() => {
-        router.push("/financing-success")
+        router.push("/es/financing-success")
       }, 2000)
     } catch (err: any) {
       console.error("❌ Error en el envío:", err)
