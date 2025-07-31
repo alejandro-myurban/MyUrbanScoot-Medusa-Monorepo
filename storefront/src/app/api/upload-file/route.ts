@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     
     // IMPORTANTE: NO agregar Content-Type header para FormData
     // fetch automáticamente configurará multipart/form-data con boundary
-    const medusaResponse = await fetch('http://localhost:9000/store/upload-image', {
+    const medusaResponse = await fetch('https://backend-production-9e9f.up.railway.app/store/upload-image', {
       method: 'POST',
       body: formData, // FormData se envía tal como está
       headers: {

@@ -691,35 +691,6 @@ export default function FinancingPage() {
 
               {/* Botón de WhatsApp mejorado */}
               <div className="border-t border-gray-100 pt-10">
-                <a
-                  href="https://wa.me/34633695703?text=Hola%20MyUrbanScoot.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex justify-center items-center py-4 px-8 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] mb-6 relative overflow-hidden"
-                >
-                  {/* Efecto de brillo animado */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-
-                  <div className="flex items-center gap-3 relative z-10">
-                    <div className="bg-white/20 p-2 rounded-full group-hover:bg-white/30 transition-colors duration-300">
-                      <WhatsApp className="w-6 h-6" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-lg">
-                        ¿Tienes alguna pregunta?
-                      </p>
-                      <p className="text-sm text-green-100 group-hover:text-white transition-colors duration-300">
-                        Contáctanos por WhatsApp
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Indicador de disponibilidad */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1">
-                    <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
-                    <span className="text-xs text-green-100">En línea</span>
-                  </div>
-                </a>
                 <button
                   type="submit"
                   disabled={submitting || submitted}
@@ -755,6 +726,23 @@ export default function FinancingPage() {
               </div>
             </form>
           </div>
+          <a
+            href="https://wa.me/34633695703?text=Hola%20MyUrbanScoot.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 group"
+            title="¿Necesitas ayuda? Contáctanos"
+          >
+            <WhatsApp className="w-6 h-6" />
+
+            {/* Tooltip */}
+            <div className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white text-sm px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+              ¿Necesitas ayuda?
+            </div>
+
+            {/* Indicador de disponibilidad */}
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-300 border-2 border-white rounded-full animate-pulse"></div>
+          </a>
         </div>
       </div>
     </>
