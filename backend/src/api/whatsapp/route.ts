@@ -7,20 +7,19 @@ import rawProducts from "./data/productos.json";
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 import { assistantPrompt } from "./prompts/assistant-prompt";
 
-// Definición del tipo Product
+// Tipo de producto
 type Product = {
   name: string;
   price: number;
   description: string;
 };
 
-// Mapeamos los datos del JSON a la estructura del tipo `Product`.
-const products: Product[] = (rawProducts as any[]).map(rawProduct => ({
+// Mapeo del JSON
+const products: Product[] = (rawProducts as any[]).map((rawProduct) => ({
   name: rawProduct.Nombre,
   price: parseFloat(rawProduct.PrecioNormal),
   description: rawProduct.Descripcion,
 }));
-
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -28,41 +27,35 @@ const openai = new OpenAI({
 
 type TwilioRequestBody = {
   Body: string;
+  From: string;
 };
+
+// Historial en memoria (usá una base de datos en producción)
+const conversations: Record<string, OpenAI.Chat.Completions.ChatCompletionMessageParam[]> = {};
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   console.log("📩 Llega POST a /whatsapp");
-  
+
   const twiml = new twilio.twiml.MessagingResponse();
 
   try {
-    // Validamos que el cuerpo de la solicitud exista antes de intentar castearlo
     if (!req.body) {
-      console.error("❌ Error: Cuerpo de la solicitud vacío.");
-      return res.status(400).send({
-        code: "invalid_request",
-        message: "Cuerpo de solicitud vacío.",
-      });
+      return res.status(400).send({ code: "invalid_request", message: "Cuerpo vacío." });
     }
 
     const body = req.body as TwilioRequestBody;
-    
-    // Validamos que el campo `Body` exista en el cuerpo de la solicitud
-    if (!body.Body) {
-      console.error("❌ Error: 'Body' no encontrado en el cuerpo de la solicitud.");
-      return res.status(400).send({
-        code: "invalid_request",
-        message: "Cuerpo de solicitud inválido. Falta el campo 'Body'.",
-      });
+
+    if (!body.Body || !body.From) {
+      return res.status(400).send({ code: "invalid_request", message: "Faltan campos obligatorios." });
     }
 
-    console.log("📨 Body recibido:", body);
-
     const incomingMsg = body.Body.toLowerCase();
+    const userId = body.From;
+
     console.log("🔍 Mensaje entrante:", incomingMsg);
 
     let responseText = "";
-    
+
     const foundProduct = products.find((p) =>
       p.name && incomingMsg.includes(p.name.toLowerCase())
     );
@@ -72,23 +65,38 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     } else {
       console.log("🤖 Consultando OpenAI...");
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: assistantPrompt,
-          },
-          {
-            role: "user",
-            content: incomingMsg,
-          },
-        ],
+      // Inicializa historial si no existe
+      if (!conversations[userId]) {
+        conversations[userId] = [
+          { role: "system", content: assistantPrompt },
+        ];
+      }
+
+      // Agrega el mensaje del usuario
+      conversations[userId].push({
+        role: "user",
+        content: incomingMsg,
       });
 
-      console.log("✅ OpenAI respondió");
+      // Limita historial (por ejemplo, los últimos 10 mensajes)
+      if (conversations[userId].length > 20) {
+        conversations[userId] = [conversations[userId][0], ...conversations[userId].slice(-19)];
+      }
 
-      responseText = completion.choices[0].message.content || "No entendí tu mensaje.";
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: conversations[userId],
+      });
+
+      const aiMessage = completion.choices[0].message.content || "No entendí tu mensaje.";
+
+      // Guarda la respuesta de la IA en el historial
+      conversations[userId].push({
+        role: "assistant",
+        content: aiMessage,
+      });
+
+      responseText = aiMessage;
     }
 
     twiml.message(responseText);
