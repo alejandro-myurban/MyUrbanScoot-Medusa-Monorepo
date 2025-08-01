@@ -1,25 +1,42 @@
-// ** LÍNEA DE DEPURACIÓN AÑADIDA PARA VERIFICAR QUE EL ARCHIVO SE CARGA **
 console.log("✅ El archivo src/api/whatsapp/route.ts se está cargando.");
 
 import OpenAI from "openai";
 import twilio from "twilio";
-import rawProducts from "./data/productos.json";
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 import { assistantPrompt } from "./prompts/assistant-prompt";
 
-// Tipo de producto
 type Product = {
   name: string;
   price: number;
   description: string;
 };
 
-// Mapeo del JSON
-const products: Product[] = (rawProducts as any[]).map((rawProduct) => ({
-  name: rawProduct.Nombre,
-  price: parseFloat(rawProduct.PrecioNormal),
-  description: rawProduct.Descripcion,
-}));
+// 📡 Función para obtener productos desde WooCommerce
+async function fetchProductsFromWoo(): Promise<Product[]> {
+  const url = process.env.WC_URL;
+  const consumerKey = process.env.WC_CONSUMER_KEY; 
+  const consumerSecret = process.env.WC_CONSUMER_KEY_S;
+
+  const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Basic ${auth}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Error al obtener productos: ${res.statusText}`);
+  }
+
+  const data = await res.json();
+
+  return data.map((p: any) => ({
+    name: p.name,
+    price: parseFloat(p.price),
+    description: p.description || "Sin descripción.",
+  }));
+}
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -30,12 +47,10 @@ type TwilioRequestBody = {
   From: string;
 };
 
-// Historial en memoria (usá una base de datos en producción)
 const conversations: Record<string, OpenAI.Chat.Completions.ChatCompletionMessageParam[]> = {};
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   console.log("📩 Llega POST a /whatsapp");
-
   const twiml = new twilio.twiml.MessagingResponse();
 
   try {
@@ -44,7 +59,6 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     }
 
     const body = req.body as TwilioRequestBody;
-
     if (!body.Body || !body.From) {
       return res.status(400).send({ code: "invalid_request", message: "Faltan campos obligatorios." });
     }
@@ -56,6 +70,9 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
     let responseText = "";
 
+    // 🔄 Obtenemos los productos desde WooCommerce
+    const products = await fetchProductsFromWoo();
+
     const foundProduct = products.find((p) =>
       p.name && incomingMsg.includes(p.name.toLowerCase())
     );
@@ -65,20 +82,17 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     } else {
       console.log("🤖 Consultando OpenAI...");
 
-      // Inicializa historial si no existe
       if (!conversations[userId]) {
         conversations[userId] = [
           { role: "system", content: assistantPrompt },
         ];
       }
 
-      // Agrega el mensaje del usuario
       conversations[userId].push({
         role: "user",
         content: incomingMsg,
       });
 
-      // Limita historial (por ejemplo, los últimos 10 mensajes)
       if (conversations[userId].length > 20) {
         conversations[userId] = [conversations[userId][0], ...conversations[userId].slice(-19)];
       }
@@ -90,7 +104,6 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
       const aiMessage = completion.choices[0].message.content || "No entendí tu mensaje.";
 
-      // Guarda la respuesta de la IA en el historial
       conversations[userId].push({
         role: "assistant",
         content: aiMessage,
