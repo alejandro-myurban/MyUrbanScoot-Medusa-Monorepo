@@ -1,5 +1,3 @@
-console.log("✅ El archivo src/api/whatsapp/route.ts se está cargando.");
-
 import OpenAI from "openai";
 import twilio from "twilio";
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
@@ -11,8 +9,9 @@ type Product = {
   description: string;
 };
 
-// 📡 Función para obtener productos desde WooCommerce
+// 📡 Función para obtener productos desde WooCommerce (este código está bien)
 async function fetchProductsFromWoo(): Promise<Product[]> {
+  console.log("📡 Llamando a la API de WooCommerce..."); // ⬅️ Nuevo console.log para depuración
   const url = process.env.WC_URL;
   const consumerKey = process.env.WC_CONSUMER_KEY; 
   const consumerSecret = process.env.WC_CONSUMER_KEY_S;
@@ -68,51 +67,62 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
     console.log("🔍 Mensaje entrante:", incomingMsg);
 
-    let responseText = "";
-
     // 🔄 Obtenemos los productos desde WooCommerce
     const products = await fetchProductsFromWoo();
 
-    const foundProduct = products.find((p) =>
-      p.name && incomingMsg.includes(p.name.toLowerCase())
-    );
+    // 💡 SOLUCIÓN: Filtramos por palabras clave en lugar de la frase completa
+    const keywords = incomingMsg.split(/\s+/).filter(Boolean); // Divide el mensaje en palabras clave
 
-    if (foundProduct) {
-      responseText = `📦 Producto: ${foundProduct.name}\n💵 Precio: $${foundProduct.price}\n📄 Descripción: ${foundProduct.description}`;
-    } else {
-      console.log("🤖 Consultando OpenAI...");
+    const relevantProducts = products.filter(p => {
+        const nameAndDescription = (p.name + " " + p.description).toLowerCase();
+        return keywords.every(keyword => nameAndDescription.includes(keyword));
+    });
 
-      if (!conversations[userId]) {
-        conversations[userId] = [
-          { role: "system", content: assistantPrompt },
-        ];
-      }
-
-      conversations[userId].push({
-        role: "user",
-        content: incomingMsg,
-      });
-
-      if (conversations[userId].length > 20) {
-        conversations[userId] = [conversations[userId][0], ...conversations[userId].slice(-19)];
-      }
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: conversations[userId],
-      });
-
-      const aiMessage = completion.choices[0].message.content || "No entendí tu mensaje.";
-
-      conversations[userId].push({
-        role: "assistant",
-        content: aiMessage,
-      });
-
-      responseText = aiMessage;
+    let productContext = "";
+    if (relevantProducts.length > 0) {
+      productContext = relevantProducts
+        .slice(0, 5)
+        .map(p => `Producto: ${p.name}, Precio: ${p.price}, Descripción: ${p.description}`)
+        .join("\n");
     }
 
-    twiml.message(responseText);
+    // Inicializamos la conversación si no existe
+    if (!conversations[userId]) {
+      conversations[userId] = [
+        { role: "system", content: assistantPrompt },
+      ];
+    }
+    
+    // Añadimos el contexto de los productos al inicio del mensaje del usuario
+    const userMessageWithContext = `
+    Información de productos relevantes de WooCommerce:
+    ${productContext || 'No se encontraron productos relevantes en WooCommerce.'}
+
+    Mensaje del cliente: "${incomingMsg}"
+    `;
+
+    conversations[userId].push({
+      role: "user",
+      content: userMessageWithContext,
+    });
+
+    if (conversations[userId].length > 20) {
+      conversations[userId] = [conversations[userId][0], ...conversations[userId].slice(-19)];
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: conversations[userId],
+    });
+
+    const aiMessage = completion.choices[0].message.content || "No entendí tu mensaje.";
+
+    conversations[userId].push({
+      role: "assistant",
+      content: aiMessage,
+    });
+
+    twiml.message(aiMessage);
     res.type("text/xml").send(twiml.toString());
   } catch (err) {
     console.error("❌ ERROR:", err);
