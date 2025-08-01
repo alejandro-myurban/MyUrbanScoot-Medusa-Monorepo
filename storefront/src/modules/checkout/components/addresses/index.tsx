@@ -528,17 +528,22 @@ const Addresses = ({
       const selectedShippingRate = event.shippingRate
       console.log("🚚 Método de envío seleccionado:", selectedShippingRate)
 
-      if (selectedShippingRate && cart?.id) {
-        console.log("💾 Guardando método de envío...")
+    if (selectedShippingRate && cart?.id) {
+      console.log("💾 Guardando método de envío...")
 
-        await setShippingMethod({
-          cartId: cart.id,
-          shippingMethodId: selectedShippingRate.id,
-        })
+      const optionData =
+        selectedShippingRate.data && typeof selectedShippingRate.data === "object"
+          ? selectedShippingRate.data
+          : { id: "standard" } // o el valor por defecto que corresponda
 
-        console.log("✅ Método de envío guardado")
-      }
+      await setShippingMethod({
+        cartId: cart.id,
+        shippingMethodId: selectedShippingRate.id,
+        optionData,
+      })
 
+      console.log("✅ Método de envío guardado")
+    }
       // ⭐ CAMBIO PRINCIPAL: Obtener el cart actualizado DESPUÉS de todos los cambios
       console.log("🔄 Obteniendo cart final con todos los cambios...")
 

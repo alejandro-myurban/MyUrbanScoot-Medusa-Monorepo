@@ -250,15 +250,21 @@ export async function enrichLineItems(
 
   return enrichedItems
 }
+<<<<<<< Updated upstream
 
 // En tu setShippingMethod, añade más logs
+=======
+>>>>>>> Stashed changes
 export async function setShippingMethod({
   cartId,
   shippingMethodId,
+  optionData, // <-- agrega este parámetro
 }: {
   cartId: string
   shippingMethodId: string
+  optionData: { id: string; [key: string]: any } // <-- tipo para los datos de la opción
 }) {
+<<<<<<< Updated upstream
   console.log("📤 setShippingMethod - Params:", {
     cartId,
     shippingMethodId,
@@ -277,11 +283,25 @@ export async function setShippingMethod({
 
   try {
     const result = await sdk.store.cart.addShippingMethod(
+=======
+  console.log("INTENTANDO agregar método de envío:", {
+    cartId,
+    shippingMethodId,
+    optionData,
+  })
+
+  return sdk.store.cart
+    .addShippingMethod(
+>>>>>>> Stashed changes
       cartId,
-      { option_id: shippingMethodId },
+      { 
+        option_id: shippingMethodId,
+        data: optionData // <-- aquí pasas los datos de la opción
+      },
       {},
       getAuthHeaders()
     )
+<<<<<<< Updated upstream
 
     console.log("✅ Resultado exitoso:", result)
     revalidateTag("cart")
@@ -293,6 +313,16 @@ export async function setShippingMethod({
     // Restaurar fetch original
     global.fetch = originalFetch
   }
+=======
+    .then(() => {
+      console.log("✅ Método de envío agregado con éxito")
+      revalidateTag("cart")
+    })
+    .catch((err) => {
+      console.error("❌ Error al agregar método de envío", err)
+      medusaError(err)
+    })
+>>>>>>> Stashed changes
 }
 
 export async function initiatePaymentSession(
