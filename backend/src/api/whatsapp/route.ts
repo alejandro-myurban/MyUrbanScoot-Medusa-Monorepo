@@ -1,3 +1,6 @@
+// ** LÍNEA DE DEPURACIÓN AÑADIDA PARA VERIFICAR QUE EL ARCHIVO SE CARGA **
+console.log("✅ El archivo src/api/whatsapp/route.ts se está cargando.");
+
 import OpenAI from "openai";
 import twilio from "twilio";
 import rawProducts from "./data/productos.json";
@@ -11,7 +14,7 @@ type Product = {
   description: string;
 };
 
-// ** FIX: CORRECCIÓN DEL ERROR DE COMPILACIÓN **
+// Mapeamos los datos del JSON a la estructura del tipo `Product`.
 const products: Product[] = (rawProducts as any[]).map(rawProduct => ({
   name: rawProduct.Nombre,
   price: parseFloat(rawProduct.PrecioNormal),
@@ -33,6 +36,15 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   const twiml = new twilio.twiml.MessagingResponse();
 
   try {
+    // Validamos que el cuerpo de la solicitud exista antes de intentar castearlo
+    if (!req.body) {
+      console.error("❌ Error: Cuerpo de la solicitud vacío.");
+      return res.status(400).send({
+        code: "invalid_request",
+        message: "Cuerpo de solicitud vacío.",
+      });
+    }
+
     const body = req.body as TwilioRequestBody;
     
     // Validamos que el campo `Body` exista en el cuerpo de la solicitud
@@ -51,8 +63,6 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
     let responseText = "";
     
-    // **CORRECCIÓN:** Añadimos una verificación para `p.name`
-    // antes de llamar a `.toLowerCase()` para evitar el error.
     const foundProduct = products.find((p) =>
       p.name && incomingMsg.includes(p.name.toLowerCase())
     );
