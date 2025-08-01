@@ -4,13 +4,20 @@ import rawProducts from "./data/productos.json";
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 import { assistantPrompt } from "./prompts/assistant-prompt";
 
+// Definición del tipo Product
 type Product = {
   name: string;
   price: number;
   description: string;
 };
 
-const products: Product[] = rawProducts as Product[];
+// ** FIX: CORRECCIÓN DEL ERROR DE COMPILACIÓN **
+const products: Product[] = (rawProducts as any[]).map(rawProduct => ({
+  name: rawProduct.Nombre,
+  price: parseFloat(rawProduct.PrecioNormal),
+  description: rawProduct.Descripcion,
+}));
+
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
