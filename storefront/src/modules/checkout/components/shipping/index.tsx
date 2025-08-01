@@ -126,29 +126,6 @@ const applyFreeShippingAutomatically = useCallback(async () => {
   const freeMethod = findFreeShippingMethod()
   if (!freeMethod) return
 
-<<<<<<< Updated upstream
-    try {
-      console.log("🎉 Aplicando envío gratis automáticamente:", freeMethod.name)
-      await setShippingMethod({
-        cartId: cart.id,
-        shippingMethodId: freeMethod.id,
-      })
-
-      console.log("✅ Método de envío gratis aplicado exitosamente")
-
-      // ✅ NUEVO: Forzar refresh para asegurar que los datos se actualicen
-      router.refresh()
-
-      // ✅ NUEVO: Esperar un poco después del refresh antes de marcar como aplicado
-      setTimeout(() => {
-        console.log("🎯 Marcando freeShippingApplied como true")
-        setFreeShippingApplied(true)
-      }, 800)
-    } catch (error) {
-      console.error("❌ Error aplicando envío gratis automático:", error)
-    }
-  }, [findFreeShippingMethod, cart.id, router])
-=======
   try {
     console.log("🎉 Aplicando envío gratis automáticamente:", freeMethod.name)
     const optionData =
@@ -175,7 +152,6 @@ const applyFreeShippingAutomatically = useCallback(async () => {
     console.error("❌ Error aplicando envío gratis automático:", error)
   }
 }, [findFreeShippingMethod, cart.id, router])
->>>>>>> Stashed changes
 
   const visibleShippingMethods = useMemo(() => {
     if (!availableShippingMethods) return null
@@ -371,14 +347,6 @@ const applyFreeShippingAutomatically = useCallback(async () => {
     setError(null)
 
     try {
-<<<<<<< Updated upstream
-      console.log("2️⃣ ANTES de llamar setShippingMethod")
-
-      await setShippingMethod({ cartId: cart.id, shippingMethodId: id })
-
-      console.log("3️⃣ DESPUÉS de setShippingMethod - éxito")
-
-=======
       // Busca la opción de envío seleccionada por su id
       const selectedOption = shippingOptions.find(opt => opt.id === id)
       if (!selectedOption) {
@@ -398,7 +366,6 @@ const applyFreeShippingAutomatically = useCallback(async () => {
         optionData,
       })
       // Forzar un refresh del server state en Next.js
->>>>>>> Stashed changes
       router.refresh()
 
       setTimeout(() => {

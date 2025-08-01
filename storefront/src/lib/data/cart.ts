@@ -250,11 +250,6 @@ export async function enrichLineItems(
 
   return enrichedItems
 }
-<<<<<<< Updated upstream
-
-// En tu setShippingMethod, añade más logs
-=======
->>>>>>> Stashed changes
 export async function setShippingMethod({
   cartId,
   shippingMethodId,
@@ -264,26 +259,6 @@ export async function setShippingMethod({
   shippingMethodId: string
   optionData: { id: string; [key: string]: any } // <-- tipo para los datos de la opción
 }) {
-<<<<<<< Updated upstream
-  console.log("📤 setShippingMethod - Params:", {
-    cartId,
-    shippingMethodId,
-  })
-
-  // Interceptar la petición del SDK
-  const originalFetch = global.fetch
-  global.fetch = function (...args) {
-    console.log("🌐 Fetch interceptado:", {
-      url: args[0],
-      options: args[1],
-      body: typeof args[1]?.body === "string" ? JSON.parse(args[1].body) : args[1]?.body,
-    })
-    return originalFetch.apply(this, args)
-  }
-
-  try {
-    const result = await sdk.store.cart.addShippingMethod(
-=======
   console.log("INTENTANDO agregar método de envío:", {
     cartId,
     shippingMethodId,
@@ -292,7 +267,6 @@ export async function setShippingMethod({
 
   return sdk.store.cart
     .addShippingMethod(
->>>>>>> Stashed changes
       cartId,
       { 
         option_id: shippingMethodId,
@@ -301,19 +275,6 @@ export async function setShippingMethod({
       {},
       getAuthHeaders()
     )
-<<<<<<< Updated upstream
-
-    console.log("✅ Resultado exitoso:", result)
-    revalidateTag("cart")
-    return result
-  } catch (error) {
-    console.error("❌ Error en setShippingMethod:", error)
-    throw error
-  } finally {
-    // Restaurar fetch original
-    global.fetch = originalFetch
-  }
-=======
     .then(() => {
       console.log("✅ Método de envío agregado con éxito")
       revalidateTag("cart")
@@ -322,7 +283,6 @@ export async function setShippingMethod({
       console.error("❌ Error al agregar método de envío", err)
       medusaError(err)
     })
->>>>>>> Stashed changes
 }
 
 export async function initiatePaymentSession(
