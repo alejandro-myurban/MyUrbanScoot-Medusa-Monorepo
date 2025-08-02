@@ -10,33 +10,61 @@ type Product = {
 };
 
 // 📡 Función para obtener productos desde WooCommerce (este código está bien)
+// 📡 Función para obtener productos desde WooCommerce (con más logs y timeout)
 async function fetchProductsFromWoo(): Promise<Product[]> {
-  console.log("📡 Llamando a la API de WooCommerce..."); // ⬅️ Nuevo console.log para depuración
+  console.log("📡 Llamando a la API de WooCommerce...");
   const url = process.env.WC_URL;
   const consumerKey = process.env.WC_CONSUMER_KEY; 
   const consumerSecret = process.env.WC_CONSUMER_KEY_S;
 
-  const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
-
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Basic ${auth}`,
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Error al obtener productos: ${res.statusText}`);
+  if (!url || !consumerKey || !consumerSecret) {
+    console.error("❌ ERROR: Faltan variables de entorno para la API de WooCommerce.");
+    throw new Error("Configuración de WooCommerce incompleta.");
   }
 
-  const data = await res.json();
+  const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
 
-  return data.map((p: any) => ({
-    name: p.name,
-    price: parseFloat(p.price),
-    description: p.description || "Sin descripción.",
-  }));
+  // Añadimos un timeout de 10 segundos para evitar que se cuelgue
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); 
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Basic ${auth}`,
+      },
+      signal: controller.signal, // Agregamos el timeout
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log(`✅ Respuesta de la API recibida con estado: ${res.status}`);
+
+    if (!res.ok) {
+      // Si la respuesta no es 200, muestra el error específico de la API
+      const errorText = await res.text();
+      console.error(`❌ Error de la API de WooCommerce (Estado: ${res.status}): ${errorText}`);
+      throw new Error(`Error al obtener productos: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    console.log(`📦 Productos obtenidos: ${data.length}`);
+
+    return data.map((p: any) => ({
+      name: p.name,
+      price: parseFloat(p.price),
+      description: p.description || "Sin descripción.",
+    }));
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error("❌ ERROR: La llamada a la API de WooCommerce ha excedido el tiempo de espera (10 segundos).");
+    } else {
+      console.error(`❌ ERROR al llamar a la API de WooCommerce: ${error}`);
+    }
+    throw error;
+  }
 }
-
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
