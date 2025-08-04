@@ -46,6 +46,12 @@ type TwilioRequestBody = {
 
 const conversations: Record<string, OpenAI.Chat.Completions.ChatCompletionMessageParam[]> = {};
 
+const categoryKeywords: { [key: string]: string[] } = {
+  "vinilos": ["vinilo", "vinilos", "pegatina", "pegatinas"],
+  "patinetes-electricos": ["patinete", "patinetes", "scooter"],
+  "recambios": ["recambio", "recambios", "repuesto", "repuestos"],
+};
+
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   console.log("📩 Llega POST a /whatsapp");
 
@@ -66,34 +72,36 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
     console.log("🔍 Mensaje entrante:", incomingMsg);
 
-    const opcionesMenu: Record<string, string> = {
-      "1": "Estoy buscando un producto.",
-      "2": "Tengo dudas sobre un pedido.",
-      "3": "Quiero contratar el servicio de Recogida+Entrega.",
-      "4": "Necesito información sobre talleres físicos.",
-      "5": "Necesito ayuda técnica para reparar mi patinete en casa.",
-    };
+    // const opcionesMenu: Record<string, string> = {
+    //   "1": "Estoy buscando un producto.",
+    //   "2": "Tengo dudas sobre un pedido.",
+    //   "3": "Quiero contratar el servicio de Recogida+Entrega.",
+    //   "4": "Necesito información sobre talleres físicos.",
+    //   "5": "Necesito ayuda técnica para reparar mi patinete en casa.",
+    // };
 
-    if (opcionesMenu[incomingMsg]) {
-      const responseText = `📋 Has seleccionado: ${opcionesMenu[incomingMsg]}\nCuéntame más para ayudarte mejor.`;
-      twiml.message(responseText);
-      return res.type("text/xml").send(twiml.toString());
-    }
+    // if (opcionesMenu[incomingMsg]) {
+    //   const responseText = `📋 Has seleccionado: ${opcionesMenu[incomingMsg]}\nCuéntame más para ayudarte mejor.`;
+    //   twiml.message(responseText);
+    //   return res.type("text/xml").send(twiml.toString());
+    // }
 
     if (!conversations[userId]) {
       conversations[userId] = [{ role: "system", content: systemPrompt }];
     }
 
-    const keywords = incomingMsg.split(/\s+/).filter(word => word.length > 2);
     let filteredProducts = products;
 
-    if (incomingMsg.includes("vinilo") || incomingMsg.includes("vinilos")) {
-      filteredProducts = filteredProducts.filter(product =>
-        product.Categorias?.some(category => category.toLowerCase().includes("vinilos"))
-      );
+    for (const category in categoryKeywords) {
+      if (categoryKeywords[category].some(keyword => incomingMsg.includes(keyword))) {
+        filteredProducts = products.filter(product =>
+          product.Categorias?.some(pCategory => pCategory.toLowerCase().includes(category))
+        );
+        break;
+      }
     }
-    // Add more category-specific filtering logic here as needed
 
+    const keywords = incomingMsg.split(/\s+/).filter(word => word.length > 2);
     filteredProducts = filteredProducts.filter(product =>
       keywords.some(keyword => product.Nombre.toLowerCase().includes(keyword))
     );
