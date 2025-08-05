@@ -402,6 +402,10 @@ EJEMPLO de lo que buscas:
         return await this.processPdfBank(documentBase64, documentType);
       }
 
+      // Para imágenes, definir variables necesarias
+      const finalMimeType = formatInfo.mimeType;
+      const finalBase64 = documentBase64;
+
       const prompt = `Analiza este documento de un ${documentType === "bank_certificate" ? "certificado bancario" : "extracto bancario"} y extrae la siguiente información:
 
 VALIDACIONES IMPORTANTES:
