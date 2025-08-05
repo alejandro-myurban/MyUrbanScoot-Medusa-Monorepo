@@ -70,9 +70,9 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
           <div className="flex items-center justify-between">
             <span className="flex gap-x-1 items-center">
               IVA no aplicable (envío internacional)
-              <Tooltip content="El IVA no se aplica en envíos a países fuera de la UE">
+              <span content="El IVA no se aplica en envíos a países fuera de la UE">
                 <InformationCircleSolid className="w-4 h-4 text-ui-fg-muted" />
-              </Tooltip>
+              </span>
             </span>
             <span
               className="text-ui-fg-interactive"

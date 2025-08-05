@@ -297,6 +297,28 @@ console.log(
     2
   )
 );
+const fulfillmentModule = medusaConfig.modules.find(
+  (m) => m.resolve === "@medusajs/medusa/fulfillment"
+);
 
+if (!fulfillmentModule) {
+  console.warn("⚠️ No se encontró el módulo de fulfillment.");
+} else {
+  console.log("📦 Fulfillment module encontrado:", fulfillmentModule);
+
+  if (
+    fulfillmentModule.options &&
+    Array.isArray(fulfillmentModule.options.providers)
+  ) {
+    fulfillmentModule.options.providers.forEach((provider, idx) => {
+      console.log(`📦 Fulfillment provider [${idx}]:`, provider);
+    });
+  } else {
+    console.warn("⚠️ Fulfillment module no tiene 'options.providers' definido como array.");
+  }
+}
+
+console.log("📦 Dump completo de config:");
 console.log(JSON.stringify(medusaConfig, null, 2));
+
 export default defineConfig(medusaConfig);

@@ -1,0 +1,89 @@
+{
+  "store": {
+    "title": "Medusa Butik",
+    "tagline": "Din allt-i-ett-butik"
+  },
+  "navigation": {
+    "home": "Hem",
+    "vinyls": "Vinylklistermärken",
+    "categories": "Kategorier",
+    "account": "Konto",
+    "cart": "Kundvagn",
+    "lang": "Språk",
+    "search": "Sök",
+    "contact": "Kontakt",
+    "spare_parts": "Reservdelar",
+    "circuit_zone": "Bana zon",
+    "scoot": "Scootrar",
+    "blog": "Blogg",
+    "tooltip": {
+      "shippment": "🚚 Fri frakt på beställningar över 20 €",
+      "gift": "🎁 Fri gåva på beställningar över 100 €",
+      "spare_parts": "🛠️ Exklusiva delar till din scooter"
+    }
+  },
+  "actions": {
+    "add_to_cart": "Lägg i kundvagn",
+    "select_variant": "Välj variant",
+    "buy_now": "Köp nu",
+    "checkout": "Kassa",
+    "view_details": "Visa detaljer",
+    "select": "Välj"
+  },
+  "checkout": {
+    "shipping_address": "Leveransadress",
+    "delivery": "Leverans",
+    "payment": "Betalning",
+    "review": "Sammanfattning",
+    "express_payment": "Snabba betalningar",
+    "safe_payment": "Alla transaktioner är säkra och krypterade.",
+    "summary": {
+      "title": "Ordersammanfattning",
+      "discount": "Rabattkod",
+      "apply": "Tillämpa",
+      "subtotal": "Delsumma",
+      "shipping": "Frakt",
+      "total": "Totalt",
+      "terms": "Jag accepterar",
+      "terms_link": "användarvillkoren",
+      "free_shipping": "Fri frakt på beställningar över",
+      "free_shipping_amount_add": "Lägg till",
+      "free_shipping_amount": "för att få fri frakt",
+      "loyalty": "Lojalitetspoäng",
+      "loyalty_info": "Registrera dig och börja tjäna lojalitetspoäng för varje köp!"
+    },
+    "shipping_address_form": {
+      "first_name": "Förnamn",
+      "last_name": "Efternamn",
+      "company": "Företag (valfritt)",
+      "address_1": "Adress",
+      "address_2": "Adress 2 (valfritt)",
+      "city": "Stad",
+      "country": "Land",
+      "state": "Län/Region",
+      "postal_code": "Postnummer",
+      "phone_number": "Telefonnummer",
+      "address_info": "Använd denna adress för leverans"
+    },
+    "shipping_methods": {
+      "standard": "Hemleverans",
+      "pickup": "Hämta i butik"
+    },
+    "address_info": {
+      "shipping_address": "Leveransadress",
+      "billing_address": "Faktureringsadress",
+      "same_as_shipping": "Samma som leveransadress",
+      "contact": "Kontakt"
+    }
+  },
+  "login": {
+    "title": "Logga in",
+    "email": "E-post",
+    "password": "Lösenord",
+    "forgot_password": "Glömt lösenord?",
+    "login_button": "Fortsätt",
+    "register_link": "Har du inget konto?",
+    "register_button": "Registrera dig",
+    "google": "Logga in med Google"
+  }
+}

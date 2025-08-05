@@ -73,5 +73,14 @@ export default defineMiddlewares({
       method: ["POST"],
       bodyParser: { sizeLimit: "5mb" },
     },
+    {
+      matcher: "/store/carts/*", 
+      middlewares: [
+        (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
+          console.log("Request body to calculated-fulfillment:", req.body)
+          next()
+        },
+      ],
+    },
   ],
 });

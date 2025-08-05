@@ -1,0 +1,89 @@
+{
+  "store": {
+    "title": "Sklep Medusa",
+    "tagline": "Twój sklep all-in-one"
+  },
+  "navigation": {
+    "home": "Strona główna",
+    "vinyls": "Naklejki winylowe",
+    "categories": "Kategorie",
+    "account": "Konto",
+    "cart": "Koszyk",
+    "lang": "Język",
+    "search": "Szukaj",
+    "contact": "Kontakt",
+    "spare_parts": "Części zamienne",
+    "circuit_zone": "Strefa toru",
+    "scoot": "Hulajnogi",
+    "blog": "Blog",
+    "tooltip": {
+      "shippment": "🚚 Darmowa dostawa przy zamówieniach powyżej 20 €",
+      "gift": "🎁 Darmowy prezent przy zamówieniach powyżej 100 €",
+      "spare_parts": "🛠️ Ekskluzywne części do twojej hulajnogi"
+    }
+  },
+  "actions": {
+    "add_to_cart": "Dodaj do koszyka",
+    "select_variant": "Wybierz wariant",
+    "buy_now": "Kup teraz",
+    "checkout": "Zamówienie",
+    "view_details": "Zobacz szczegóły",
+    "select": "Wybierz"
+  },
+  "checkout": {
+    "shipping_address": "Adres dostawy",
+    "delivery": "Dostawa",
+    "payment": "Płatność",
+    "review": "Podsumowanie",
+    "express_payment": "Szybka płatność",
+    "safe_payment": "Wszystkie transakcje są bezpieczne i szyfrowane.",
+    "summary": {
+      "title": "Podsumowanie zamówienia",
+      "discount": "Kod rabatowy",
+      "apply": "Zastosuj",
+      "subtotal": "Suma częściowa",
+      "shipping": "Dostawa",
+      "total": "Łącznie",
+      "terms": "Akceptuję",
+      "terms_link": "warunki użytkowania",
+      "free_shipping": "Darmowa dostawa przy zamówieniach powyżej",
+      "free_shipping_amount_add": "Dodaj",
+      "free_shipping_amount": "aby otrzymać darmową dostawę",
+      "loyalty": "Punkty lojalnościowe",
+      "loyalty_info": "Zarejestruj się i zacznij zdobywać punkty lojalnościowe za każdy zakup!"
+    },
+    "shipping_address_form": {
+      "first_name": "Imię",
+      "last_name": "Nazwisko",
+      "company": "Firma (opcjonalnie)",
+      "address_1": "Adres",
+      "address_2": "Adres 2 (opcjonalnie)",
+      "city": "Miasto",
+      "country": "Kraj",
+      "state": "Województwo/Region",
+      "postal_code": "Kod pocztowy",
+      "phone_number": "Numer telefonu",
+      "address_info": "Użyj tego adresu do wysyłki"
+    },
+    "shipping_methods": {
+      "standard": "Dostawa do domu",
+      "pickup": "Odbiór w sklepie"
+    },
+    "address_info": {
+      "shipping_address": "Adres dostawy",
+      "billing_address": "Adres rozliczeniowy",
+      "same_as_shipping": "Taki sam jak adres dostawy",
+      "contact": "Kontakt"
+    }
+  },
+  "login": {
+    "title": "Zaloguj się",
+    "email": "E-mail",
+    "password": "Hasło",
+    "forgot_password": "Zapomniałeś hasła?",
+    "login_button": "Kontynuuj",
+    "register_link": "Nie masz konta?",
+    "register_button": "Zarejestruj się",
+    "google": "Zaloguj się przez Google"
+  }
+}

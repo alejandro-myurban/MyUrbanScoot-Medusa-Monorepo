@@ -250,49 +250,39 @@ export async function enrichLineItems(
 
   return enrichedItems
 }
-
-// En tu setShippingMethod, añade más logs
 export async function setShippingMethod({
   cartId,
   shippingMethodId,
+  optionData, // <-- agrega este parámetro
 }: {
   cartId: string
   shippingMethodId: string
+  optionData: { id: string; [key: string]: any } // <-- tipo para los datos de la opción
 }) {
-  console.log("📤 setShippingMethod - Params:", {
+  console.log("INTENTANDO agregar método de envío:", {
     cartId,
     shippingMethodId,
+    optionData,
   })
 
-  // Interceptar la petición del SDK
-  const originalFetch = global.fetch
-  global.fetch = function (...args) {
-    console.log("🌐 Fetch interceptado:", {
-      url: args[0],
-      options: args[1],
-      body: typeof args[1]?.body === "string" ? JSON.parse(args[1].body) : args[1]?.body,
-    })
-    return originalFetch.apply(this, args)
-  }
-
-  try {
-    const result = await sdk.store.cart.addShippingMethod(
+  return sdk.store.cart
+    .addShippingMethod(
       cartId,
-      { option_id: shippingMethodId },
+      { 
+        option_id: shippingMethodId,
+        data: optionData // <-- aquí pasas los datos de la opción
+      },
       {},
       getAuthHeaders()
     )
-
-    console.log("✅ Resultado exitoso:", result)
-    revalidateTag("cart")
-    return result
-  } catch (error) {
-    console.error("❌ Error en setShippingMethod:", error)
-    throw error
-  } finally {
-    // Restaurar fetch original
-    global.fetch = originalFetch
-  }
+    .then(() => {
+      console.log("✅ Método de envío agregado con éxito")
+      revalidateTag("cart")
+    })
+    .catch((err) => {
+      console.error("❌ Error al agregar método de envío", err)
+      medusaError(err)
+    })
 }
 
 export async function initiatePaymentSession(

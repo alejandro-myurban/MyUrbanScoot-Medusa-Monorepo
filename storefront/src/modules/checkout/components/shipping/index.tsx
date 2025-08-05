@@ -53,9 +53,20 @@ const Shipping: React.FC<ShippingProps> = ({
   const [itemsWithEstimate, setItemsWithEstimate] = useState<
     ItemWithEstimate[]
   >([])
+  const [shippingOptions, setShippingOptions] = useState<HttpTypes.StoreCartShippingOption[]>([])
 
-  console.log("🚚 Métodos de envío disponibles:", availableShippingMethods)
-
+  // === NUEVOS LOGS DE DEPURACIÓN PARA EL CARRITO ===
+  console.log("🚚 Métodos de envío disponibles:", availableShippingMethods);
+  console.log("🛒 Estado actual del carrito (cart object):", JSON.stringify(cart, null, 2));
+  console.log("📍 ID de la región del carrito:", cart?.region_id);
+  console.log("🏠 Dirección de envío del carrito:", JSON.stringify(cart?.shipping_address, null, 2));
+  console.log("📦 Ítems en el carrito:", JSON.stringify(cart?.items, null, 2));
+  // =================================================
+  useEffect(() => {
+    if (!cart) return
+    sdk.store.fulfillment.listCartOptions({ cart_id: cart.id })
+      .then(({ shipping_options }) => setShippingOptions(shipping_options))
+  }, [cart])
   // Estados para el auto-submit
   const [pendingAutoSubmit, setPendingAutoSubmit] = useState(false)
   const [hasUserSelectedShipping, setHasUserSelectedShipping] = useState(false)
@@ -111,31 +122,36 @@ const Shipping: React.FC<ShippingProps> = ({
     )
   }, [availableShippingMethods])
 
-  const applyFreeShippingAutomatically = useCallback(async () => {
-    const freeMethod = findFreeShippingMethod()
-    if (!freeMethod) return
+const applyFreeShippingAutomatically = useCallback(async () => {
+  const freeMethod = findFreeShippingMethod()
+  if (!freeMethod) return
 
-    try {
-      console.log("🎉 Aplicando envío gratis automáticamente:", freeMethod.name)
-      await setShippingMethod({
-        cartId: cart.id,
-        shippingMethodId: freeMethod.id,
-      })
-
-      console.log("✅ Método de envío gratis aplicado exitosamente")
-
-      // ✅ NUEVO: Forzar refresh para asegurar que los datos se actualicen
-      router.refresh()
-
-      // ✅ NUEVO: Esperar un poco después del refresh antes de marcar como aplicado
-      setTimeout(() => {
-        console.log("🎯 Marcando freeShippingApplied como true")
-        setFreeShippingApplied(true)
-      }, 800)
-    } catch (error) {
-      console.error("❌ Error aplicando envío gratis automático:", error)
-    }
-  }, [findFreeShippingMethod, cart.id, router])
+  try {
+    console.log("🎉 Aplicando envío gratis automáticamente:", freeMethod.name)
+    const optionData =
+      freeMethod.data && typeof freeMethod.data === "object" && "id" in freeMethod.data
+        ? freeMethod.data as { [key: string]: any; id: string }
+        : { id: "standard" }
+    await setShippingMethod({
+      cartId: cart.id,
+      shippingMethodId: freeMethod.id,
+      optionData,
+    })    
+  console.log("✅ Método de envío gratis aplicado exitosamente")
+    
+    // ✅ NUEVO: Forzar refresh para asegurar que los datos se actualicen
+    router.refresh()
+    
+    // ✅ NUEVO: Esperar un poco después del refresh antes de marcar como aplicado
+    setTimeout(() => {
+      console.log("🎯 Marcando freeShippingApplied como true")
+      setFreeShippingApplied(true)
+    }, 800)
+    
+  } catch (error) {
+    console.error("❌ Error aplicando envío gratis automático:", error)
+  }
+}, [findFreeShippingMethod, cart.id, router])
 
   const visibleShippingMethods = useMemo(() => {
     if (!availableShippingMethods) return null
@@ -331,12 +347,25 @@ const Shipping: React.FC<ShippingProps> = ({
     setError(null)
 
     try {
-      console.log("2️⃣ ANTES de llamar setShippingMethod")
+      // Busca la opción de envío seleccionada por su id
+      const selectedOption = shippingOptions.find(opt => opt.id === id)
+      if (!selectedOption) {
+        throw new Error("Opción de envío no encontrada")
+      }
 
-      await setShippingMethod({ cartId: cart.id, shippingMethodId: id })
+      // Usa el data tal cual, asegurando que tenga 'id'
+      const optionData =
+        selectedOption.data && typeof selectedOption.data === "object" && "id" in selectedOption.data
+          ? selectedOption.data as {[key: string]: any; id: string}
+          : { id: "standard" } // o el valor por defecto que corresponda
 
-      console.log("3️⃣ DESPUÉS de setShippingMethod - éxito")
-
+      console.log("🔄 Seleccionando método de envío:", id)
+      await setShippingMethod({
+        cartId: cart.id,
+        shippingMethodId: id,
+        optionData,
+      })
+      // Forzar un refresh del server state en Next.js
       router.refresh()
 
       setTimeout(() => {
@@ -352,7 +381,6 @@ const Shipping: React.FC<ShippingProps> = ({
       setIsLoading(false)
     }
   }
-
   // Limpiar timeouts al desmontar componente
   useEffect(() => {
     return () => {
