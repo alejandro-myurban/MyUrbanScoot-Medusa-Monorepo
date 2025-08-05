@@ -7,7 +7,7 @@ import { LoaderCircle, CheckCircle2, AlertCircle } from "lucide-react"
 import { toast, Toaster } from "@medusajs/ui"
 import { FormInput } from "@/modules/financing/components/form-input"
 import {
-  FileInput,
+  FileInputEnhanced,
   type FileStates,
 } from "@/modules/financing/components/file-input"
 import { FormSelect } from "@/modules/financing/components/select-input"
@@ -73,6 +73,7 @@ export default function FinancingPage() {
     identity_front_file_id: null,
     identity_back_file_id: null,
     paysheet_file: null,
+    paysheet_file_2: null,
     freelance_rental_file: null,
     freelance_quote_file: null,
     pensioner_proof_file: null,
@@ -82,6 +83,24 @@ export default function FinancingPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [documentVerifications, setDocumentVerifications] = useState<{
+    front?: any
+    back?: any
+    payroll?: any
+    payroll_2?: any
+    bank?: any
+  }>({})
+
+  const handleVerificationComplete = (
+    type: "front" | "back" | "payroll" | "payroll_2" | "bank",
+    result: any
+  ) => {
+    console.log(`Verificación ${type} completada:`, result)
+    setDocumentVerifications((prev) => ({
+      ...prev,
+      [type]: result,
+    }))
+  }
 
   // --- Manejadores de eventos ---
   const handleInputChange = (
@@ -148,6 +167,51 @@ export default function FinancingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // ✅ NUEVA VALIDACIÓN: Verificar documentos DNI antes del envío
+    if (documentVerifications.front && !documentVerifications.front.isValid) {
+      toast.error(
+        "El DNI frontal no es válido. Por favor, sube una imagen de mejor calidad."
+      )
+      setSubmitting(false)
+      return
+    }
+
+    if (documentVerifications.back && !documentVerifications.back.isValid) {
+      toast.error(
+        "El DNI trasero no es válido. Por favor, sube una imagen de mejor calidad."
+      )
+      setSubmitting(false)
+      return
+    }
+
+    // Si los documentos tienen baja confianza, avisar al usuario
+    if (
+      documentVerifications.front &&
+      documentVerifications.front.confidence < 70
+    ) {
+      const proceed = confirm(
+        "El documento frontal tiene baja calidad. ¿Deseas continuar de todas formas?"
+      )
+      if (!proceed) {
+        setSubmitting(false)
+        return
+      }
+    }
+
+    if (
+      documentVerifications.back &&
+      documentVerifications.back.confidence < 70
+    ) {
+      const proceed = confirm(
+        "El documento trasero tiene baja calidad. ¿Deseas continuar de todas formas?"
+      )
+      if (!proceed) {
+        setSubmitting(false)
+        return
+      }
+    }
+
     setSubmitting(true)
     setError(null)
     setSubmitted(false)
@@ -159,13 +223,13 @@ export default function FinancingPage() {
       const fileMapping: Record<string, string> = {
         identity_front_file_id: "identity_front_file_id",
         identity_back_file_id: "identity_back_file_id",
-        paysheet_file: "paysheet_file_id",
         freelance_rental_file: "freelance_rental_file_id",
         freelance_quote_file: "freelance_quote_file_id",
         pensioner_proof_file: "pensioner_proof_file_id",
         bank_account_proof_file: "bank_account_proof_file_id",
       }
 
+      // Subir archivos normales
       for (const [fileKey, targetField] of Object.entries(fileMapping)) {
         const file = files[fileKey as keyof FileStates]
         if (file) {
@@ -174,13 +238,40 @@ export default function FinancingPage() {
         }
       }
 
+      // Manejar nóminas especialmente (concatenar URLs si hay dos)
+      const payrollUrls: string[] = []
+      if (files.paysheet_file) {
+        const url1 = await uploadFile(files.paysheet_file)
+        payrollUrls.push(url1)
+      }
+      if (files.paysheet_file_2) {
+        const url2 = await uploadFile(files.paysheet_file_2)
+        payrollUrls.push(url2)
+      }
+
+      if (payrollUrls.length > 0) {
+        uploadedFileIds["paysheet_file_id"] = payrollUrls.join("|")
+      }
+
+      // Combinar verificaciones de nóminas si hay dos
+      let combinedPayrollVerification = null
+      if (documentVerifications.payroll || documentVerifications.payroll_2) {
+        combinedPayrollVerification = {
+          primary: documentVerifications.payroll || null,
+          secondary: documentVerifications.payroll_2 || null,
+          combined: true,
+        }
+      }
+
       const finalPayload = {
         ...formData,
         ...uploadedFileIds,
+        dni_front_verification: documentVerifications.front || null,
+        dni_back_verification: documentVerifications.back || null,
+        payroll_verification: combinedPayrollVerification,
+        bank_verification: documentVerifications.bank || null,
         requested_at: new Date().toISOString(),
       }
-
-      console.log("🚀 Payload final a enviar:", finalPayload)
 
       const response = await sdk.client.fetch("/store/financing-data", {
         method: "POST",
@@ -218,7 +309,10 @@ export default function FinancingPage() {
     const questions = []
     questions.push(1, 2, 3)
 
-    if (formData.contract_type === "employee") {
+    if (
+      formData.contract_type === "employee_temporary" ||
+      formData.contract_type === "employee_permanent"
+    ) {
       questions.push(4, 5, 6)
     } else if (formData.contract_type === "freelance") {
       questions.push(8, 9)
@@ -294,8 +388,7 @@ export default function FinancingPage() {
                       onChange={handleInputChange}
                       placeholder="+34 600 000 000"
                     />
-
-                    <FileInput
+                    <FileInputEnhanced
                       id="identity_front_file_id"
                       label="Imagen del anverso del DNI"
                       file={files.identity_front_file_id}
@@ -304,9 +397,13 @@ export default function FinancingPage() {
                       onChange={handleFileChange}
                       disabled={submitting}
                       multiple={true}
+                      documentType="dni_front"
+                      onVerificationComplete={(result: any) =>
+                        handleVerificationComplete("front", result)
+                      }
                     />
 
-                    <FileInput
+                    <FileInputEnhanced
                       id="identity_back_file_id"
                       label="Imagen del reverso del DNI"
                       file={files.identity_back_file_id}
@@ -315,6 +412,10 @@ export default function FinancingPage() {
                       onChange={handleFileChange}
                       disabled={submitting}
                       multiple={true}
+                      documentType="dni_back"
+                      onVerificationComplete={(result: any) =>
+                        handleVerificationComplete("back", result)
+                      }
                     />
 
                     <FormSelect
@@ -460,7 +561,12 @@ export default function FinancingPage() {
                       onChange={handleInputChange}
                     >
                       <option value="">Seleccionar...</option>
-                      <option value="employee">Cuenta ajena (nómina)</option>
+                      <option value="employee_permanent">
+                        Cuenta ajena fijo
+                      </option>
+                      <option value="employee_temporary">
+                        Cuenta ajena temporal
+                      </option>
                       <option value="freelance">Autónomo</option>
                       <option value="pensioner">Pensionista</option>
                       <option value="unemployed">Desempleado</option>
@@ -509,20 +615,46 @@ export default function FinancingPage() {
                     <div className="flex items-center justify-center w-10 h-10 bg-purple-100 text-purple-600 rounded-xl font-bold text-lg">
                       5
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900">
-                      Documentación Laboral
-                    </h3>
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">
+                        Documentación Laboral
+                      </h3>
+                    </div>
                   </div>
+                  <p className="text-gray-500 text-sm">
+                    Las nóminas deben ser las dos más recientes, además en
+                    formato PDF. No se aceptan imágenes.
+                  </p>
 
-                  <FileInput
-                    id="paysheet_file"
-                    label="Última nómina"
-                    file={files.paysheet_file}
-                    onRemove={removeFile}
-                    required={true}
-                    onChange={handleFileChange}
-                    disabled={submitting}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FileInputEnhanced
+                      id="paysheet_file"
+                      label="Primera nómina"
+                      file={files.paysheet_file}
+                      onRemove={removeFile}
+                      required={true}
+                      onChange={handleFileChange}
+                      disabled={submitting}
+                      documentType="payroll"
+                      onVerificationComplete={(result: any) =>
+                        handleVerificationComplete("payroll", result)
+                      }
+                    />
+
+                    <FileInputEnhanced
+                      id="paysheet_file_2"
+                      label="Segunda nómina (opcional)"
+                      file={files.paysheet_file_2}
+                      onRemove={removeFile}
+                      required={false}
+                      onChange={handleFileChange}
+                      disabled={submitting}
+                      documentType="payroll"
+                      onVerificationComplete={(result: any) =>
+                        handleVerificationComplete("payroll_2", result)
+                      }
+                    />
+                  </div>
                 </div>
               )}
 
@@ -538,7 +670,7 @@ export default function FinancingPage() {
                     </h3>
                   </div>
 
-                  <FileInput
+                  <FileInputEnhanced
                     id="freelance_rental_file"
                     label="Última declaración de la renta"
                     file={files.freelance_rental_file}
@@ -561,7 +693,7 @@ export default function FinancingPage() {
                     </h3>
                   </div>
 
-                  <FileInput
+                  <FileInputEnhanced
                     id="freelance_quote_file"
                     label="Última cuota de autónomos"
                     file={files.freelance_quote_file}
@@ -585,7 +717,7 @@ export default function FinancingPage() {
                     </h3>
                   </div>
 
-                  <FileInput
+                  <FileInputEnhanced
                     id="pensioner_proof_file"
                     label="Justificante de pensión"
                     file={files.pensioner_proof_file}
@@ -609,7 +741,7 @@ export default function FinancingPage() {
                     </h3>
                   </div>
 
-                  <FileInput
+                  <FileInputEnhanced
                     id="bank_account_proof_file"
                     label="Justificante de titularidad bancaria"
                     file={files.bank_account_proof_file}
@@ -617,6 +749,10 @@ export default function FinancingPage() {
                     required={true}
                     onChange={handleFileChange}
                     disabled={submitting}
+                    documentType="bank_certificate"
+                    onVerificationComplete={(result: any) =>
+                      handleVerificationComplete("bank", result)
+                    }
                   />
                 </div>
               )}

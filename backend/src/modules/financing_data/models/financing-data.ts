@@ -25,7 +25,13 @@ const FinancingData = model.define("financing_data", {
   province: model.text(),
   phone_mumber: model.text(),
   doubts: model.text().nullable(),
-  requested_at: model.dateTime()
+  requested_at: model.dateTime(),
+  dni_front_verification: model.json().nullable(),
+  dni_back_verification: model.json().nullable(),
+  payroll_verification: model.json().nullable(),
+  bank_verification: model.json().nullable(),
+  status: model.text().default("pending"),
+  admin_notes: model.text().nullable(),
 })
 
 export default FinancingData

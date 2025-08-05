@@ -1,7 +1,7 @@
 // app/api/dev-auth/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
-const DEV_PASSWORD = process.env.DEV_ACCESS_PASSWORD || 'mi-password-seguro-2024'
+const DEV_PASSWORD = process.env.DEV_ACCESS_PASSWORD
 
 export async function POST(request: NextRequest) {
   try {

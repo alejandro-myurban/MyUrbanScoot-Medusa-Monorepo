@@ -28,6 +28,11 @@ type FinancingRequestData = {
   phone_mumber: string; // Nota: mantuve el typo del modelo
   doubts?: string;
   requested_at?: string;
+  dni_front_verification?: any;
+  dni_back_verification?: any;
+  payroll_verification?: any;
+  bank_verification?: any;
+  status?: string;
 };
 
 export const POST = async (
@@ -87,7 +92,12 @@ export const POST = async (
     province: requestData.province,
     phone_mumber: requestData.phone_mumber, // Mantuve el typo del modelo
     doubts: requestData.doubts || null,
-    requested_at: requestedAt
+    requested_at: requestedAt,
+    dni_front_verification: requestData.dni_front_verification || null,
+    dni_back_verification: requestData.dni_back_verification || null,
+    payroll_verification: requestData.payroll_verification || null,
+    bank_verification: requestData.bank_verification || null,
+    status: requestData.status || "pending"
   };
 
   console.log("📦 Datos mapeados para guardar:", financingData);

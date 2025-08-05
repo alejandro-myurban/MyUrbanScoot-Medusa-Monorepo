@@ -97,17 +97,17 @@ export default function FinancingSuccessPage() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Mail className="w-5 h-5" />
-                  <span className="text-sm">info@mys.com</span>
+                  <span className="text-sm">info@myurbanscoot.com</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Phone className="w-5 h-5" />
-                  <span className="text-sm">+34 600 000 000</span>
+                  <span className="text-sm">+34 633 69 57 03</span>
                 </div>
               </div>
             </div>
 
             {/* Botón de vuelta al inicio */}
-            <div className="pt-8">
+            {/* <div className="pt-8">
               <button
                 onClick={() => router.push("/")}
                 className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
@@ -115,7 +115,7 @@ export default function FinancingSuccessPage() {
                 <Home className="w-5 h-5" />
                 Volver al Inicio
               </button>
-            </div>
+            </div> */}
 
             {/* Número de referencia (opcional) */}
             <div className="pt-4 border-t border-gray-100">

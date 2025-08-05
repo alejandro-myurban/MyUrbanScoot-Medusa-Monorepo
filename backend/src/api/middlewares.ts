@@ -68,5 +68,10 @@ export default defineMiddlewares({
       method: ["POST"],
       middlewares: [uploadMiddleware],
     },
+    {
+      matcher: "/store/document-verification", // Cambia esto por la ruta que necesites
+      method: ["POST"],
+      bodyParser: { sizeLimit: "5mb" },
+    },
   ],
 });

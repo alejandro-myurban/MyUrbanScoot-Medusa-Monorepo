@@ -107,6 +107,10 @@ const medusaConfig = {
       resolve: "./src/modules/blog",
     },
     {
+      resolve: "./src/modules/document-verification",
+      key: "documentVerificationModuleService",
+    },
+    {
       key: Modules.FILE,
       resolve: "@medusajs/file",
       options: {
