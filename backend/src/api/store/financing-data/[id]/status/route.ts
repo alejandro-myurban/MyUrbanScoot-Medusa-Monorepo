@@ -37,7 +37,8 @@ export const PUT = async (
     req.scope.resolve(FINANCING_MODULE);
 
   try {
-    // Actualizar el estado de la solicitud
+    // Actualizar el estado de la solicitud 
+    //@ts-ignore
     const updatedData = await financingDataModule.updateFinancingData({
       id,
       status,
