@@ -113,9 +113,9 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
         );
 
         // AÑADIDO PARA DEBUGGING
-        if (isMatch) {
-          console.log(`✅ Producto "${product.Nombre}" coincide con las palabras clave.`);
-        }
+        // if (isMatch) {
+        //   // console.log(`✅ Producto "${product.Nombre}" coincide con las palabras clave.`);
+        // }
 
         return isMatch;
       });
@@ -126,7 +126,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
     const topProducts = filteredProducts.sort((a, b) => b.TotalSales - a.TotalSales).slice(0, 5);
 
-    console.log("🏆 Productos principales (top 5):", topProducts.map(p => p.Nombre));
+    // console.log("🏆 Productos principales (top 5):", topProducts.map(p => p.Nombre));
 
     // ✨ SI HAY PRODUCTOS, SE PASAN COMO CONTEXTO A OPENAI (NO SE RESPONDE DIRECTAMENTE)
     if (topProducts.length > 0) {
