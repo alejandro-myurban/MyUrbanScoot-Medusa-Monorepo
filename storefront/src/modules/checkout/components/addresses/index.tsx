@@ -531,10 +531,17 @@ const Addresses = ({
     if (selectedShippingRate && cart?.id) {
       console.log("💾 Guardando método de envío...")
 
-      const optionData =
+      let optionData =
         selectedShippingRate.data && typeof selectedShippingRate.data === "object"
           ? selectedShippingRate.data
           : { id: "standard" } // o el valor por defecto que corresponda
+
+      // 🔧 FIX: Remover el campo 'translations' que añadió Tolgee
+      if (optionData && typeof optionData === "object") {
+        const { translations, ...cleanData } = optionData
+        optionData = cleanData
+        console.log("🧹 Datos limpios para Express Checkout:", cleanData)
+      }
 
       await setShippingMethod({
         cartId: cart.id,

@@ -2,20 +2,20 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { FINANCING_MODULE } from "modules/financing_data";
 import FinancingModuleService from "modules/financing_data/service";
 
-type UpdateStatusRequest = {
-  status: string;
+type UpdateContactedRequest = {
+  contacted: boolean;
 };
 
 export const PUT = async (
-  req: MedusaRequest<UpdateStatusRequest>,
+  req: MedusaRequest<UpdateContactedRequest>,
   res: MedusaResponse
 ) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { contacted } = req.body;
 
   console.log("🔍 Debug - req.params:", req.params);
   console.log("🔍 Debug - id value:", JSON.stringify(id));
-  console.log("🔍 Debug - id type:", typeof id);
+  console.log("🔍 Debug - contacted:", contacted);
 
   // Validar que el ID esté presente
   if (!id || id.trim() === "") {
@@ -25,22 +25,10 @@ export const PUT = async (
     });
   }
 
-  // Validar que el estado sea válido
-  const validStatuses = [
-    "pending",        // Pendiente
-    "budgeted",       // Presupuestado
-    "missing_docs",   // Falta documentación
-    "denied",         // Denegado
-    "cancelled",      // Cancelada
-    "pre_accepted",   // Preaceptada
-    "under_review",   // En revisión
-    "in_force",       // En vigor
-    "in_software",    // En software
-    "delivered"       // Entregado
-  ];
-  if (!status || !validStatuses.includes(status)) {
+  // Validar que el valor contacted sea boolean
+  if (typeof contacted !== "boolean") {
     return res.status(400).json({
-      message: "Estado inválido. Estados válidos: " + validStatuses.join(", "),
+      message: "El valor de contacted debe ser true o false",
     });
   }
 
@@ -48,27 +36,27 @@ export const PUT = async (
     req.scope.resolve(FINANCING_MODULE);
 
   try {
-    // Actualizar el estado de la solicitud 
+    // Actualizar el estado de contacto de la solicitud
     //@ts-ignore
     const updatedData = await financingDataModule.updateFinancingData({
       id,
-      status,
+      contacted,
     });
 
-    console.log(`✅ Estado actualizado para solicitud ${id}: ${status}`);
+    console.log(`✅ Estado de contacto actualizado para solicitud ${id}: ${contacted}`);
 
     res.status(200).json({
-      message: "Estado actualizado correctamente",
+      message: "Estado de contacto actualizado correctamente",
       data: updatedData,
     });
   } catch (error) {
-    console.error("❌ Error actualizando estado:", error);
+    console.error("❌ Error actualizando estado de contacto:", error);
 
     const errorMessage =
       error instanceof Error ? error.message : "Error desconocido";
 
     res.status(500).json({
-      message: "Error al actualizar el estado",
+      message: "Error al actualizar el estado de contacto",
       error: errorMessage,
     });
   }

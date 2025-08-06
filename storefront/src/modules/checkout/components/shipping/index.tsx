@@ -55,13 +55,7 @@ const Shipping: React.FC<ShippingProps> = ({
   >([])
   const [shippingOptions, setShippingOptions] = useState<HttpTypes.StoreCartShippingOption[]>([])
 
-  // === NUEVOS LOGS DE DEPURACIÓN PARA EL CARRITO ===
-  console.log("🚚 Métodos de envío disponibles:", availableShippingMethods);
-  console.log("🛒 Estado actual del carrito (cart object):", JSON.stringify(cart, null, 2));
-  console.log("📍 ID de la región del carrito:", cart?.region_id);
-  console.log("🏠 Dirección de envío del carrito:", JSON.stringify(cart?.shipping_address, null, 2));
-  console.log("📦 Ítems en el carrito:", JSON.stringify(cart?.items, null, 2));
-  // =================================================
+
   useEffect(() => {
     if (!cart) return
     sdk.store.fulfillment.listCartOptions({ cart_id: cart.id })
@@ -353,11 +347,18 @@ const applyFreeShippingAutomatically = useCallback(async () => {
         throw new Error("Opción de envío no encontrada")
       }
 
-      // Usa el data tal cual, asegurando que tenga 'id'
-      const optionData =
+      // Usa el data tal cual, asegurando que tenga 'id' y removiendo campos problemáticos
+      let optionData =
         selectedOption.data && typeof selectedOption.data === "object" && "id" in selectedOption.data
           ? selectedOption.data as {[key: string]: any; id: string}
           : { id: "standard" } // o el valor por defecto que corresponda
+
+      // 🔧 FIX: Remover el campo 'translations' que añadió Tolgee
+      if (optionData && typeof optionData === "object") {
+        const { translations, ...cleanData } = optionData
+        optionData = cleanData
+        console.log("🧹 Datos limpios enviados al backend:", cleanData)
+      }
 
       console.log("🔄 Seleccionando método de envío:", id)
       await setShippingMethod({

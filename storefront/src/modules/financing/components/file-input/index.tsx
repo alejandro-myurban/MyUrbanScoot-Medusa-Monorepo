@@ -64,7 +64,7 @@ export const FileInputEnhanced = ({
   onChange,
   disabled = false,
   multiple = false,
-  documentType, // ✅ CAMBIO de documentSide a documentType
+  documentType, 
   onVerificationComplete
 }: FileInputProps) => {
   const [isVerifying, setIsVerifying] = useState(false)

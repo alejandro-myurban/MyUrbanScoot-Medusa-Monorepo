@@ -46,6 +46,7 @@ type FinancingData = {
   bank_verification?: any;
   status: string;
   admin_notes?: string | null;
+  contacted?: boolean;
 };
 
 const FinancingPage = () => {
@@ -179,7 +180,7 @@ const FinancingPage = () => {
 
   const getContractTypeBadgeColor = (type: string) => {
     const colors = {
-      mployee_permanent: "text-black dark:text-white border-black",
+      employee_permanent: "text-black dark:text-white border-black",
       employee_temporary: "text-black dark:text-white border-black",
       employee: "text-black dark:text-white border-black",
       freelance: "text-black dark:text-white border-black",
@@ -218,6 +219,7 @@ const FinancingPage = () => {
       birthDate: null as string | null,
       nationality: null as string | null,
       sex: null as string | null,
+      addresses: null as string | null,
     };
 
     // Intentar obtener datos del DNI frontal primero
@@ -228,6 +230,11 @@ const FinancingPage = () => {
       dniData.birthDate = frontData.birthDate || null;
       dniData.nationality = frontData.nationality || null;
       dniData.sex = frontData.sex || null;
+    }
+
+    if (request.dni_back_verification?.extractedData) {
+      const backData = request.dni_back_verification.extractedData;
+      dniData.addresses = backData.addresses || dniData.addresses;
     }
 
     // Si no hay datos del frontal, intentar con el trasero
@@ -290,18 +297,32 @@ const FinancingPage = () => {
   // Funciones para manejar estados
   const getStatusLabel = (status: string) => {
     const labels = {
-      pending: "Pendiente",
-      accepted: "Aceptada",
-      rejected: "Rechazada",
+      pending: "Sin gestionar",
+      budgeted: "Presupuestado",
+      missing_docs: "Falta documentación",
+      denied: "Denegado",
+      cancelled: "Cancelada",
+      pre_accepted: "Preaceptada",
+      under_review: "En revisión",
+      in_force: "En vigor",
+      in_software: "En software",
+      delivered: "Entregado",
     };
     return labels[status as keyof typeof labels] || status;
   };
 
   const getStatusColor = (status: string) => {
     const colors = {
-      pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-      accepted: "bg-green-100 text-green-800 border-green-200",
-      rejected: "bg-red-100 text-red-800 border-red-200",
+      pending: "bg-gray-50 text-yellow-800 border-yellow-200",
+      budgeted: "bg-blue-100 text-blue-800 border-blue-200",
+      missing_docs: "bg-orange-100 text-orange-800 border-orange-200",
+      denied: "bg-red-100 text-red-800 border-red-200",
+      cancelled: "bg-gray-100 text-gray-800 border-gray-200",
+      pre_accepted: "bg-purple-100 text-purple-800 border-purple-200",
+      under_review: "bg-indigo-100 text-indigo-800 border-indigo-200",
+      in_force: "bg-green-100 text-green-800 border-green-200",
+      in_software: "bg-cyan-100 text-cyan-800 border-cyan-200",
+      delivered: "bg-emerald-100 text-emerald-800 border-emerald-200",
     };
     return (
       colors[status as keyof typeof colors] ||
@@ -312,8 +333,15 @@ const FinancingPage = () => {
   const getStatusIcon = (status: string) => {
     const icons = {
       pending: "🕐",
-      accepted: "✅",
-      rejected: "❌",
+      budgeted: "💰",
+      missing_docs: "📋",
+      denied: "❌",
+      cancelled: "🚫",
+      pre_accepted: "👀",
+      under_review: "🔍",
+      in_force: "✅",
+      in_software: "💻",
+      delivered: "🚀",
     };
     return icons[status as keyof typeof icons] || "📄";
   };
@@ -350,13 +378,13 @@ const FinancingPage = () => {
 
   const saveAdminNotes = async () => {
     if (!selectedRequest?.id) return;
-    
+
     setIsSavingNotes(true);
     try {
       const response = await sdk.client.fetch(
         `/store/financing-data/${selectedRequest.id}/notes`,
         {
-          method: "PUT", 
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             "x-publishable-api-key":
@@ -366,7 +394,6 @@ const FinancingPage = () => {
         }
       );
 
-
       console.log("✅ Notas guardadas exitosamente");
       // Refrescar los datos para obtener las notas actualizadas
       refetch();
@@ -375,6 +402,40 @@ const FinancingPage = () => {
       alert("Error al guardar las notas: " + error.message);
     } finally {
       setIsSavingNotes(false);
+    }
+  };
+
+  const updateContactedStatus = async (id: string, contacted: boolean) => {
+    if (!id || id.trim() === "") {
+      console.error(
+        "❌ Error: ID vacío al intentar actualizar estado de contacto"
+      );
+      return;
+    }
+
+    try {
+      console.log(
+        `🔄 Actualizando estado de contacto para ID: ${id} -> ${contacted}`
+      );
+      const response = await sdk.client.fetch(
+        `/store/financing-data/${id}/contacted`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-publishable-api-key":
+              "pk_14db1a49297371bf3f8d345db0cf016616d4244f1d593db1050907c88333cd21",
+          },
+          body: { contacted },
+        }
+      );
+
+      console.log(`✅ Estado de contacto actualizado exitosamente para ${id}`);
+      // Refrescar los datos sin recargar la página
+      refetch();
+    } catch (error: any) {
+      console.error("Error updating contacted status:", error);
+      alert("Error al actualizar el estado de contacto: " + error.message);
     }
   };
 
@@ -446,18 +507,18 @@ const FinancingPage = () => {
     const matchesStatus =
       !filterByStatus || (item.status || "pending") === filterByStatus;
 
-    // Filtro por término de búsqueda (email o nombre extraído del DNI)
+    // Filtro por término de búsqueda (teléfono o nombre extraído del DNI)
     let matchesSearch = true;
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
-      const emailMatch = item.email.toLowerCase().includes(searchLower);
+      const phoneMatch = item.phone_mumber.toLowerCase().includes(searchLower);
 
       // Buscar en el nombre extraído del DNI
       const dniInfo = extractDniInfo(item);
       const nameMatch =
         dniInfo.fullName?.toLowerCase().includes(searchLower) || false;
 
-      matchesSearch = emailMatch || nameMatch;
+      matchesSearch = phoneMatch || nameMatch;
     }
 
     return matchesContract && matchesStatus && matchesSearch;
@@ -598,7 +659,15 @@ const FinancingPage = () => {
                   </Text>
                   <Text className="font-medium flex gap-3 items-center  ">
                     {selectedRequest.phone_mumber}
-                    <a className="bg-green-400 w-10 flex items-center justify-center rounded-lg p-2  hover:bg-green-200 transition-all duration-150" target="_blank" href={`https://wa.me/34${selectedRequest.phone_mumber}?text=Hola%20${extractDniInfo(selectedRequest).fullName || ""}`}>
+                    <a
+                      className="bg-green-400 w-10 flex items-center justify-center rounded-lg p-2  hover:bg-green-200 transition-all duration-150"
+                      target="_blank"
+                      href={`https://wa.me/34${
+                        selectedRequest.phone_mumber
+                      }?text=Hola%20${
+                        extractDniInfo(selectedRequest).fullName || ""
+                      }`}
+                    >
                       <Whatsapp className="w-5 h-5 hover:scale-100" />
                     </a>
                   </Text>
@@ -634,7 +703,14 @@ const FinancingPage = () => {
                   >
                     Dirección
                   </Text>
-                  <Text className="font-medium">{selectedRequest.address}</Text>
+                  {(() => {
+                    const dniInfo = extractDniInfo(selectedRequest);
+                    return dniInfo.addresses ? (
+                      <span>{dniInfo.addresses}</span>
+                    ) : (
+                      <span>{selectedRequest.address}</span>
+                    );
+                  })()}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1079,18 +1155,37 @@ const FinancingPage = () => {
             <option value="pending">
               {getStatusIcon("pending")} Pendientes
             </option>
-            <option value="accepted">
-              {getStatusIcon("accepted")} Aceptadas
+            <option value="budgeted">
+              {getStatusIcon("budgeted")} Presupuestados
             </option>
-            <option value="rejected">
-              {getStatusIcon("rejected")} Rechazadas
+            <option value="missing_docs">
+              {getStatusIcon("missing_docs")} Falta documentación
+            </option>
+            <option value="denied">{getStatusIcon("denied")} Denegados</option>
+            <option value="cancelled">
+              {getStatusIcon("cancelled")} Canceladas
+            </option>
+            <option value="pre_accepted">
+              {getStatusIcon("pre_accepted")} Preaceptadas
+            </option>
+            <option value="under_review">
+              {getStatusIcon("under_review")} En revisión
+            </option>
+            <option value="in_force">
+              {getStatusIcon("in_force")} En vigor
+            </option>
+            <option value="in_software">
+              {getStatusIcon("in_software")} En software
+            </option>
+            <option value="delivered">
+              {getStatusIcon("delivered")} Entregados
             </option>
           </select>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por email"
+              placeholder="Buscar por teléfono"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm min-w-[200px]"
@@ -1104,7 +1199,7 @@ const FinancingPage = () => {
                 setFilterByStatus("");
                 setCurrentPage(1);
               }}
-              className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 underline"
+              className="px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:text-gray-700 underline"
             >
               Limpiar filtros
             </button>
@@ -1112,7 +1207,7 @@ const FinancingPage = () => {
         </div>
       </div>
 
-      <div className="px-6 py-8">
+      <div className="px-6 py-8 overflow-scroll">
         {paginatedFinancing.length === 0 && filteredFinancing.length === 0 ? (
           <Text className="text-gray-500">
             {filterByContractType || searchTerm || filterByStatus
@@ -1124,14 +1219,15 @@ const FinancingPage = () => {
             <Table.Header>
               <Table.Row>
                 <Table.HeaderCell>Estado</Table.HeaderCell>
+                <Table.HeaderCell>Contactado</Table.HeaderCell>
                 <Table.HeaderCell>Cliente</Table.HeaderCell>
                 <Table.HeaderCell>Contacto</Table.HeaderCell>
                 <Table.HeaderCell>Trabajo</Table.HeaderCell>
                 <Table.HeaderCell>Ingresos</Table.HeaderCell>
                 <Table.HeaderCell>Financiación</Table.HeaderCell>
                 <Table.HeaderCell>Documentos</Table.HeaderCell>
-                <Table.HeaderCell>Fecha</Table.HeaderCell>
                 <Table.HeaderCell>Acciones</Table.HeaderCell>
+                <Table.HeaderCell>Fecha</Table.HeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -1153,15 +1249,52 @@ const FinancingPage = () => {
                         disabled={!item.id || item.id.trim() === ""}
                       >
                         <option value="pending">
-                          {getStatusIcon("pending")} Pendiente
+                          {getStatusIcon("pending")} Sin gestionar
                         </option>
-                        <option value="accepted">
-                          {getStatusIcon("accepted")} Aceptada
+                        <option value="budgeted">
+                          {getStatusIcon("budgeted")} Presupuestado
                         </option>
-                        <option value="rejected">
-                          {getStatusIcon("rejected")} Rechazada
+                        <option value="missing_docs">
+                          {getStatusIcon("missing_docs")} Falta documentación
+                        </option>
+                        <option value="denied">
+                          {getStatusIcon("denied")} Denegado
+                        </option>
+                        <option value="cancelled">
+                          {getStatusIcon("cancelled")} Cancelada
+                        </option>
+                        <option value="pre_accepted">
+                          {getStatusIcon("pre_accepted")} Preaceptada
+                        </option>
+                        <option value="under_review">
+                          {getStatusIcon("under_review")} En revisión
+                        </option>
+                        <option value="in_force">
+                          {getStatusIcon("in_force")} En vigor
+                        </option>
+                        <option value="in_software">
+                          {getStatusIcon("in_software")} En software
+                        </option>
+                        <option value="delivered">
+                          {getStatusIcon("delivered")} Entregado
                         </option>
                       </select>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={item.contacted || false}
+                          onChange={(e) =>
+                            updateContactedStatus(item.id, e.target.checked)
+                          }
+                          disabled={!item.id || item.id.trim() === ""}
+                          className="w-4 h-4 text-green-500 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+                        />
+                        <span className="text-xs text-gray-600 dark:text-gray-300">
+                          {item.contacted ? "Contactado" : "No contactado"}
+                        </span>
+                      </div>
                     </Table.Cell>
                     <Table.Cell>
                       <div className="space-y-1">
@@ -1208,11 +1341,6 @@ const FinancingPage = () => {
                       <Badge size="small">{hasDocuments(item)} docs</Badge>
                     </Table.Cell>
                     <Table.Cell>
-                      <Text size="small" className="text-gray-400">
-                        {formatDate(item.requested_at)}
-                      </Text>
-                    </Table.Cell>
-                    <Table.Cell>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="secondary"
@@ -1237,6 +1365,11 @@ const FinancingPage = () => {
                           Docs
                         </Button>
                       </div>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Text size="small" className="text-gray-400">
+                        {formatDate(item.requested_at)}
+                      </Text>
                     </Table.Cell>
                   </Table.Row>
                 );

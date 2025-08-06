@@ -265,6 +265,20 @@ export async function setShippingMethod({
     optionData,
   })
 
+  // Primero obtener la shipping option para extraer el provider_id
+  const shippingOptions = await sdk.store.fulfillment.listCartOptions({ cart_id: cartId })
+  const selectedOption = shippingOptions.shipping_options.find(opt => opt.id === shippingMethodId)
+  
+  if (!selectedOption) {
+    throw new Error(`Shipping option ${shippingMethodId} not found`)
+  }
+
+  console.log("🔍 Shipping option encontrada:", {
+    id: selectedOption.id,
+    name: selectedOption.name,
+    provider_id: selectedOption.provider_id
+  })
+
   return sdk.store.cart
     .addShippingMethod(
       cartId,

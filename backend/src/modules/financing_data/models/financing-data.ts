@@ -32,6 +32,7 @@ const FinancingData = model.define("financing_data", {
   bank_verification: model.json().nullable(),
   status: model.text().default("pending"),
   admin_notes: model.text().nullable(),
+  contacted: model.boolean().default(false),
 })
 
 export default FinancingData
