@@ -52,6 +52,11 @@ const categoryKeywords: { [key: string]: string[] } = {
   "recambios": ["recambio", "recambios", "repuesto", "repuestos"],
 };
 
+// Define common Spanish stop words to exclude from filtering
+const stopWords = new Set([
+  "necesito", "para", "mi", "un", "una", "unos", "unas", "el", "la", "los", "las", "y", "o", "pero", "de", "en", "con", "por", "que", "se", "es", "estoy", "buscando", "quiero", "tengo", "dudas", "sobre", "servicio", "informacion", "ayuda", "tecnica", "casa", "hola", "crack", "soy", "el", "asistente", "virtual", "de", "en", "que", "puedo", "ayudarte", "hoy", "gracias", "menu", "opciones", "si", "no", "especifica", "su", "necesidad", "muestra", "este", "escribe", "numero", "opcion", "mejor", "se", "adapte", "lo", "buscas", "aqui", "tienes", "nuestras", "mejores", "opciones", "necesitas", "algo", "mas", "especifico", "dime", "marca", "modelo", "tu", "patinete", "tal", "que", "como", "estas", "buenas", "dias", "tardes", "noches", "saludos" // Added more greetings
+]);
+
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   console.log("📩 Llega POST a /whatsapp");
 
@@ -63,8 +68,12 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     }
 
     const body = req.body as TwilioRequestBody;
-    const incomingMsg = body.Body?.trim().toLowerCase();
     const userId = body.From;
+    
+    // --- NUEVO: Sanitizar el mensaje entrante ---
+    let incomingMsg = body.Body?.trim().toLowerCase() || "";
+    // Elimina signos de puntuación, exclamaciones, comas, etc.
+    incomingMsg = incomingMsg.replace(/[.,!¡¿?]/g, '');
 
     if (!incomingMsg || !userId) {
       return res.status(400).send({ code: "invalid_request", message: "Faltan campos obligatorios." });
@@ -72,59 +81,78 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
     console.log("🔍 Mensaje entrante:", incomingMsg);
 
-    // const opcionesMenu: Record<string, string> = {
-    //   "1": "Estoy buscando un producto.",
-    //   "2": "Tengo dudas sobre un pedido.",
-    //   "3": "Quiero contratar el servicio de Recogida+Entrega.",
-    //   "4": "Necesito información sobre talleres físicos.",
-    //   "5": "Necesito ayuda técnica para reparar mi patinete en casa.",
-    // };
-
-    // if (opcionesMenu[incomingMsg]) {
-    //   const responseText = `📋 Has seleccionado: ${opcionesMenu[incomingMsg]}\nCuéntame más para ayudarte mejor.`;
-    //   twiml.message(responseText);
-    //   return res.type("text/xml").send(twiml.toString());
-    // }
-
     if (!conversations[userId]) {
       conversations[userId] = [{ role: "system", content: systemPrompt }];
     }
 
+    // --- FILTRADO DE PRODUCTOS POR PALABRAS CLAVE ---
     let filteredProducts = products;
 
-    for (const category in categoryKeywords) {
-      if (categoryKeywords[category].some(keyword => incomingMsg.includes(keyword))) {
-        filteredProducts = products.filter(product =>
-          product.Categorias?.some(pCategory => pCategory.toLowerCase().includes(category))
+    const keywords = incomingMsg
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !stopWords.has(word));
+
+    // AÑADIDO PARA DEBUGGING
+    console.log("🔎 Palabras clave extraídas:", keywords);
+
+    if (keywords.length > 0) {
+      filteredProducts = products.filter(product => {
+        const hasMatch = (field: string) =>
+          keywords.every(kw => field.toLowerCase().includes(kw));
+
+        const name = product.Nombre || "";
+        const description = product.Descripcion || "";
+        const shortDescription = product.DescripcionCorta || "";
+        const variations = product.Variaciones?.map(v => v.Nombre).join(" ") || "";
+
+        const isMatch = (
+          hasMatch(name) ||
+          hasMatch(description) ||
+          hasMatch(shortDescription) ||
+          hasMatch(variations)
         );
-        break;
-      }
+
+        // AÑADIDO PARA DEBUGGING
+        if (isMatch) {
+          console.log(`✅ Producto "${product.Nombre}" coincide con las palabras clave.`);
+        }
+
+        return isMatch;
+      });
     }
 
-    const keywords = incomingMsg.split(/\s+/).filter(word => word.length > 2);
-    filteredProducts = filteredProducts.filter(product =>
-      keywords.some(keyword => product.Nombre.toLowerCase().includes(keyword))
-    );
+    // AÑADIDO PARA DEBUGGING
+    console.log(`📊 Total de productos filtrados: ${filteredProducts.length}`);
 
     const topProducts = filteredProducts.sort((a, b) => b.TotalSales - a.TotalSales).slice(0, 5);
 
+    console.log("🏆 Productos principales (top 5):", topProducts.map(p => p.Nombre));
+
+    // ✨ SI HAY PRODUCTOS, SE PASAN COMO CONTEXTO A OPENAI (NO SE RESPONDE DIRECTAMENTE)
     if (topProducts.length > 0) {
-      let productResponse = "🚀 ¡Claro, aquí tienes nuestras mejores opciones!\n\n";
+      const productList = topProducts.map((p, i) => {
+        let price: string;
+        if (p.Variaciones && p.Variaciones.length > 0) {
+          // Si el producto tiene variaciones, tomamos el precio de la primera variación
+          const firstVariation = p.Variaciones[0];
+          price = firstVariation.PrecioRebajado || firstVariation.PrecioNormal || "Precio no disponible";
+        } else {
+          // Si no hay variaciones, usamos el precio del producto principal
+          price = p.PrecioRebajado || p.PrecioNormal || "Precio no disponible";
+        }
+        return `${i + 1}. ${p.Nombre} - ${price}€ - ${p.URL}`;
+      }).join("\n");
 
-      topProducts.forEach(product => {
-        const price = product.PrecioRebajado ? `~${product.PrecioNormal}€~ **${product.PrecioRebajado}€**` : `${product.PrecioNormal}€`;
-        productResponse += `**${product.Nombre}**\n - Precio: ${price}\n - [Ver producto](${product.URL})\n\n`;
+      conversations[userId].push({
+        role: "system",
+        content: `Productos relevantes encontrados (puedes usarlos para recomendar al usuario si lo creés necesario):\n${productList}`
       });
-      
-      productResponse += `💡 ¿Necesitas algo más específico? Dime la marca o el modelo de tu patinete.`;
-
-      twiml.message(productResponse);
-      conversations[userId].push({ role: "assistant", content: productResponse });
-      return res.type("text/xml").send(twiml.toString());
     }
 
+    // Mensaje del usuario
     conversations[userId].push({ role: "user", content: incomingMsg });
 
+    // Limpiar si se hace muy largo
     if (conversations[userId].length > 7) {
       conversations[userId] = [conversations[userId][0], ...conversations[userId].slice(-6)];
     }
@@ -134,14 +162,14 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
       messages: conversations[userId],
-      max_tokens: 400,
+      max_tokens: 500,
       temperature: 0.4,
       top_p: 0.9,
       presence_penalty: 0.2,
       frequency_penalty: 0.1,
     });
 
-    const aiMessage = completion.choices[0]?.message?.content || "Lo siento, no entendí tu mensaje. Por favor, elige una de las opciones o visita nuestra web myurbanscoot.com";
+    const aiMessage = completion.choices[0]?.message?.content || "Lo siento, no entendí tu mensaje.";
 
     conversations[userId].push({
       role: "assistant",
@@ -149,7 +177,9 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     });
 
     twiml.message(aiMessage);
+    console.log("➡️ Enviando respuesta de OpenAI.");
     res.type("text/xml").send(twiml.toString());
+
   } catch (err) {
     console.error("❌ ERROR:", err);
     res.status(500).send({
