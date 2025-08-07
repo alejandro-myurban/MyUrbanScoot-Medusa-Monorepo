@@ -56,6 +56,7 @@ const FinancingPage = () => {
   const [filterByContractType, setFilterByContractType] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterByStatus, setFilterByStatus] = useState<string>("");
+  const [filterByContacted, setFilterByContacted] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 30;
   const [adminNotes, setAdminNotes] = useState<string>("");
@@ -497,7 +498,7 @@ const FinancingPage = () => {
 
   const financing: FinancingData[] = financingData?.financing_data || [];
 
-  // Filtrar por tipo de contrato, estado y término de búsqueda
+  // Filtrar por tipo de contrato, estado, contactado y término de búsqueda
   const filteredFinancing = financing.filter((item) => {
     // Filtro por tipo de contrato
     const matchesContract =
@@ -506,6 +507,12 @@ const FinancingPage = () => {
     // Filtro por estado
     const matchesStatus =
       !filterByStatus || (item.status || "pending") === filterByStatus;
+
+    // Filtro por contactado
+    const matchesContacted = 
+      !filterByContacted || 
+      (filterByContacted === "contacted" && item.contacted === true) ||
+      (filterByContacted === "not_contacted" && item.contacted !== true);
 
     // Filtro por término de búsqueda (teléfono o nombre extraído del DNI)
     let matchesSearch = true;
@@ -521,7 +528,7 @@ const FinancingPage = () => {
       matchesSearch = phoneMatch || nameMatch;
     }
 
-    return matchesContract && matchesStatus && matchesSearch;
+    return matchesContract && matchesStatus && matchesContacted && matchesSearch;
   });
 
   // Paginación
@@ -533,7 +540,7 @@ const FinancingPage = () => {
   // Reset página cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterByContractType, searchTerm, filterByStatus]);
+  }, [filterByContractType, searchTerm, filterByStatus, filterByContacted]);
 
   if (selectedRequest) {
     return (
@@ -1181,6 +1188,15 @@ const FinancingPage = () => {
               {getStatusIcon("delivered")} Entregados
             </option>
           </select>
+          <select
+            value={filterByContacted}
+            onChange={(e) => setFilterByContacted(e.target.value)}
+            className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+          >
+            <option value="">Todos (contactado)</option>
+            <option value="contacted">✅ Contactados</option>
+            <option value="not_contacted">❌ No contactados</option>
+          </select>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -1191,12 +1207,13 @@ const FinancingPage = () => {
               className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm min-w-[200px]"
             />
           </div>
-          {(filterByContractType || searchTerm || filterByStatus) && (
+          {(filterByContractType || searchTerm || filterByStatus || filterByContacted) && (
             <button
               onClick={() => {
                 setFilterByContractType("");
                 setSearchTerm("");
                 setFilterByStatus("");
+                setFilterByContacted("");
                 setCurrentPage(1);
               }}
               className="px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:text-gray-700 underline"
@@ -1210,7 +1227,7 @@ const FinancingPage = () => {
       <div className="px-6 py-8 overflow-scroll">
         {paginatedFinancing.length === 0 && filteredFinancing.length === 0 ? (
           <Text className="text-gray-500">
-            {filterByContractType || searchTerm || filterByStatus
+            {filterByContractType || searchTerm || filterByStatus || filterByContacted
               ? `No se encontraron solicitudes que coincidan con los filtros aplicados`
               : `No hay solicitudes de financiación todavía`}
           </Text>
