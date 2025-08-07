@@ -2,10 +2,6 @@
 
 import { ProductStatusWhatsApp, generateProductStatusWhatsAppMessage, WHATSAPP_PRODUCT_STATUS } from "./product-status";
 
-/**
- * Define los tipos de datos para cada template de WhatsApp.
- * Añade más tipos a esta unión a medida que crees nuevos templates.
- */
 export type WhatsAppTemplateData =
   | { type: typeof WHATSAPP_PRODUCT_STATUS; data: ProductStatusWhatsApp };
 
