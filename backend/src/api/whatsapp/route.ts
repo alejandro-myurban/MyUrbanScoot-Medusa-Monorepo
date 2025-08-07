@@ -11,7 +11,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const assistantId = "asst_ftOj6jax7GimtAM8cxK1awOs";
+const assistantId = "asst_WHExxIFiHSzghOVeFvJmuON5";
 
 type TwilioRequestBody = {
   Body: string;
