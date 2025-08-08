@@ -36,7 +36,7 @@ export async function loadImage(
       console.warn(
         `Formato no soportado (${mime}) para ${url}, convirtiendo a PNG`
       );
-      imgBuffer = (await sharp(buffer).png().toBuffer()) as Buffer;
+      imgBuffer = Buffer.from(await sharp(buffer).png().toBuffer());
       mime = "image/png";
     } else if (!type) {
       console.warn(
