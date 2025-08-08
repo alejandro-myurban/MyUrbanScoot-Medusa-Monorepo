@@ -23,7 +23,6 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   const twiml = new twilio.twiml.MessagingResponse();
 
   try {
-    // Validación estricta del cuerpo de la request
     if (
       !req.body ||
       typeof req.body !== "object" ||
@@ -40,7 +39,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
     const { Body, From } = req.body as TwilioRequestBody;
     const userId = From;
-    const incomingMsg = Body.trim();
+    const incomingMsg = Body.trim().toLowerCase(); // Convertir a minúsculas para una mejor detección
 
     let threadId = userThreads[userId];
 
@@ -59,11 +58,23 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     });
     console.log(`💬 Mensaje añadido al thread: "${incomingMsg}"`);
 
-    let run = await openai.beta.threads.runs.create(threadId, {
-      assistant_id: assistantId,
-    });
+// --- MODIFICACIÓN CLAVE AQUÍ ---
+    // Detectar palabras clave para decidir si forzar la herramienta
+    const productKeywords = ['vinilo', 'repuesto', 'batería', 'recambio', 'producto', 'rueda'];
+    const shouldForceFileSearch = productKeywords.some(keyword => incomingMsg.includes(keyword));
 
-    console.log("🤖 Ejecutando asistente...");
+    let runOptions: OpenAI.Beta.Threads.Runs.RunCreateParams = {
+        assistant_id: assistantId,
+    };
+
+    // Si detectamos una palabra clave, le decimos al asistente que use la herramienta de búsqueda de archivos
+    if (shouldForceFileSearch) {
+        // Corrección: Usar el tipo de herramienta directamente, en lugar del tipo 'tool' genérico
+        runOptions.tool_choice = { type: 'file_search' };
+        console.log("🔎 Forzando el uso de la herramienta 'file_search' para la búsqueda de productos.");
+    }
+    
+    let run = await openai.beta.threads.runs.create(threadId, runOptions);    console.log("🤖 Ejecutando asistente...");
 
     // Esperar hasta que el run se complete
     while (run.status !== "completed") {
@@ -74,7 +85,6 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // ✅ Corrección: usar la firma correcta de retrieve(runId, { thread_id })
       run = await openai.beta.threads.runs.retrieve(run.id, {
         thread_id: threadId,
       });
@@ -103,7 +113,6 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   } catch (err) {
     console.error("❌ ERROR:", err);
 
-    // Limpieza: eliminar el thread del usuario si hubo error
     if (
       req.body &&
       typeof req.body === "object" &&
