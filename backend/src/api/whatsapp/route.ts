@@ -1,191 +1,151 @@
+// src/api/whatsapp.ts
+
 import OpenAI from "openai";
 import twilio from "twilio";
-import rawProducts from "./data/productos.json";
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
-import { systemPrompt } from "./prompts/assistant-prompt";
 
-type Product = {
-  ID: number;
-  Nombre: string;
-  TotalSales: number;
-  PrecioNormal: string;
-  PrecioRebajado: string;
-  Descripcion: string;
-  DescripcionCorta: string;
-  URL: string;
-  Categorias?: string[];
-  Variaciones?: {
-    ID: number;
-    Nombre: string;
-    PrecioNormal: string;
-    PrecioRebajado: string;
-  }[];
-};
-
-const products: Product[] = (rawProducts as any[]).map((rawProduct) => ({
-  ID: rawProduct.ID,
-  Nombre: rawProduct.Nombre,
-  TotalSales: rawProduct.TotalSales,
-  PrecioNormal: rawProduct.PrecioNormal,
-  PrecioRebajado: rawProduct.PrecioRebajado,
-  Descripcion: rawProduct.Descripcion,
-  DescripcionCorta: rawProduct.DescripcionCorta,
-  URL: rawProduct.URL,
-  Categorias: rawProduct.Categorias,
-  Variaciones: rawProduct.Variaciones,
-}));
+// Mapa simple para asociar usuarios con sus threads de conversación
+const userThreads: Record<string, string> = {};
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
+const assistantId = "asst_WHExxIFiHSzghOVeFvJmuON5";
+
+// Inicializar el cliente de Twilio para enviar respuestas más tarde
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+// CORRECCIÓN 1: Usar el nombre de la variable de entorno correcto que tenías
+const twilioNumber = process.env.TWILIO_NUMBER;
+
+const twilioClient = twilio(accountSid, authToken);
+
 type TwilioRequestBody = {
-  Body: string;
-  From: string;
+  Body: string;
+  From: string;
 };
 
-const conversations: Record<string, OpenAI.Chat.Completions.ChatCompletionMessageParam[]> = {};
+// Esta es la nueva función asíncrona que contendrá toda la lógica de OpenAI.
+// La llamaremos después de responder a Twilio.
+const processWhatsAppMessage = async (
+  userId: string,
+  incomingMsg: string
+) => {
+  let threadId = userThreads[userId];
 
-const categoryKeywords: { [key: string]: string[] } = {
-  "vinilos": ["vinilo", "vinilos", "pegatina", "pegatinas"],
-  "patinetes-electricos": ["patinete", "patinetes", "scooter"],
-  "recambios": ["recambio", "recambios", "repuesto", "repuestos"],
+  try {
+    if (!threadId) {
+      const thread = await openai.beta.threads.create();
+      threadId = thread.id;
+      userThreads[userId] = threadId;
+      console.log(`➕ Creando nuevo thread para ${userId}: ${threadId}`);
+    } else {
+      console.log(`🔗 Usando thread existente para ${userId}: ${threadId}`);
+    }
+
+    await openai.beta.threads.messages.create(threadId, {
+      role: "user",
+      content: incomingMsg,
+    });
+    console.log(`💬 Mensaje añadido al thread: "${incomingMsg}"`);
+
+    const productKeywords = ['vinilo', 'repuesto', 'batería', 'recambio', 'producto', 'rueda'];
+    const shouldForceFileSearch = productKeywords.some(keyword => incomingMsg.includes(keyword));
+
+    let runOptions: OpenAI.Beta.Threads.Runs.RunCreateParams = {
+      assistant_id: assistantId,
+    };
+
+    if (shouldForceFileSearch) {
+      runOptions.tool_choice = { type: 'file_search' };
+      console.log("🔎 Forzando el uso de la herramienta 'file_search' para la búsqueda de productos.");
+    }
+
+    let run = await openai.beta.threads.runs.create(threadId, runOptions);
+    console.log("🤖 Ejecutando asistente...");
+
+    while (run.status !== "completed") {
+      if (run.status === "failed") {
+        const errorMessage = run.last_error?.message || "Error desconocido";
+        throw new Error(`❌ Run fallido: ${errorMessage}`);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      run = await openai.beta.threads.runs.retrieve(run.id, {
+        thread_id: threadId,
+      });
+    }
+
+    console.log("✅ Run completado.");
+
+    const messages = await openai.beta.threads.messages.list(threadId, {
+      order: "desc",
+      limit: 1,
+    });
+
+    let aiMessage = "Lo siento, no pude encontrar una respuesta.";
+    const lastMessage = messages.data[0];
+
+    if (lastMessage && lastMessage.content?.[0]?.type === "text") {
+      aiMessage = lastMessage.content[0].text.value;
+    }
+
+    console.log("➡️ Enviando respuesta de OpenAI a Twilio REST API.");
+
+    // CORRECCIÓN 2: Asegurarse de que el número de origen tenga el prefijo 'whatsapp:'
+    await twilioClient.messages.create({
+      to: userId,
+      from: 'whatsapp:' + twilioNumber,
+      body: aiMessage,
+    });
+  } catch (err) {
+    console.error("❌ ERROR en proceso asíncrono:", err);
+    // En caso de error, es buena práctica notificar al usuario.
+    // También puedes borrar el thread si el error es grave.
+    // El prefijo 'whatsapp:' también es necesario aquí.
+    await twilioClient.messages.create({
+      to: userId,
+      from: 'whatsapp:' + twilioNumber,
+      body: "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, inténtalo de nuevo más tarde.",
+    });
+  }
 };
 
-// Define common Spanish stop words to exclude from filtering
-const stopWords = new Set([
-  "necesito", "para", "mi", "un", "una", "unos", "unas", "el", "la", "los", "las", "y", "o", "pero", "de", "en", "con", "por", "que", "se", "es", "estoy", "buscando", "quiero", "tengo", "dudas", "sobre", "servicio", "informacion", "ayuda", "tecnica", "casa", "hola", "crack", "soy", "el", "asistente", "virtual", "de", "en", "que", "puedo", "ayudarte", "hoy", "gracias", "menu", "opciones", "si", "no", "especifica", "su", "necesidad", "muestra", "este", "escribe", "numero", "opcion", "mejor", "se", "adapte", "lo", "buscas", "aqui", "tienes", "nuestras", "mejores", "opciones", "necesitas", "algo", "mas", "especifico", "dime", "marca", "modelo", "tu", "patinete", "tal", "que", "como", "estas", "buenas", "dias", "tardes", "noches", "saludos" // Added more greetings
-]);
-
+// --- EL ENDPOINT PRINCIPAL AHORA RESPONDE RÁPIDO ---
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
-  console.log("📩 Llega POST a /whatsapp");
+  console.log("📩 Llega POST a /whatsapp");
 
-  const twiml = new twilio.twiml.MessagingResponse();
+  // Verificación de la solicitud, igual que antes.
+  try {
+    if (
+      !req.body ||
+      typeof req.body !== "object" ||
+      !("Body" in req.body) ||
+      !("From" in req.body) ||
+      typeof req.body.Body !== "string" ||
+      typeof req.body.From !== "string"
+    ) {
+      return res.status(400).send({
+        code: "invalid_request",
+        message: "Cuerpo de la solicitud no válido o faltan campos obligatorios.",
+      });
+    }
 
-  try {
-    if (!req.body) {
-      return res.status(400).send({ code: "invalid_request", message: "Cuerpo vacío." });
-    }
+    const { Body, From } = req.body as TwilioRequestBody;
+    const userId = From;
+    const incomingMsg = Body.trim().toLowerCase();
 
-    const body = req.body as TwilioRequestBody;
-    const userId = body.From;
-    
-    // --- NUEVO: Sanitizar el mensaje entrante ---
-    let incomingMsg = body.Body?.trim().toLowerCase() || "";
-    // Elimina signos de puntuación, exclamaciones, comas, etc.
-    incomingMsg = incomingMsg.replace(/[.,!¡¿?]/g, '');
+    // Llama a la función de procesamiento, pero no la espera.
+    processWhatsAppMessage(userId, incomingMsg);
 
-    if (!incomingMsg || !userId) {
-      return res.status(400).send({ code: "invalid_request", message: "Faltan campos obligatorios." });
-    }
-
-    console.log("🔍 Mensaje entrante:", incomingMsg);
-
-    if (!conversations[userId]) {
-      conversations[userId] = [{ role: "system", content: systemPrompt }];
-    }
-
-    // --- FILTRADO DE PRODUCTOS POR PALABRAS CLAVE ---
-    let filteredProducts = products;
-
-    const keywords = incomingMsg
-      .split(/\s+/)
-      .filter(word => word.length > 2 && !stopWords.has(word));
-
-    // AÑADIDO PARA DEBUGGING
-    console.log("🔎 Palabras clave extraídas:", keywords);
-
-    if (keywords.length > 0) {
-      filteredProducts = products.filter(product => {
-        const hasMatch = (field: string) =>
-          keywords.every(kw => field.toLowerCase().includes(kw));
-
-        const name = product.Nombre || "";
-        const description = product.Descripcion || "";
-        const shortDescription = product.DescripcionCorta || "";
-        const variations = product.Variaciones?.map(v => v.Nombre).join(" ") || "";
-
-        const isMatch = (
-          hasMatch(name) ||
-          hasMatch(description) ||
-          hasMatch(shortDescription) ||
-          hasMatch(variations)
-        );
-
-        // AÑADIDO PARA DEBUGGING
-        // if (isMatch) {
-        //   // console.log(`✅ Producto "${product.Nombre}" coincide con las palabras clave.`);
-        // }
-
-        return isMatch;
-      });
-    }
-
-    // AÑADIDO PARA DEBUGGING
-    console.log(`📊 Total de productos filtrados: ${filteredProducts.length}`);
-
-    const topProducts = filteredProducts.sort((a, b) => b.TotalSales - a.TotalSales).slice(0, 5);
-
-    // console.log("🏆 Productos principales (top 5):", topProducts.map(p => p.Nombre));
-
-    // ✨ SI HAY PRODUCTOS, SE PASAN COMO CONTEXTO A OPENAI (NO SE RESPONDE DIRECTAMENTE)
-    if (topProducts.length > 0) {
-      const productList = topProducts.map((p, i) => {
-        let price: string;
-        if (p.Variaciones && p.Variaciones.length > 0) {
-          // Si el producto tiene variaciones, tomamos el precio de la primera variación
-          const firstVariation = p.Variaciones[0];
-          price = firstVariation.PrecioRebajado || firstVariation.PrecioNormal || "Precio no disponible";
-        } else {
-          // Si no hay variaciones, usamos el precio del producto principal
-          price = p.PrecioRebajado || p.PrecioNormal || "Precio no disponible";
-        }
-        return `${i + 1}. ${p.Nombre} - ${price}€ - ${p.URL}`;
-      }).join("\n");
-
-      conversations[userId].push({
-        role: "system",
-        content: `Productos relevantes encontrados (puedes usarlos para recomendar al usuario si lo creés necesario):\n${productList}`
-      });
-    }
-
-    // Mensaje del usuario
-    conversations[userId].push({ role: "user", content: incomingMsg });
-
-    // Limpiar si se hace muy largo
-    if (conversations[userId].length > 7) {
-      conversations[userId] = [conversations[userId][0], ...conversations[userId].slice(-6)];
-    }
-
-    console.log("🤖 Consultando OpenAI...");
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: conversations[userId],
-      max_tokens: 500,
-      temperature: 0.4,
-      top_p: 0.9,
-      presence_penalty: 0.2,
-      frequency_penalty: 0.1,
-    });
-
-    const aiMessage = completion.choices[0]?.message?.content || "Lo siento, no entendí tu mensaje.";
-
-    conversations[userId].push({
-      role: "assistant",
-      content: aiMessage,
-    });
-
-    twiml.message(aiMessage);
-    console.log("➡️ Enviando respuesta de OpenAI.");
-    res.type("text/xml").send(twiml.toString());
-
-  } catch (err) {
-    console.error("❌ ERROR:", err);
-    res.status(500).send({
-      code: "internal_error",
-      message: "Error procesando el mensaje.",
-      detail: err instanceof Error ? err.message : err,
-    });
-  }
+    // Envía una respuesta inmediata a Twilio para evitar el timeout.
+    return res.status(200).send('<Response></Response>');
+  } catch (err) {
+    console.error("❌ ERROR en el webhook:", err);
+    // Devuelve un 500 para indicar que el webhook ha fallado
+    return res.status(500).send('<Response></Response>');
+  }
 };
