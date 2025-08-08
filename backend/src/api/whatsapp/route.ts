@@ -8,144 +8,152 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 const userThreads: Record<string, string> = {};
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
 const assistantId = "asst_WHExxIFiHSzghOVeFvJmuON5";
 
-// Inicializar el cliente de Twilio para enviar respuestas más tarde
+// Inicializar el cliente de Twilio
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-// CORRECCIÓN 1: Usar el nombre de la variable de entorno correcto que tenías
 const twilioNumber = process.env.TWILIO_NUMBER;
 
 const twilioClient = twilio(accountSid, authToken);
 
 type TwilioRequestBody = {
-  Body: string;
-  From: string;
+  Body: string;
+  From: string;
 };
 
-// Esta es la nueva función asíncrona que contendrá toda la lógica de OpenAI.
-// La llamaremos después de responder a Twilio.
-const processWhatsAppMessage = async (
-  userId: string,
-  incomingMsg: string
-) => {
-  let threadId = userThreads[userId];
+// Función para procesar mensajes
+const processWhatsAppMessage = async (userId: string, incomingMsg: string) => {
+  let threadId = userThreads[userId];
 
-  try {
-    if (!threadId) {
-      const thread = await openai.beta.threads.create();
-      threadId = thread.id;
-      userThreads[userId] = threadId;
-      console.log(`➕ Creando nuevo thread para ${userId}: ${threadId}`);
-    } else {
-      console.log(`🔗 Usando thread existente para ${userId}: ${threadId}`);
-    }
+  try {
+    // Crear thread si no existe
+    if (!threadId) {
+      const thread = await openai.beta.threads.create();
+      threadId = thread.id;
+      userThreads[userId] = threadId;
+      console.log(`➕ Creando nuevo thread para ${userId}: ${threadId}`);
+    } else {
+      console.log(`🔗 Usando thread existente para ${userId}: ${threadId}`);
+    }
 
-    await openai.beta.threads.messages.create(threadId, {
-      role: "user",
-      content: incomingMsg,
-    });
-    console.log(`💬 Mensaje añadido al thread: "${incomingMsg}"`);
+    // Añadir mensaje del usuario al thread
+    await openai.beta.threads.messages.create(threadId, {
+      role: "user",
+      content: incomingMsg,
+    });
+    console.log(`💬 Mensaje añadido al thread: "${incomingMsg}"`);
 
-    const productKeywords = ['vinilo', 'repuesto', 'batería', 'recambio', 'producto', 'rueda'];
-    const shouldForceFileSearch = productKeywords.some(keyword => incomingMsg.includes(keyword));
+    // Palabras clave para detecciones especiales
+    const viniloKeywords = ["vinilo", "vinilos"];
+    const mejoraKeywords = ["mejorar", "mejora", "modificar", "tunear", "empepinar"];
+    const productKeywords = ["repuesto", "batería", "recambio", "producto", "rueda"];
 
-    let runOptions: OpenAI.Beta.Threads.Runs.RunCreateParams = {
-      assistant_id: assistantId,
-    };
+    // Opciones para ejecutar el asistente
+    let runOptions: OpenAI.Beta.Threads.Runs.RunCreateParams = {
+      assistant_id: assistantId,
+    };
 
-    if (shouldForceFileSearch) {
-      runOptions.tool_choice = { type: 'file_search' };
-      console.log("🔎 Forzando el uso de la herramienta 'file_search' para la búsqueda de productos.");
-    }
+    // Detectar VINILOS
+    if (viniloKeywords.some(k => incomingMsg.includes(k))) {
+      runOptions.tool_choice = { type: "file_search" };
+      runOptions.instructions = "Busca productos de tipo 'vinilos' filtrando por la marca y modelo especificado por el usuario.";
+      console.log("🔎 Forzando búsqueda de VINILOS con file_search.");
+    }
 
-    let run = await openai.beta.threads.runs.create(threadId, runOptions);
-    console.log("🤖 Ejecutando asistente...");
+    // Detectar MEJORAS
+    if (mejoraKeywords.some(k => incomingMsg.includes(k))) {
+      runOptions.tool_choice = { type: "file_search" };
+      runOptions.instructions = "Busca productos top ventas en la categoría 'Zona Circuito' compatibles con la marca y modelo mencionados.";
+      console.log("🔧 Forzando búsqueda de MEJORAS en 'Zona Circuito' con file_search.");
+    }
 
-    while (run.status !== "completed") {
-      if (run.status === "failed") {
-        const errorMessage = run.last_error?.message || "Error desconocido";
-        throw new Error(`❌ Run fallido: ${errorMessage}`);
-      }
+    // Detectar búsqueda genérica de productos si no es vinilos ni mejoras
+    if (productKeywords.some(keyword => incomingMsg.includes(keyword)) && !runOptions.tool_choice) {
+      runOptions.tool_choice = { type: "file_search" };
+      console.log("🛠 Forzando file_search para búsqueda genérica de productos.");
+    }
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // Ejecutar el asistente
+    let run = await openai.beta.threads.runs.create(threadId, runOptions);
+    console.log("🤖 Ejecutando asistente...");
 
-      run = await openai.beta.threads.runs.retrieve(run.id, {
-        thread_id: threadId,
-      });
-    }
+    // Esperar hasta que se complete el run
+    while (run.status !== "completed") {
+      if (run.status === "failed") {
+        const errorMessage = run.last_error?.message || "Error desconocido";
+        throw new Error(`❌ Run fallido: ${errorMessage}`);
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: threadId });
+    }
 
-    console.log("✅ Run completado.");
+    console.log("✅ Run completado.");
 
-    const messages = await openai.beta.threads.messages.list(threadId, {
-      order: "desc",
-      limit: 1,
-    });
+    // Obtener último mensaje de OpenAI
+    const messages = await openai.beta.threads.messages.list(threadId, {
+      order: "desc",
+      limit: 1,
+    });
 
-    let aiMessage = "Lo siento, no pude encontrar una respuesta.";
-    const lastMessage = messages.data[0];
+    let aiMessage = "Lo siento, no pude encontrar una respuesta.";
+    const lastMessage = messages.data[0];
 
-    if (lastMessage && lastMessage.content?.[0]?.type === "text") {
-      aiMessage = lastMessage.content[0].text.value;
-    }
+    if (lastMessage && lastMessage.content?.[0]?.type === "text") {
+      aiMessage = lastMessage.content[0].text.value;
+    }
 
-    console.log("➡️ Enviando respuesta de OpenAI a Twilio REST API.");
+    console.log("➡️ Enviando respuesta de OpenAI a Twilio REST API.");
 
-    // CORRECCIÓN 2: Asegurarse de que el número de origen tenga el prefijo 'whatsapp:'
-    await twilioClient.messages.create({
-      to: userId,
-      from: 'whatsapp:' + twilioNumber,
-      body: aiMessage,
-    });
-  } catch (err) {
-    console.error("❌ ERROR en proceso asíncrono:", err);
-    // En caso de error, es buena práctica notificar al usuario.
-    // También puedes borrar el thread si el error es grave.
-    // El prefijo 'whatsapp:' también es necesario aquí.
-    await twilioClient.messages.create({
-      to: userId,
-      from: 'whatsapp:' + twilioNumber,
-      body: "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, inténtalo de nuevo más tarde.",
-    });
-  }
+    // Enviar respuesta por WhatsApp
+    await twilioClient.messages.create({
+      to: userId,
+      from: "whatsapp:" + twilioNumber,
+      body: aiMessage,
+    });
+  } catch (err) {
+    console.error("❌ ERROR en proceso asíncrono:", err);
+    await twilioClient.messages.create({
+      to: userId,
+      from: "whatsapp:" + twilioNumber,
+      body: "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, inténtalo de nuevo más tarde.",
+    });
+  }
 };
 
-// --- EL ENDPOINT PRINCIPAL AHORA RESPONDE RÁPIDO ---
+// --- ENDPOINT PRINCIPAL ---
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
-  console.log("📩 Llega POST a /whatsapp");
+  console.log("📩 Llega POST a /whatsapp");
 
-  // Verificación de la solicitud, igual que antes.
-  try {
-    if (
-      !req.body ||
-      typeof req.body !== "object" ||
-      !("Body" in req.body) ||
-      !("From" in req.body) ||
-      typeof req.body.Body !== "string" ||
-      typeof req.body.From !== "string"
-    ) {
-      return res.status(400).send({
-        code: "invalid_request",
-        message: "Cuerpo de la solicitud no válido o faltan campos obligatorios.",
-      });
-    }
+  try {
+    if (
+      !req.body ||
+      typeof req.body !== "object" ||
+      !("Body" in req.body) ||
+      !("From" in req.body) ||
+      typeof req.body.Body !== "string" ||
+      typeof req.body.From !== "string"
+    ) {
+      return res.status(400).send({
+        code: "invalid_request",
+        message: "Cuerpo de la solicitud no válido o faltan campos obligatorios.",
+      });
+    }
 
-    const { Body, From } = req.body as TwilioRequestBody;
-    const userId = From;
-    const incomingMsg = Body.trim().toLowerCase();
+    const { Body, From } = req.body as TwilioRequestBody;
+    const userId = From;
+    const incomingMsg = Body.trim().toLowerCase();
 
-    // Llama a la función de procesamiento, pero no la espera.
-    processWhatsAppMessage(userId, incomingMsg);
+    // Procesar mensaje de forma asíncrona
+    processWhatsAppMessage(userId, incomingMsg);
 
-    // Envía una respuesta inmediata a Twilio para evitar el timeout.
-    return res.status(200).send('<Response></Response>');
-  } catch (err) {
-    console.error("❌ ERROR en el webhook:", err);
-    // Devuelve un 500 para indicar que el webhook ha fallado
-    return res.status(500).send('<Response></Response>');
-  }
+    // Respuesta inmediata a Twilio
+    return res.status(200).send("<Response></Response>");
+  } catch (err) {
+    console.error("❌ ERROR en el webhook:", err);
+    return res.status(500).send("<Response></Response>");
+  }
 };
