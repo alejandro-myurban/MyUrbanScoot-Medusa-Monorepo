@@ -7,10 +7,9 @@ import fileType from "file-type";
  * @property {string} mime
  */
 export type ImageWithMime = {
-  buffer: Buffer;
+  buffer: Uint8Array;
   mime: string;
 };
-
 /**
  * @param {string | undefined} url - La URL de la imagen a cargar.
  * @param {boolean} [convertToPngIfUnsupported=false] - Si es true, convierte la imagen a PNG si no es JPEG o PNG.
@@ -21,9 +20,12 @@ export async function loadImage(
   convertToPngIfUnsupported = false
 ): Promise<ImageWithMime | null> {
   if (!url) return null;
+
   try {
     const res = await fetch(url);
-    const buffer = Buffer.from(await res.arrayBuffer());
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+
     let type = await fileType.fromBuffer(buffer);
     let imgBuffer = buffer;
     let mime = type?.mime || "image/png";
@@ -36,7 +38,7 @@ export async function loadImage(
       console.warn(
         `Formato no soportado (${mime}) para ${url}, convirtiendo a PNG`
       );
-      imgBuffer = (await sharp(buffer).png().toBuffer()) as Buffer;
+      imgBuffer = new Uint8Array(await sharp(buffer).png().toBuffer());
       mime = "image/png";
     } else if (!type) {
       console.warn(
@@ -44,6 +46,7 @@ export async function loadImage(
       );
       mime = "image/png";
     }
+
     return { buffer: imgBuffer, mime };
   } catch (error) {
     console.error(`Error cargando imagen desde ${url}:`, error);
