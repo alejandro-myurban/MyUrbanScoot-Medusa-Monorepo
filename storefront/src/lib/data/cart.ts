@@ -250,53 +250,115 @@ export async function enrichLineItems(
 
   return enrichedItems
 }
+
 export async function setShippingMethod({
   cartId,
   shippingMethodId,
-  optionData, // <-- agrega este parámetro
 }: {
   cartId: string
   shippingMethodId: string
-  optionData: { id: string; [key: string]: any } // <-- tipo para los datos de la opción
 }) {
-  console.log("INTENTANDO agregar método de envío:", {
+  console.log("🚀 setShippingMethod llamado con:", {
     cartId,
     shippingMethodId,
-    optionData,
   })
 
-  // Primero obtener la shipping option para extraer el provider_id
-  const shippingOptions = await sdk.store.fulfillment.listCartOptions({ cart_id: cartId })
-  const selectedOption = shippingOptions.shipping_options.find(opt => opt.id === shippingMethodId)
-  
-  if (!selectedOption) {
-    throw new Error(`Shipping option ${shippingMethodId} not found`)
+  const headers = {
+    ...getAuthHeaders(),
   }
 
-  console.log("🔍 Shipping option encontrada:", {
-    id: selectedOption.id,
-    name: selectedOption.name,
-    provider_id: selectedOption.provider_id
-  })
+  // Opción 1: Usar SIEMPRE el workaround
+  const useWorkaround = true
 
-  return sdk.store.cart
-    .addShippingMethod(
-      cartId,
-      { 
-        option_id: shippingMethodId,
-        data: optionData // <-- aquí pasas los datos de la opción
-      },
-      {},
-      getAuthHeaders()
-    )
-    .then(() => {
-      console.log("✅ Método de envío agregado con éxito")
-      revalidateTag("cart")
+  // Opción 2: Usar workaround solo en desarrollo
+  // const useWorkaround = process.env.NODE_ENV === 'development';
+
+  // Opción 3: Usar workaround basado en una variable de entorno
+  // const useWorkaround = process.env.NEXT_PUBLIC_USE_SHIPPING_WORKAROUND === 'true';
+
+  try {
+    if (useWorkaround) {
+      console.log("🔄 Usando endpoint workaround para shipping method")
+
+      // Llamar al endpoint workaround
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/carts/${cartId}/shipping-methods-workaround`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-publishable-api-key": `pk_14db1a49297371bf3f8d345db0cf016616d4244f1d593db1050907c88333cd21`,
+          },
+          body: JSON.stringify({ option_id: shippingMethodId }),
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("❌ Error del workaround:", errorData)
+        throw new Error(errorData.message || "Error al agregar shipping method")
+      }
+
+      const data = await response.json()
+      console.log("✅ Respuesta del workaround:", data)
+
+      // Revalidar el cache
+      const cartCacheTag = await getCacheTag("carts")
+      revalidateTag(cartCacheTag)
+
+      return data
+    } else {
+      // Usar el método original con el SDK
+      console.log("📦 Usando SDK estándar para shipping method")
+
+      const response = await sdk.store.cart.addShippingMethod(
+        cartId,
+        { option_id: shippingMethodId },
+        {},
+        headers
+      )
+
+      console.log("✅ Respuesta del SDK:", response)
+
+      const cartCacheTag = await getCacheTag("carts")
+      revalidateTag(cartCacheTag)
+
+      return response
+    }
+  } catch (error: any) {
+    console.error("❌ Error en setShippingMethod:", {
+      message: error.message,
+      stack: error.stack,
+      useWorkaround,
     })
-    .catch((err) => {
-      console.error("❌ Error al agregar método de envío", err)
-      medusaError(err)
-    })
+
+    // Si el workaround falla, podrías intentar con el SDK original como fallback
+    if (
+      useWorkaround &&
+      error.message?.includes("shipping-methods-workaround")
+    ) {
+      console.log("🔄 Workaround falló, intentando con SDK original...")
+
+      try {
+        const fallbackResponse = await sdk.store.cart.addShippingMethod(
+          cartId,
+          { option_id: shippingMethodId },
+          {},
+          headers
+        )
+
+        const cartCacheTag = await getCacheTag("carts")
+        revalidateTag(cartCacheTag)
+
+        return fallbackResponse
+      } catch (fallbackError) {
+        console.error("❌ SDK original también falló:", fallbackError)
+        throw medusaError(fallbackError)
+      }
+    }
+
+    throw medusaError(error)
+  }
 }
 
 export async function initiatePaymentSession(

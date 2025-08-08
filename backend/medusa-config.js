@@ -314,7 +314,9 @@ if (!fulfillmentModule) {
       console.log(`📦 Fulfillment provider [${idx}]:`, provider);
     });
   } else {
-    console.warn("⚠️ Fulfillment module no tiene 'options.providers' definido como array.");
+    console.warn(
+      "⚠️ Fulfillment module no tiene 'options.providers' definido como array."
+    );
   }
 }
 

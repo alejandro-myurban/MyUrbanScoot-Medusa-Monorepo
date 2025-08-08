@@ -53,14 +53,10 @@ const Shipping: React.FC<ShippingProps> = ({
   const [itemsWithEstimate, setItemsWithEstimate] = useState<
     ItemWithEstimate[]
   >([])
-  const [shippingOptions, setShippingOptions] = useState<HttpTypes.StoreCartShippingOption[]>([])
+  const [shippingOptions, setShippingOptions] = useState<
+    HttpTypes.StoreCartShippingOption[]
+  >([])
 
-
-  useEffect(() => {
-    if (!cart) return
-    sdk.store.fulfillment.listCartOptions({ cart_id: cart.id })
-      .then(({ shipping_options }) => setShippingOptions(shipping_options))
-  }, [cart])
   // Estados para el auto-submit
   const [pendingAutoSubmit, setPendingAutoSubmit] = useState(false)
   const [hasUserSelectedShipping, setHasUserSelectedShipping] = useState(false)
@@ -116,36 +112,36 @@ const Shipping: React.FC<ShippingProps> = ({
     )
   }, [availableShippingMethods])
 
-const applyFreeShippingAutomatically = useCallback(async () => {
-  const freeMethod = findFreeShippingMethod()
-  if (!freeMethod) return
+  const applyFreeShippingAutomatically = useCallback(async () => {
+    const freeMethod = findFreeShippingMethod()
+    if (!freeMethod) return
 
-  try {
-    console.log("🎉 Aplicando envío gratis automáticamente:", freeMethod.name)
-    const optionData =
-      freeMethod.data && typeof freeMethod.data === "object" && "id" in freeMethod.data
-        ? freeMethod.data as { [key: string]: any; id: string }
-        : { id: "standard" }
-    await setShippingMethod({
-      cartId: cart.id,
-      shippingMethodId: freeMethod.id,
-      optionData,
-    })    
-  console.log("✅ Método de envío gratis aplicado exitosamente")
-    
-    // ✅ NUEVO: Forzar refresh para asegurar que los datos se actualicen
-    router.refresh()
-    
-    // ✅ NUEVO: Esperar un poco después del refresh antes de marcar como aplicado
-    setTimeout(() => {
-      console.log("🎯 Marcando freeShippingApplied como true")
-      setFreeShippingApplied(true)
-    }, 800)
-    
-  } catch (error) {
-    console.error("❌ Error aplicando envío gratis automático:", error)
-  }
-}, [findFreeShippingMethod, cart.id, router])
+    try {
+      console.log("🎉 Aplicando envío gratis automáticamente:", freeMethod.name)
+      const optionData =
+        freeMethod.data &&
+        typeof freeMethod.data === "object" &&
+        "id" in freeMethod.data
+          ? (freeMethod.data as { [key: string]: any; id: string })
+          : { id: "standard" }
+      await setShippingMethod({
+        cartId: cart.id,
+        shippingMethodId: freeMethod.id,
+      })
+      console.log("✅ Método de envío gratis aplicado exitosamente")
+
+      // ✅ NUEVO: Forzar refresh para asegurar que los datos se actualicen
+      router.refresh()
+
+      // ✅ NUEVO: Esperar un poco después del refresh antes de marcar como aplicado
+      setTimeout(() => {
+        console.log("🎯 Marcando freeShippingApplied como true")
+        setFreeShippingApplied(true)
+      }, 800)
+    } catch (error) {
+      console.error("❌ Error aplicando envío gratis automático:", error)
+    }
+  }, [findFreeShippingMethod, cart.id, router])
 
   const visibleShippingMethods = useMemo(() => {
     if (!availableShippingMethods) return null
@@ -342,29 +338,24 @@ const applyFreeShippingAutomatically = useCallback(async () => {
 
     try {
       // Busca la opción de envío seleccionada por su id
-      const selectedOption = shippingOptions.find(opt => opt.id === id)
+      const selectedOption = availableShippingMethods?.find(
+        (opt) => opt.id === id
+      )
+
+      console.log("🔍 Selected Option Debug:", {
+        id: selectedOption?.id,
+        provider_id: selectedOption?.provider_id, // ¡Esto debería existir!
+        name: selectedOption?.name,
+        data: selectedOption?.data,
+      })
       if (!selectedOption) {
         throw new Error("Opción de envío no encontrada")
-      }
-
-      // Usa el data tal cual, asegurando que tenga 'id' y removiendo campos problemáticos
-      let optionData =
-        selectedOption.data && typeof selectedOption.data === "object" && "id" in selectedOption.data
-          ? selectedOption.data as {[key: string]: any; id: string}
-          : { id: "standard" } // o el valor por defecto que corresponda
-
-      // 🔧 FIX: Remover el campo 'translations' que añadió Tolgee
-      if (optionData && typeof optionData === "object") {
-        const { translations, ...cleanData } = optionData
-        optionData = cleanData
-        console.log("🧹 Datos limpios enviados al backend:", cleanData)
       }
 
       console.log("🔄 Seleccionando método de envío:", id)
       await setShippingMethod({
         cartId: cart.id,
         shippingMethodId: id,
-        optionData,
       })
       // Forzar un refresh del server state en Next.js
       router.refresh()

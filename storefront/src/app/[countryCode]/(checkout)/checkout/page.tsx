@@ -43,9 +43,12 @@ export default async function Checkout({ params }: Props) {
   const storedValue = cookieStore.get("i18next")?.value
 
   // Obtener datos necesarios para el checkout
-  const shippingMethods = await listCartShippingMethods(
+  const shippingMethods = await listCartShippingMethodsWithTranslations(
     cart.id,
+    params.countryCode || "es" // Default to "es" if not provided
   )
+
+  console.log("🔍 Shipping Methods Debug:", shippingMethods)
   const paymentMethods = await listCartPaymentMethods(cart.region?.id ?? "")
 
   if (!shippingMethods || !paymentMethods) {

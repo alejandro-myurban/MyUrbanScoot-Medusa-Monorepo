@@ -35,36 +35,36 @@ export class DocumentVerificationModuleService {
     documentSide: "front" | "back"
   ): Promise<VerificationResult> {
     try {
-      this.logger_.info(`🔍 Verificando ${documentSide} del DNI...`);
+      this.logger_.info(`🔍 Verificando ${documentSide} del DNI/NIE...`);
 
-      const frontPrompt = `Analiza esta imagen del ANVERSO de un DNI español y extrae la siguiente información:
+      const frontPrompt = `Analiza esta imagen del ANVERSO de un DNI o NIE español y extrae la siguiente información:
 
 VALIDACIONES IMPORTANTES:
-1. ¿Es un DNI español válido y legible?
+1. ¿Es un DNI o NIE español válido y legible?
 2. ¿Está la foto de la persona presente y visible?
 3. ¿Los textos están claramente legibles sin borrosidad?
-4. ¿Los colores y formato coinciden con un DNI español real?
+4. ¿Los colores y formato coinciden con un DNI o NIE español real?
 5. ¿Hay signos de falsificación, manipulación o edición digital?
 
 INFORMACIÓN A EXTRAER:
 - Nombre completo de la persona
-- Número de DNI (formato: 12345678X)
+- Número de documento (formato DNI: 12345678X o formato NIE: X1234567L/Y1234567L/Z1234567L)
 - Fecha de nacimiento
 - Sexo (H/M)
 - Nacionalidad`;
 
       // ✅ NUEVO PROMPT ESPECÍFICO PARA REVERSO
-      const backPrompt = `Analiza esta imagen del REVERSO de un DNI español y busca ESPECÍFICAMENTE estos elementos:
+      const backPrompt = `Analiza esta imagen del REVERSO de un DNI o NIE español y busca ESPECÍFICAMENTE estos elementos:
 
-🎯 DATOS CLAVE A EXTRAER DEL REVERSO DNI ESPAÑOL:
+🎯 DATOS CLAVE A EXTRAER DEL REVERSO DNI/NIE ESPAÑOL:
 
 1. **NÚMERO DE EQUIPO**: Busca texto como "EQUIPO" seguido de números/letras (ej: "30331L601", "12345A123")
 2. **DOMICILIO/DIRECCIÓN**: Busca direcciones de oficinas o domicilios mencionados
 3. **LUGAR DE NACIMIENTO**: Puede aparecer como ubicación o referencia geográfica
-4. **TEXTO OFICIAL**: Busca frases como "DOCUMENTO NACIONAL DE IDENTIDAD", "DIRECCIÓN GENERAL", etc.
+4. **TEXTO OFICIAL**: Busca frases como "DOCUMENTO NACIONAL DE IDENTIDAD", "NÚMERO DE IDENTIDAD DE EXTRANJERO", "DIRECCIÓN GENERAL", etc.
 
 🔍 ELEMENTOS VISUALES A VERIFICAR:
-- Gradientes de colores (naranjas, amarillos, azules típicos del DNI)
+- Gradientes de colores (naranjas, amarillos, azules típicos del DNI/NIE)
 - Códigos de barras o elementos gráficos
 - Diseño oficial con texto en español
 - Formato de tarjeta oficial
@@ -73,17 +73,18 @@ INFORMACIÓN A EXTRAER:
 - El reverso NO tiene foto de persona
 - El reverso NO tiene fechas de expedición/caducidad  
 - El reverso SÍ tiene información de oficinas y códigos
+- NIE y DNI tienen el mismo formato de reverso
 
 CRITERIOS DE VALIDACIÓN:
 ✅ VÁLIDO si encuentra:
 - Número de EQUIPO claro
 - O direcciones oficiales en español
-- O diseño oficial reconocible del DNI
+- O diseño oficial reconocible del DNI/NIE
 - O texto oficial del Ministerio del Interior
 
 ❌ INVÁLIDO solo si:
 - Es claramente otra cosa (pasaporte, carnet, foto personal, etc.)
-- No tiene ningún elemento típico del reverso DNI`;
+- No tiene ningún elemento típico del reverso DNI/NIE`;
 
       const prompt = documentSide === "front" ? frontPrompt : backPrompt;
 
@@ -123,17 +124,19 @@ CRITERIOS DE VALIDACIÓN:
       // ✅ SISTEMA DE MENSAJES ESPECÍFICO
       const systemMessage =
         documentSide === "front"
-          ? `Eres un experto en verificación del ANVERSO de documentos DNI españoles. 
+          ? `Eres un experto en verificación del ANVERSO de documentos DNI y NIE españoles. 
+         Conoces perfectamente los formatos de ambos documentos y sus diferencias.
          SIEMPRE responde con JSON válido, sin excepción.`
-          : `Eres un experto en verificación del REVERSO de documentos DNI españoles.
+          : `Eres un experto en verificación del REVERSO de documentos DNI y NIE españoles.
          
          MISIÓN: Buscar el NÚMERO DE EQUIPO, direcciones, y elementos oficiales.
          
-         El reverso del DNI español SIEMPRE tiene:
+         El reverso del DNI y NIE español SIEMPRE tiene:
          - Número de EQUIPO (código alfanumérico)
          - Información de oficinas/direcciones
          - Diseño oficial con gradientes
          - Texto del Ministerio del Interior
+         - Ambos documentos tienen el mismo formato de reverso
          
          SIEMPRE responde con JSON válido, sin excepción.`;
 
@@ -162,7 +165,7 @@ ${
 - Busca CUALQUIER número después de "EQUIPO" 
 - Si encuentras el número de equipo = VÁLIDO automáticamente
 - Si ves direcciones oficiales = VÁLIDO  
-- Si ves diseño oficial DNI = VÁLIDO
+- Si ves diseño oficial DNI/NIE = VÁLIDO
 - confidence entre 80-95 si encuentras datos clave
 - confidence 60-75 si solo ves diseño oficial
 - SOLO marca como inválido si es obviamente otra cosa
@@ -171,9 +174,12 @@ EJEMPLO de lo que buscas:
 - "EQUIPO 30331L601" ← ESTO ES CLAVE
 - Direcciones de oficinas en español
 - Texto oficial del gobierno
+- "DOCUMENTO NACIONAL DE IDENTIDAD" o "NÚMERO DE IDENTIDAD DE EXTRANJERO"
 `
     : `
-- Si la imagen SÍ es un DNI válido, cambia isValid a true y completa los datos
+- Si la imagen SÍ es un DNI o NIE válido, cambia isValid a true y completa los datos
+- Para DNI: formato 12345678X (8 números + 1 letra)
+- Para NIE: formato X1234567L, Y1234567L o Z1234567L (letra + 7 números + 1 letra)
 - confidence debe ser un NÚMERO ENTERO entre 0 y 100
 `
 }
@@ -331,7 +337,7 @@ EJEMPLO de lo que buscas:
       return result;
     } catch (error: any) {
       this.logger_.error(
-        `❌ Error en verificación de DNI: ${error?.message || error}`
+        `❌ Error en verificación de DNI/NIE: ${error?.message || error}`
       );
 
       // ✅ FALLBACK PERMISIVO PARA REVERSO EN CASO DE ERROR TÉCNICO
@@ -346,7 +352,7 @@ EJEMPLO de lo que buscas:
           },
           confidence: 60,
           issues: [
-            "Error técnico - aplicado fallback permisivo para reverso DNI",
+            "Error técnico - aplicado fallback permisivo para reverso DNI/NIE",
           ],
           imageQuality: "fair",
         };
@@ -1366,7 +1372,7 @@ ELEMENTOS CLAVE A BUSCAR:
       issues: string[];
     };
   }> {
-    this.logger_.info("🔄 Verificando ambos lados del DNI...");
+    this.logger_.info("🔄 Verificando ambos lados del DNI/NIE...");
 
     const [frontResult, backResult] = await Promise.all([
       this.verifyIdentityDocument(frontImageBase64, "front"),

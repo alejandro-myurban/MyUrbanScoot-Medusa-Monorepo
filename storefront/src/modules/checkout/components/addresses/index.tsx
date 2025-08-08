@@ -30,7 +30,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js"
 import { StripeContext } from "@modules/checkout/components/payment-wrapper/stripe-wrapper"
-import { listCartShippingMethods } from "@lib/data/fulfillment"
+import { listCartShippingMethods, listCartShippingMethodsWithTranslations } from "@lib/data/fulfillment"
 import { validateAddressForm } from "@/lib/schemas/shipping-address"
 
 const Addresses = ({
@@ -193,7 +193,7 @@ const Addresses = ({
           console.log(
             "🔄 Precargando shipping options para carrito con dirección..."
           )
-          const options = await listCartShippingMethods(cart.id)
+          const options = await listCartShippingMethodsWithTranslations(cart.id, cart.shipping_address.country_code)
           if (options && options.length > 0) {
             console.log("✅ Shipping options precargadas:", options)
             setCachedShippingOptions(options)
