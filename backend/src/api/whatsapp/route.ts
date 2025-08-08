@@ -13,15 +13,109 @@ const openai = new OpenAI({
 
 const assistantId = "asst_WHExxIFiHSzghOVeFvJmuON5";
 
+// Inicializar el cliente de Twilio para enviar respuestas más tarde
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioNumber = process.env.TWILIO_NUMBER; // Tu número de Twilio (From)
+
+const twilioClient = twilio(accountSid, authToken);
+
 type TwilioRequestBody = {
   Body: string;
   From: string;
 };
 
+// Esta es la nueva función asíncrona que contendrá toda la lógica de OpenAI.
+// La llamaremos después de responder a Twilio.
+const processWhatsAppMessage = async (
+  userId: string,
+  incomingMsg: string
+) => {
+  let threadId = userThreads[userId];
+
+  try {
+    if (!threadId) {
+      const thread = await openai.beta.threads.create();
+      threadId = thread.id;
+      userThreads[userId] = threadId;
+      console.log(`➕ Creando nuevo thread para ${userId}: ${threadId}`);
+    } else {
+      console.log(`🔗 Usando thread existente para ${userId}: ${threadId}`);
+    }
+
+    await openai.beta.threads.messages.create(threadId, {
+      role: "user",
+      content: incomingMsg,
+    });
+    console.log(`💬 Mensaje añadido al thread: "${incomingMsg}"`);
+
+    const productKeywords = ['vinilo', 'repuesto', 'batería', 'recambio', 'producto', 'rueda'];
+    const shouldForceFileSearch = productKeywords.some(keyword => incomingMsg.includes(keyword));
+
+    let runOptions: OpenAI.Beta.Threads.Runs.RunCreateParams = {
+      assistant_id: assistantId,
+    };
+
+    if (shouldForceFileSearch) {
+      runOptions.tool_choice = { type: 'file_search' };
+      console.log("🔎 Forzando el uso de la herramienta 'file_search' para la búsqueda de productos.");
+    }
+
+    let run = await openai.beta.threads.runs.create(threadId, runOptions);
+    console.log("🤖 Ejecutando asistente...");
+
+    while (run.status !== "completed") {
+      if (run.status === "failed") {
+        const errorMessage = run.last_error?.message || "Error desconocido";
+        throw new Error(`❌ Run fallido: ${errorMessage}`);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      run = await openai.beta.threads.runs.retrieve(run.id, {
+        thread_id: threadId,
+      });
+    }
+
+    console.log("✅ Run completado.");
+
+    const messages = await openai.beta.threads.messages.list(threadId, {
+      order: "desc",
+      limit: 1,
+    });
+
+    let aiMessage = "Lo siento, no pude encontrar una respuesta.";
+    const lastMessage = messages.data[0];
+
+    if (lastMessage && lastMessage.content?.[0]?.type === "text") {
+      aiMessage = lastMessage.content[0].text.value;
+    }
+
+    console.log("➡️ Enviando respuesta de OpenAI a Twilio REST API.");
+
+    // CAMBIO CLAVE: Usamos la API de REST de Twilio para enviar la respuesta
+    await twilioClient.messages.create({
+      to: userId,
+      from: twilioNumber,
+      body: aiMessage,
+    });
+  } catch (err) {
+    console.error("❌ ERROR en proceso asíncrono:", err);
+    // En caso de error, es buena práctica notificar al usuario.
+    // También puedes borrar el thread si el error es grave.
+    await twilioClient.messages.create({
+      to: userId,
+      from: twilioNumber,
+      body: "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, inténtalo de nuevo más tarde.",
+    });
+  }
+};
+
+// --- EL ENDPOINT PRINCIPAL AHORA RESPONDE RÁPIDO ---
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   console.log("📩 Llega POST a /whatsapp");
-  const twiml = new twilio.twiml.MessagingResponse();
 
+  // Verificación de la solicitud, igual que antes.
   try {
     if (
       !req.body ||
@@ -39,93 +133,19 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
     const { Body, From } = req.body as TwilioRequestBody;
     const userId = From;
-    const incomingMsg = Body.trim().toLowerCase(); // Convertir a minúsculas para una mejor detección
+    const incomingMsg = Body.trim().toLowerCase();
 
-    let threadId = userThreads[userId];
+    // CAMBIO CLAVE: Llama a la función de procesamiento, pero no la espera.
+    // El `await` ya no está aquí, lo que permite que el endpoint responda al instante.
+    processWhatsAppMessage(userId, incomingMsg);
 
-    if (!threadId) {
-      const thread = await openai.beta.threads.create();
-      threadId = thread.id;
-      userThreads[userId] = threadId;
-      console.log(`➕ Creando nuevo thread para ${userId}: ${threadId}`);
-    } else {
-      console.log(`🔗 Usando thread existente para ${userId}: ${threadId}`);
-    }
-
-    await openai.beta.threads.messages.create(threadId, {
-      role: "user",
-      content: incomingMsg,
-    });
-    console.log(`💬 Mensaje añadido al thread: "${incomingMsg}"`);
-
-// --- MODIFICACIÓN CLAVE AQUÍ ---
-    // Detectar palabras clave para decidir si forzar la herramienta
-    const productKeywords = ['vinilo', 'repuesto', 'batería', 'recambio', 'producto', 'rueda'];
-    const shouldForceFileSearch = productKeywords.some(keyword => incomingMsg.includes(keyword));
-
-    let runOptions: OpenAI.Beta.Threads.Runs.RunCreateParams = {
-        assistant_id: assistantId,
-    };
-
-    // Si detectamos una palabra clave, le decimos al asistente que use la herramienta de búsqueda de archivos
-    if (shouldForceFileSearch) {
-        // Corrección: Usar el tipo de herramienta directamente, en lugar del tipo 'tool' genérico
-        runOptions.tool_choice = { type: 'file_search' };
-        console.log("🔎 Forzando el uso de la herramienta 'file_search' para la búsqueda de productos.");
-    }
-    
-    let run = await openai.beta.threads.runs.create(threadId, runOptions);    console.log("🤖 Ejecutando asistente...");
-
-    // Esperar hasta que el run se complete
-    while (run.status !== "completed") {
-      if (run.status === "failed") {
-        const errorMessage = run.last_error?.message || "Error desconocido";
-        throw new Error(`❌ Run fallido: ${errorMessage}`);
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      run = await openai.beta.threads.runs.retrieve(run.id, {
-        thread_id: threadId,
-      });
-
-      console.log(`⏳ Estado actual del run: ${run.status}`);
-    }
-
-    console.log("✅ Run completado.");
-
-    const messages = await openai.beta.threads.messages.list(threadId, {
-      order: "desc",
-      limit: 1,
-    });
-
-    let aiMessage = "Lo siento, no pude encontrar una respuesta.";
-    const lastMessage = messages.data[0];
-
-    if (lastMessage && lastMessage.content?.[0]?.type === "text") {
-      aiMessage = lastMessage.content[0].text.value;
-    }
-
-    twiml.message(aiMessage);
-    console.log("➡️ Enviando respuesta de OpenAI.");
-
-    res.type("text/xml").send(twiml.toString());
+    // CAMBIO CLAVE: Envía una respuesta inmediata a Twilio.
+    // Esto evita el timeout de 15 segundos.
+    // Puedes enviar un TwiML vacío o un simple `200 OK`.
+    return res.status(200).send('<Response></Response>');
   } catch (err) {
-    console.error("❌ ERROR:", err);
-
-    if (
-      req.body &&
-      typeof req.body === "object" &&
-      "From" in req.body &&
-      typeof (req.body as any).From === "string"
-    ) {
-      delete userThreads[(req.body as any).From];
-    }
-
-    res.status(500).send({
-      code: "internal_error",
-      message: "Error procesando el mensaje.",
-      detail: err instanceof Error ? err.message : String(err),
-    });
+    console.error("❌ ERROR en el webhook:", err);
+    // Devuelve un 500 para indicar que el webhook ha fallado
+    return res.status(500).send('<Response></Response>');
   }
 };
