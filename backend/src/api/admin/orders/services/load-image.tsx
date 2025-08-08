@@ -3,8 +3,8 @@ import fileType from "file-type";
 
 /**
  * @typedef {Object} ImageWithMime
- * @property {Buffer} buffer 
- * @property {string} mime 
+ * @property {Buffer} buffer
+ * @property {string} mime
  */
 export type ImageWithMime = {
   buffer: Buffer;
@@ -28,12 +28,20 @@ export async function loadImage(
     let imgBuffer = buffer;
     let mime = type?.mime || "image/png";
 
-    if (convertToPngIfUnsupported && mime !== "image/jpeg" && mime !== "image/png") {
-      console.warn(`Formato no soportado (${mime}) para ${url}, convirtiendo a PNG`);
-      imgBuffer = await sharp(buffer).png().toBuffer();
+    if (
+      convertToPngIfUnsupported &&
+      mime !== "image/jpeg" &&
+      mime !== "image/png"
+    ) {
+      console.warn(
+        `Formato no soportado (${mime}) para ${url}, convirtiendo a PNG`
+      );
+      imgBuffer = (await sharp(buffer).png().toBuffer()) as Buffer;
       mime = "image/png";
     } else if (!type) {
-      console.warn(`No se pudo detectar el tipo de imagen para ${url}, asumiendo PNG`);
+      console.warn(
+        `No se pudo detectar el tipo de imagen para ${url}, asumiendo PNG`
+      );
       mime = "image/png";
     }
     return { buffer: imgBuffer, mime };
