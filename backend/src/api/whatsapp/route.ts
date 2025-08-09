@@ -18,16 +18,55 @@ const twilioNumber = process.env.TWILIO_NUMBER;
 
 const twilioClient = twilio(accountSid, authToken);
 
+// 📦 Mensajes por estado del pedido
+const orderStatusMessages: Record<string, string> = {
+  processing: `🛠️ ¡Estamos trabajando en tu pedido!
+Tu pedido ya está en nuestras manos y nos encontramos preparando todo para que esté listo lo antes posible. 🚀
+
+Todavía no ha salido de nuestras instalaciones, pero en cuanto lo haga, recibirás un correo con toda la información de seguimiento del paquete por parte de GLS.
+
+Si necesitas cualquier detalle adicional o tienes alguna consulta, no dudes en contactarnos. ¡Gracias por confiar en MyUrbanScoot! 😊`,
+
+  completed: `📦 ¡Tu pedido ya ha salido de nuestras instalaciones! 🚀
+Te llegará en un plazo de 24/48 horas laborales desde que salió de nuestra nave.
+Deberías haber recibido un correo electrónico con el seguimiento del paquete enviado por GLS.
+
+Si tienes cualquier duda sobre tu pedido o necesitas más información, no dudes en contactarnos. 😊`,
+
+  "espera-stock": `⚠️ Tu pedido está en espera de stock.
+Estamos esperando recibir uno o más productos necesarios para completar tu pedido. Sentimos mucho las molestias y la demora ocasionadas.
+
+Si necesitas más información sobre los plazos estimados, por favor contacta con Valeria (de 10 a 16 los días laborales), quien podrá ayudarte:
+📞 Teléfono: +34 620 92 99 44
+
+Gracias por tu paciencia y comprensión. 😊`,
+
+  "espera-baterias": `🔋 Tu pedido incluye baterías en producción.
+Como somos los fabricantes de las baterías, estas requieren un tiempo de preparación y producción personalizado. Esto puede ocasionar un plazo adicional.
+
+Estamos trabajando al máximo para que tu pedido esté listo lo antes posible. Agradecemos tu paciencia y confianza en MyUrbanScoot.
+
+Si necesitas más detalles o tienes alguna consulta sobre el estado de tu pedido, contacta con Valeria (10:00 a 16:00 los días laborales): +34 620 92 99 44.
+Recomendamos mandar un WhatsApp si está fuera de su horario. 📞 Teléfono: +34 620 92 99 44`,
+
+  "565produccionvi": `🎨 Tu pedido incluye vinilos en producción.
+Actualmente estamos a tope con los pedidos de vinilos, lo que está provocando algunos retrasos. Sentimos mucho las molestias ocasionadas.
+
+Si necesitas más información, deseas realizar cambios o incluso cancelar el pedido, contacta con Valeria, quien estará encantada de ayudarte:
+📞 Teléfono: +34 620 92 99 44
+
+Gracias por tu paciencia mientras trabajamos en que todo quede perfecto para ti. 😊`
+};
+
 type TwilioRequestBody = {
   Body: string;
   From: string;
 };
 
-// Envia mensaje via Twilio WhatsApp (wrapper)
+// Envia mensaje via Twilio WhatsApp
 const sendWhatsApp = async (to: string, body: string) => {
   const MAX_TWILIO_MESSAGE_LENGTH = 1600;
   const messagesToSend = [];
-
   const whatsappTo = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
 
   if (body.length > MAX_TWILIO_MESSAGE_LENGTH) {
@@ -41,9 +80,7 @@ const sendWhatsApp = async (to: string, body: string) => {
         currentMessage = word;
       }
     }
-    if (currentMessage.length > 0) {
-      messagesToSend.push(currentMessage);
-    }
+    if (currentMessage.length > 0) messagesToSend.push(currentMessage);
   } else {
     messagesToSend.push(body);
   }
@@ -81,10 +118,27 @@ const processWhatsAppMessage = async (userId: string, incomingMsgRaw: string) =>
     });
     console.log(`💬 Mensaje añadido al thread: "${incomingMsg}"`);
 
-    // **CAMBIO CLAVE**: El runOptions ahora está vacío.
-    // Esto le indica al asistente que use sus instrucciones predefinidas.
     const runOptions: OpenAI.Beta.Threads.Runs.RunCreateParams = {
       assistant_id: assistantId,
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "track_order",
+            description: "consulta el estado del pedido(orden) del cliente",
+            parameters: {
+              type: "object",
+              properties: {
+                orderid: {
+                  type: "string",
+                  description: "el numero de identificacion(ID) de la orden"
+                }
+              },
+              required: ["orderid"]
+            }
+          }
+        }
+      ]
     };
 
     await runAssistantRunAndReply(threadId, runOptions, userId);
@@ -108,24 +162,65 @@ const runAssistantRunAndReply = async (
         const errorMessage = run.last_error?.message || "Error desconocido en run";
         throw new Error(errorMessage);
       }
+
+      // 🚀 Si el asistente llama a track_order
+      if (run.required_action?.type === "submit_tool_outputs") {
+        for (const toolCall of run.required_action.submit_tool_outputs.tool_calls) {
+          if (toolCall.function.name === "track_order") {
+            const args = JSON.parse(toolCall.function.arguments);
+            const orderId = args.orderid;
+
+            // Consultar WooCommerce API
+            const wooRes = await fetch(`${process.env.WC_API_URL}/orders/${orderId}`, {
+              headers: {
+                Authorization: `Basic ${Buffer.from(
+                  process.env.WC_CONSUMER_KEY + ":" + process.env.WC_CONSUMER_SECRET
+                ).toString("base64")}`,
+                "Content-Type": "application/json"
+              }
+            });
+
+            if (!wooRes.ok) {
+              await sendWhatsApp(userId, "No pude encontrar tu pedido. Por favor revisa el número de orden.");
+              return;
+            }
+
+            const orderData = await wooRes.json();
+            const status = orderData.status;
+            const reply = orderStatusMessages[status] || `Estado actual del pedido: ${status}`;
+
+            await sendWhatsApp(userId, reply);
+
+            await openai.beta.threads.runs.submitToolOutputs(
+              run.id,
+              {
+                thread_id: threadId,
+                tool_outputs: [
+                  {
+                    tool_call_id: toolCall.id,
+                    output: reply
+                  }
+                ]
+              }
+            );
+            return;
+          }
+        }
+      }
+
       await new Promise(resolve => setTimeout(resolve, 1000));
       run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: threadId });
     }
 
     console.log("✅ Run completado. Obteniendo mensajes...");
-
-    const messages = await openai.beta.threads.messages.list(threadId, {
-      order: "desc",
-      limit: 1,
-    });
+    const messages = await openai.beta.threads.messages.list(threadId, { order: "desc", limit: 1 });
 
     let aiMessage = "Lo siento, no pude encontrar una respuesta.";
     const lastMessage = messages.data[0];
-
     if (lastMessage && lastMessage.content?.[0]?.type === "text") {
       aiMessage = lastMessage.content[0].text.value;
     }
-    
+
     await sendWhatsApp(userId, aiMessage);
   } catch (err) {
     console.error("❌ Error ejecutando runAssistantRunAndReply:", err);
