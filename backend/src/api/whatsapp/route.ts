@@ -176,7 +176,7 @@ const runAssistantRunAndReply = async (
               const wooRes = await fetch(`${process.env.WC_URL}/orders/${orderId}`, {
                 headers: {
                   Authorization: `Basic ${Buffer.from(
-                    `${process.env.WC_CONSUMER_KEY}:${process.env.WC_CONSUMER_SECRET}`
+                    `${process.env.WC_CONSUMER_KEY}:${process.env.WC_CONSUMER_KEY_S}`
                   ).toString("base64")}`,
                   "Content-Type": "application/json"
                 }
