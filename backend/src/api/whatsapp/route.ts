@@ -167,33 +167,47 @@ const runAssistantRunAndReply = async (
       if (run.required_action?.type === "submit_tool_outputs") {
         for (const toolCall of run.required_action.submit_tool_outputs.tool_calls) {
           if (toolCall.function.name === "track_order") {
-            const args = JSON.parse(toolCall.function.arguments);
-            const orderId = args.orderid;
+            try {
+              const args = JSON.parse(toolCall.function.arguments);
+              const orderId = args.orderid;
+              console.log(`📦 Consultando estado de la orden: ${orderId}`);
 
-            // Consultar WooCommerce API
-            const wooRes = await fetch(`${process.env.WC_URL}/orders/${orderId}`, {
-              headers: {
-                Authorization: `Basic ${Buffer.from(
-                  process.env.WC_CONSUMER_KEY + ":" + process.env.WC_CONSUMER_KEY_S
-                ).toString("base64")}`,
-                "Content-Type": "application/json"
+              // Consulta a WooCommerce
+              const wooRes = await fetch(`${process.env.WC_URL}/orders/${orderId}`, {
+                headers: {
+                  Authorization: `Basic ${Buffer.from(
+                    `${process.env.WC_CONSUMER_KEY}:${process.env.WC_CONSUMER_SECRET}`
+                  ).toString("base64")}`,
+                  "Content-Type": "application/json"
+                }
+              });
+
+              if (!wooRes.ok) {
+                const errorText = await wooRes.text();
+                console.error(`❌ WooCommerce API Error [${wooRes.status}]:`, errorText);
+                await sendWhatsApp(userId, "No pude encontrar tu pedido. Por favor revisa el número de orden.");
+                // Pasar salida vacía al asistente para que no se quede colgado
+                await openai.beta.threads.runs.submitToolOutputs(run.id, {
+                  thread_id: threadId,
+                  tool_outputs: [
+                    {
+                      tool_call_id: toolCall.id,
+                      output: `Error consultando orden: ${wooRes.status}`
+                    }
+                  ]
+                });
+                break;
               }
-            });
 
-            if (!wooRes.ok) {
-              await sendWhatsApp(userId, "No pude encontrar tu pedido. Por favor revisa el número de orden.");
-              return;
-            }
+              const orderData = await wooRes.json();
+              console.log("📦 Datos de la orden recibidos:", orderData);
 
-            const orderData = await wooRes.json();
-            const status = orderData.status;
-            const reply = orderStatusMessages[status] || `Estado actual del pedido: ${status}`;
+              const status = orderData.status;
+              const reply = orderStatusMessages[status] || `Estado actual del pedido: ${status}`;
 
-            await sendWhatsApp(userId, reply);
+              await sendWhatsApp(userId, reply);
 
-            await openai.beta.threads.runs.submitToolOutputs(
-              run.id,
-              {
+              await openai.beta.threads.runs.submitToolOutputs(run.id, {
                 thread_id: threadId,
                 tool_outputs: [
                   {
@@ -201,9 +215,12 @@ const runAssistantRunAndReply = async (
                     output: reply
                   }
                 ]
-              }
-            );
-            return;
+              });
+
+            } catch (err) {
+              console.error("❌ Error ejecutando track_order:", err);
+              await sendWhatsApp(userId, "Ocurrió un error al consultar tu pedido.");
+            }
           }
         }
       }
@@ -223,7 +240,7 @@ const runAssistantRunAndReply = async (
 
     await sendWhatsApp(userId, aiMessage);
   } catch (err) {
-    console.error("❌ Error ejecutando runAssistantRunAndReply:", err);
+    console.error("❌ Error en runAssistantRunAndReply:", err);
     await sendWhatsApp(userId, "Error buscando productos — inténtalo de nuevo o contacta con Alex: +34 620 92 99 44.");
   }
 };
