@@ -111,6 +111,9 @@ const medusaConfig = {
       key: "documentVerificationModuleService",
     },
     {
+      resolve: "./src/modules/supplier-management",
+    },
+    {
       key: Modules.FILE,
       resolve: "@medusajs/file",
       options: {
