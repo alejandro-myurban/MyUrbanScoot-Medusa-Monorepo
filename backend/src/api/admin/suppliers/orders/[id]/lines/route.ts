@@ -14,6 +14,7 @@ export const POST = async (
     const supplierService: SupplierManagementModuleService = req.scope.resolve(SUPPLIER_MODULE);
     
     const lineData = {
+          //@ts-ignore
       ...req.body,
       supplier_order_id: order_id
     };
