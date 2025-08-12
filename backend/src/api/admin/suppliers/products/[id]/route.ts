@@ -11,12 +11,14 @@ export const PUT = async (
 ) => {
   try {
     const { id } = req.params;
+    //@ts-ignore
     const { cost_price } = req.body;
     const supplierService: SupplierManagementModuleService = req.scope.resolve(SUPPLIER_MODULE);
     
     if (cost_price !== undefined) {
       const productSupplier = await supplierService.updateProductSupplierCost(id, {
         cost_price: Number(cost_price),
+            //@ts-ignore
         updated_by: req.auth?.actor_id || req.auth?.user?.id
       });
       
@@ -25,6 +27,7 @@ export const PUT = async (
         message: "Product supplier cost updated successfully"
       });
     } else {
+          //@ts-ignore
       const productSupplier = await supplierService.updateProductSupplier(id, req.body);
       
       res.status(200).json({

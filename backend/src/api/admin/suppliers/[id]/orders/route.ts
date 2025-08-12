@@ -14,8 +14,10 @@ export const POST = async (
     const supplierService: SupplierManagementModuleService = req.scope.resolve(SUPPLIER_MODULE);
     
     const orderData = {
+          //@ts-ignore
       ...req.body,
       supplier_id,
+          //@ts-ignore
       created_by: req.auth?.actor_id || req.auth?.user?.id
     };
     

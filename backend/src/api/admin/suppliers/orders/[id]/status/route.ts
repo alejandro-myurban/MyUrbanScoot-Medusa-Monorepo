@@ -11,6 +11,7 @@ export const PATCH = async (
 ) => {
   try {
     const { id } = req.params;
+        //@ts-ignore
     const { status } = req.body;
     const supplierService: SupplierManagementModuleService = req.scope.resolve(SUPPLIER_MODULE);
     

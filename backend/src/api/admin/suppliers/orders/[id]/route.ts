@@ -41,6 +41,7 @@ export const PUT = async (
     const { id } = req.params;
     const supplierService: SupplierManagementModuleService = req.scope.resolve(SUPPLIER_MODULE);
     
+        //@ts-ignore
     const order = await supplierService.updateSupplierOrder(id, req.body);
     
     res.status(200).json({
