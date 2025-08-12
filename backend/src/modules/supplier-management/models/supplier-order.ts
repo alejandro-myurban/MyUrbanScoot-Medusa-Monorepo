@@ -9,17 +9,8 @@ const SupplierOrder = model.define("supplier_order", {
   display_id: model.text().unique(),     // Número de pedido visible (PO-001, etc)
   supplier: model.belongsTo(() => Supplier, { mappedBy: "supplier_orders" }),
   
-  // Estado del pedido
-  status: model.enum([
-    "draft",           // Borrador
-    "pending",         // Pendiente de confirmación
-    "confirmed",       // Confirmado por el proveedor
-    "shipped",         // Enviado por el proveedor
-    "partially_received", // Recibido parcialmente
-    "received",        // Completamente recibido
-    "incident",        // Con incidencias
-    "cancelled"        // Cancelado
-  ]).default("draft"),
+  // Estado del pedido - cambiar a text como financing_data
+  status: model.text().default("draft"),
   
   // Fechas importantes
   order_date: model.dateTime(),

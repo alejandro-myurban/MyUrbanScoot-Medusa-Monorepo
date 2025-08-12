@@ -21,11 +21,10 @@ class SupplierManagementModuleService extends MedusaService({
   InventoryMovement,
   ProductSupplier,
 }) {
-  
   // =====================================================
   // MÉTODOS PARA SUPPLIERS
   // =====================================================
-  
+
   async createSupplier(data: any): Promise<Supplier> {
     return await this.createSuppliers(data);
   }
@@ -35,38 +34,54 @@ class SupplierManagementModuleService extends MedusaService({
     return suppliers[0] || null;
   }
 
-  async updateSupplier(id: string, data: any): Promise<Supplier> {
-    return await this.updateSuppliers({ id }, data);
+  async updateSupplierData(id: string, data: any): Promise<Supplier> {
+    // Usar el método auto-generado singular como financing_data
+    const updateData = { id, ...data };
+    //@ts-ignore
+    return await this.updateSupplier(updateData);
   }
 
   async deactivateSupplier(id: string): Promise<Supplier> {
-    return await this.updateSuppliers({ id }, { is_active: false });
+    // Usar el método auto-generado singular como financing_data
+    //@ts-ignore
+    return await this.updateSupplier({ id, is_active: false });
   }
 
   // =====================================================
   // MÉTODOS PARA SUPPLIER ORDERS
   // =====================================================
-  
+
   async createSupplierOrder(data: any): Promise<SupplierOrder> {
     // Generar display_id si no se proporciona
     if (!data.display_id) {
       data.display_id = await this.generateOrderDisplayId();
     }
-    
+
+    // Establecer order_date si no se proporciona
+    if (!data.order_date) {
+      data.order_date = new Date();
+    }
+
     return await this.createSupplierOrders(data);
   }
 
   async getSupplierOrderById(id: string): Promise<SupplierOrder | null> {
-    const orders = await this.listSupplierOrders({ 
-      id,
-      relations: ["supplier", "order_lines"]
-    });
+    const orders = await this.listSupplierOrders({ id });
     return orders[0] || null;
   }
 
-  async updateSupplierOrderStatus(id: string, status: string, userId?: string): Promise<SupplierOrder> {
-    const updateData: any = { status };
-    
+  async updateSupplierOrderStatus(
+    id: string,
+    status: string,
+    userId?: string
+  ): Promise<SupplierOrder> {
+    console.log(`🔄 Actualizando estado del pedido ${id} a ${status}`);
+
+    const updateData: any = {
+      id, // ¡CRÍTICO! Incluir el ID como hace financing_data
+      status,
+    };
+
     // Agregar timestamps según el estado
     switch (status) {
       case "confirmed":
@@ -80,38 +95,53 @@ class SupplierManagementModuleService extends MedusaService({
         if (userId) updateData.received_by = userId;
         break;
     }
-    
-    return await this.updateSupplierOrders({ id }, updateData);
+
+    console.log(`📝 Datos para actualizar:`, updateData);
+
+    // Usar el método auto-generado singular como financing_data
+    const updatedOrder = await this.updateSupplierOrders(updateData);
+    console.log(
+      `✅ Estado actualizado usando updateSupplierOrder (singular):`,
+      updatedOrder?.status
+    );
+
+    return updatedOrder;
   }
 
   // =====================================================
   // MÉTODOS PARA ORDER LINES
   // =====================================================
 
-  async addOrderLine(supplierOrderId: string, lineData: any): Promise<SupplierOrderLine> {
+  async addOrderLine(lineData: any): Promise<SupplierOrderLine> {
     const lineWithOrder = {
       ...lineData,
-      supplier_order_id: supplierOrderId,
       total_price: lineData.unit_price * lineData.quantity_ordered,
-      quantity_pending: lineData.quantity_ordered
+      quantity_pending: lineData.quantity_ordered,
     };
-    
+
     const line = await this.createSupplierOrderLines(lineWithOrder);
-    
+
     // Recalcular totales del pedido
-    await this.recalculateOrderTotals(supplierOrderId);
-    
+    await this.recalculateOrderTotals(lineData.supplier_order_id);
+
     return line;
   }
 
-  async receiveOrderLine(lineId: string, quantityReceived: number, userId?: string, notes?: string): Promise<SupplierOrderLine> {
-    const line = await this.listSupplierOrderLines({ id: lineId })[0];
-    
+  async receiveOrderLine(
+    lineId: string,
+    data: any
+  ): Promise<SupplierOrderLine> {
+    const lines = await this.listSupplierOrderLines({ id: lineId });
+    const line = lines[0];
+
     if (!line) {
-      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order line not found");
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        "Order line not found"
+      );
     }
 
-    const newQuantityReceived = line.quantity_received + quantityReceived;
+    const newQuantityReceived = line.quantity_received + data.quantity_received;
     const newQuantityPending = line.quantity_ordered - newQuantityReceived;
 
     // Determinar estado de la línea
@@ -122,13 +152,16 @@ class SupplierManagementModuleService extends MedusaService({
       lineStatus = "partial";
     }
 
-    const updatedLine = await this.updateSupplierOrderLines({ id: lineId }, {
+    // Usar el método auto-generado singular como financing_data
+    //@ts-ignore
+    const updatedLine = await this.updateSupplierOrderLine({
+      id: lineId,
       quantity_received: newQuantityReceived,
       quantity_pending: Math.max(0, newQuantityPending),
       line_status: lineStatus,
       received_at: new Date(),
-      received_by: userId,
-      reception_notes: notes
+      received_by: data.received_by,
+      reception_notes: data.reception_notes,
     });
 
     // Registrar movimiento de inventario
@@ -138,17 +171,38 @@ class SupplierManagementModuleService extends MedusaService({
       reference_type: "supplier_order",
       product_id: line.product_id,
       product_variant_id: line.product_variant_id,
-      product_title: line.product_title,
-      to_location_id: "default", // TODO: obtener del pedido
-      quantity: quantityReceived,
+      to_location_id: "default",
+      quantity: data.quantity_received,
       unit_cost: line.unit_price,
-      total_cost: line.unit_price * quantityReceived,
-      performed_by: userId,
+      total_cost: line.unit_price * data.quantity_received,
+      performed_by: data.received_by,
       performed_at: new Date(),
-      reason: `Receipt from supplier order ${line.supplier_order.display_id}`
     });
 
+    // Actualizar estado del pedido automáticamente
+    await this.updateOrderStatusBasedOnLines(line.supplier_order_id);
+
     return updatedLine;
+  }
+
+  async getOrderLines(orderId: string): Promise<SupplierOrderLine[]> {
+    return await this.listSupplierOrderLines({ supplier_order_id: orderId });
+  }
+
+  // Método updateSupplierOrder eliminado para permitir que MedusaService genere el método base automáticamente
+
+  async listSupplierOrders_(
+    filters: any = {},
+    options: any = {}
+  ): Promise<SupplierOrder[]> {
+    return await this.listSupplierOrders(filters, options);
+  }
+
+  async listSuppliers_(
+    filters: any = {},
+    options: any = {}
+  ): Promise<Supplier[]> {
+    return await this.listSuppliers(filters, options);
   }
 
   // =====================================================
@@ -159,9 +213,11 @@ class SupplierManagementModuleService extends MedusaService({
     return await this.createInventoryMovements(data);
   }
 
-  async getInventoryMovementsForProduct(productId: string): Promise<InventoryMovement[]> {
+  async getInventoryMovementsForProduct(
+    productId: string
+  ): Promise<InventoryMovement[]> {
     return await this.listInventoryMovements({
-      product_id: productId
+      product_id: productId,
     });
   }
 
@@ -169,58 +225,140 @@ class SupplierManagementModuleService extends MedusaService({
   // MÉTODOS PARA PRODUCT SUPPLIERS
   // =====================================================
 
-  async linkProductToSupplier(productId: string, supplierId: string, data: any): Promise<ProductSupplier> {
-    return await this.createProductSuppliers({
-      product_id: productId,
-      supplier_id: supplierId,
-      ...data
+  async linkProductToSupplier(data: any): Promise<ProductSupplier> {
+    return await this.createProductSuppliers(data);
+  }
+
+  async updateProductSupplierCost(
+    id: string,
+    data: any
+  ): Promise<ProductSupplier> {
+    const productSuppliers = await this.listProductSuppliers({ id });
+    if (!productSuppliers[0]) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        "Product supplier not found"
+      );
+    }
+
+    const currentCost = productSuppliers[0].cost_price;
+    const newCost = data.cost_price;
+
+    // Actualizar historial de precios
+    const priceHistory = Array.isArray(productSuppliers[0].price_history)
+      ? productSuppliers[0].price_history
+      : [];
+    priceHistory.push({
+      old_price: currentCost,
+      new_price: newCost,
+      changed_at: new Date().toISOString(),
+      changed_by: data.updated_by,
+    });
+
+    // Usar el método auto-generado singular como financing_data
+    //@ts-ignore
+    return await this.updateProductSupplier({
+      id,
+      cost_price: newCost,
+      price_history: priceHistory,
+      updated_at: new Date(),
     });
   }
 
-  async updateProductSupplierCost(productId: string, supplierId: string, newCost: number, currency = "EUR"): Promise<ProductSupplier> {
-    // Obtener relación existente
-    const existing = await this.listProductSuppliers({
-      product_id: productId,
-      supplier_id: supplierId
-    });
+  async getProductSupplierById(id: string): Promise<ProductSupplier | null> {
+    const productSuppliers = await this.listProductSuppliers({ id });
+    return productSuppliers[0] || null;
+  }
 
-    if (!existing.length) {
-      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Product-supplier relationship not found");
-    }
+  async updateProductSupplierData(
+    id: string,
+    data: any
+  ): Promise<ProductSupplier> {
+    // Usar el método auto-generado singular como financing_data
+    //@ts-ignore
+    return await this.updateProductSupplier({ id, ...data });
+  }
 
-    const productSupplier = existing[0];
-    
-    // Actualizar historial de precios
-    const priceHistory = productSupplier.price_history || [];
-    priceHistory.push({
-      date: new Date().toISOString(),
-      price: productSupplier.cost_price,
-      currency: productSupplier.currency_code
-    });
+  async unlinkProductFromSupplier(id: string): Promise<void> {
+    await this.deleteProductSuppliers({ id });
+  }
 
-    return await this.updateProductSuppliers(
-      { product_id: productId, supplier_id: supplierId },
-      {
-        cost_price: newCost,
-        currency_code: currency,
-        price_history: priceHistory,
-        last_price_update: new Date()
-      }
-    );
+  async listProductSuppliers_(
+    filters: any = {},
+    options: any = {}
+  ): Promise<ProductSupplier[]> {
+    return await this.listProductSuppliers(filters, options);
+  }
+
+  // =====================================================
+  // MÉTODOS ADICIONALES PARA INVENTORY MOVEMENTS
+  // =====================================================
+
+  async createInventoryMovement(data: any): Promise<InventoryMovement> {
+    return await this.createInventoryMovements(data);
+  }
+
+  async listInventoryMovements_(
+    filters: any = {},
+    options: any = {}
+  ): Promise<InventoryMovement[]> {
+    return await this.listInventoryMovements(filters, options);
   }
 
   // =====================================================
   // MÉTODOS AUXILIARES
   // =====================================================
 
+  private async updateOrderStatusBasedOnLines(orderId: string): Promise<void> {
+    // Obtener todas las líneas del pedido
+    const lines = await this.listSupplierOrderLines({
+      supplier_order_id: orderId,
+    });
+
+    if (lines.length === 0) return;
+
+    // Calcular estado basado en las líneas
+    const totalQuantityOrdered = lines.reduce(
+      (sum, line) => sum + line.quantity_ordered,
+      0
+    );
+    const totalQuantityReceived = lines.reduce(
+      (sum, line) => sum + line.quantity_received,
+      0
+    );
+
+    let newStatus = "";
+    if (totalQuantityReceived === 0) {
+      // No se ha recibido nada todavía, mantener estado actual o cambiar a shipped si viene de confirmed
+      return; // No cambiar el estado automáticamente
+    } else if (totalQuantityReceived >= totalQuantityOrdered) {
+      // Todo recibido
+      newStatus = "received";
+    } else {
+      // Parcialmente recibido
+      newStatus = "partially_received";
+    }
+
+    // Actualizar el estado del pedido si es diferente
+    const currentOrder = await this.getSupplierOrderById(orderId);
+    if (
+      currentOrder &&
+      currentOrder.status !== newStatus &&
+      currentOrder.status !== "cancelled"
+    ) {
+      await this.updateSupplierOrderStatus(orderId, newStatus);
+    }
+  }
+
   private async generateOrderDisplayId(): Promise<string> {
-    const count = await this.listSupplierOrders().length;
-    return `PO-${String(count + 1).padStart(6, '0')}`;
+    const orders = await this.listSupplierOrders_({}, {});
+    const count = orders.length;
+    return `PO-${String(count + 1).padStart(6, "0")}`;
   }
 
   private async recalculateOrderTotals(orderId: string): Promise<void> {
     const lines = await this.listSupplierOrderLines({
-      supplier_order_id: orderId
+      supplier_order_id: orderId,
     });
 
     const subtotal = lines.reduce((sum, line) => sum + line.total_price, 0);
@@ -228,10 +366,13 @@ class SupplierManagementModuleService extends MedusaService({
     const taxTotal = 0;
     const total = subtotal + taxTotal;
 
-    await this.updateSupplierOrders({ id: orderId }, {
+    // Usar el método auto-generado singular como financing_data
+    //@ts-ignore
+    await this.updateSupplierOrder({
+      id: orderId,
       subtotal,
       tax_total: taxTotal,
-      total
+      total,
     });
   }
 }
