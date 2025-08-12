@@ -12,9 +12,9 @@ const openai = new OpenAI({
 const assistantId = "asst_WHExxIFiHSzghOVeFvJmuON5";
 
 // Inicializar el cliente de Twilio
-const accountSid = process.env.TWILIO_ACCOUNT_SID!;
-const authToken = process.env.TWILIO_AUTH_TOKEN!;
-const twilioNumber = process.env.TWILIO_NUMBER!;
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioNumber = process.env.TWILIO_NUMBER;
 
 const twilioClient = twilio(accountSid, authToken);
 
@@ -67,7 +67,7 @@ type TwilioRequestBody = {
 // Envia mensaje via Twilio WhatsApp
 const sendWhatsApp = async (to: string, body: string) => {
   const MAX_TWILIO_MESSAGE_LENGTH = 1600;
-  const messagesToSend: string[] = [];
+  const messagesToSend = [];
   const whatsappTo = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
 
   if (body.length > MAX_TWILIO_MESSAGE_LENGTH) {
@@ -119,6 +119,7 @@ const processWhatsAppMessage = async (userId: string, incomingMsgRaw: string) =>
     });
     console.log(`💬 Mensaje añadido al thread: "${incomingMsg}"`);
 
+    // Sólo declaramos track_order porque la otra función la quitamos para que el assistant responda directamente
     const runOptions: OpenAI.Beta.Threads.Runs.RunCreateParams = {
       assistant_id: assistantId,
       tools: [
@@ -136,27 +137,6 @@ const processWhatsAppMessage = async (userId: string, incomingMsgRaw: string) =>
                 }
               },
               required: ["orderid"]
-            }
-          }
-        },
-        {
-          type: "function",
-          function: {
-            name: "msearch",
-            description: "Busca productos y vinilos en el catalogo de la tienda.",
-            parameters: {
-              type: "object",
-              properties: {
-                query: {
-                  type: "string",
-                  description: "el texto de busqueda para encontrar productos o vinilos"
-                },
-                category: {
-                  type: "string",
-                  description: "la categoria del producto, como 'vinilos' o 'baterias'"
-                }
-              },
-              required: ["query"]
             }
           }
         }
@@ -181,8 +161,6 @@ const runAssistantRunAndReply = async (
     console.log("🤖 Run creado:", run.id, "Estado inicial:", run.status);
 
     let iteration = 0;
-    let hasSentOrderStatus = false; // <-- bandera para controlar envío duplicado
-
     while (run.status !== "completed") {
       iteration++;
       console.log(`⏳ Iteración ${iteration} - Estado actual del run:`, run.status);
@@ -203,10 +181,11 @@ const runAssistantRunAndReply = async (
               const orderId = args.orderid;
               console.log(`📦 Consultando estado de la orden: ${orderId}`);
 
+              // Validamos que orderId sea sólo números o comience con '#'
               const isValidOrderId = /^\d+$/.test(orderId) || /^#\d+$/.test(orderId);
               if (!isValidOrderId) {
                 console.error(`❌ ID de orden inválido detectado: "${orderId}"`);
-                const errorMessage = "El número de pedido proporcionado no es válido. Por favor, asegúrate de que sólo contenga números o un '#' al inicio y vuelve a intentarlo.";
+                const errorMessage = "El número de pedido proporcionado no es válido. Por favor, usa solo números (p.ej. 12345) o un '#' al inicio (p.ej. #12345).";
                 await sendWhatsApp(userId, errorMessage);
                 await openai.beta.threads.runs.submitToolOutputs(run.id, {
                   thread_id: threadId,
@@ -220,9 +199,7 @@ const runAssistantRunAndReply = async (
                 break;
               }
 
-              const cleanOrderId = orderId.startsWith("#") ? orderId.substring(1) : orderId;
-
-              const wooRes = await fetch(`${process.env.WC_URL}/orders/${cleanOrderId}`, {
+              const wooRes = await fetch(`${process.env.WC_URL}/orders/${orderId}`, {
                 headers: {
                   Authorization: `Basic ${Buffer.from(`${process.env.WC_CONSUMER_KEY}:${process.env.WC_CONSUMER_KEY_S}`).toString("base64")}`,
                   "Content-Type": "application/json"
@@ -267,8 +244,6 @@ const runAssistantRunAndReply = async (
               });
               console.log("📨 Tool outputs enviados al asistente");
 
-              hasSentOrderStatus = true; // <-- marco que ya envié el mensaje
-
             } catch (err) {
               console.error("❌ Error ejecutando track_order:", err);
               await sendWhatsApp(userId, "Ocurrió un error al consultar tu pedido.");
@@ -277,35 +252,24 @@ const runAssistantRunAndReply = async (
         }
       }
 
-      if (!hasSentOrderStatus) {
-        console.log("⏱ Esperando 1 segundo antes de reintentar...");
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: threadId });
-      } else {
-        // Ya envié mensaje, no vuelvo a iterar esperando que el assistant envíe mensaje final
-        break;
-      }
+      console.log("⏱ Esperando 1 segundo antes de reintentar...");
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: threadId });
     }
 
-    // Solo envío el mensaje final si no envié ya el estado del pedido
-    if (!hasSentOrderStatus) {
-      console.log("✅ Run completado. Obteniendo mensajes finales...");
-      const messages = await openai.beta.threads.messages.list(threadId, { order: "desc", limit: 1 });
-      console.log("📝 Mensajes recibidos:", JSON.stringify(messages.data, null, 2));
+    console.log("✅ Run completado. Obteniendo mensajes finales...");
+    const messages = await openai.beta.threads.messages.list(threadId, { order: "desc", limit: 1 });
+    console.log("📝 Mensajes recibidos:", JSON.stringify(messages.data, null, 2));
 
-      let aiMessage = "Lo siento, no pude encontrar una respuesta.";
-      const lastMessage = messages.data[0];
-      if (lastMessage && lastMessage.content?.[0]?.type === "text") {
-        aiMessage = lastMessage.content[0].text.value;
-      }
-
-      console.log("📤 Enviando mensaje final por WhatsApp:", aiMessage);
-      await sendWhatsApp(userId, aiMessage);
-      console.log("✅ Mensaje final enviado");
-    } else {
-      console.log("⚠️ Ya se envió mensaje de estado de pedido, no envío mensaje final para evitar duplicados");
+    let aiMessage = "Lo siento, no pude encontrar una respuesta.";
+    const lastMessage = messages.data[0];
+    if (lastMessage && lastMessage.content?.[0]?.type === "text") {
+      aiMessage = lastMessage.content[0].text.value;
     }
 
+    console.log("📤 Enviando mensaje final por WhatsApp:", aiMessage);
+    await sendWhatsApp(userId, aiMessage);
+    console.log("✅ Mensaje final enviado");
   } catch (err) {
     console.error("❌ Error en runAssistantRunAndReply:", err);
     await sendWhatsApp(userId, "Error buscando productos — inténtalo de nuevo o contacta con Alex: +34 620 92 99 44.");
