@@ -23,8 +23,17 @@ export const POST = async (
     
     const order = await supplierService.createSupplierOrder(orderData);
     
+    // Obtener el pedido completo con relaciones
+    const orderWithRelations = await supplierService.getSupplierOrderById(order.id);
+    
+    if (!orderWithRelations) {
+      return res.status(500).json({
+        message: "Error retrieving created supplier order"
+      });
+    }
+    
     res.status(201).json({
-      order,
+      order: orderWithRelations,
       message: "Supplier order created successfully"
     });
   } catch (error) {
@@ -53,6 +62,7 @@ export const GET = async (
     const orders = await supplierService.listSupplierOrders(filters, {
       skip: Number(offset),
       take: Number(limit),
+      relations: ["supplier"]
     });
     
     res.status(200).json({
