@@ -6,7 +6,6 @@ import {
 export default class CanaryIslandsTaxProvider implements ITaxProvider {
   static identifier = "canary-tax"
   
-
   private readonly PENINSULA_VAT_RATE = 21
 
   constructor(container: any, options: any) {}
@@ -20,16 +19,15 @@ export default class CanaryIslandsTaxProvider implements ITaxProvider {
     shippingLines: TaxTypes.ShippingTaxCalculationLine[],
     context: TaxTypes.TaxCalculationContext
   ): Promise<(TaxTypes.ItemTaxLineDTO | TaxTypes.ShippingTaxLineDTO)[]> {
-    const address = context.address // 
+    const address = context.address
 
     let isCanaryIslands = false
 
     console.log("🧪 CanaryIslandsTaxProvider llamado");
     console.log("Contexto recibido:", context);
 
-
     if (address?.country_code?.toLowerCase() === "es") {
-      const province = address.province_code?.toLowerCase() || ""
+      const province = (address as any).province?.toLowerCase() || ""
       const postalCode = parseInt(address.postal_code || "0", 10)
 
       if (

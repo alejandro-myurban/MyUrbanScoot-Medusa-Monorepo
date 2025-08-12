@@ -154,18 +154,26 @@ const runAssistantRunAndReply = async (
   userId: string
 ) => {
   try {
+    console.log("🚀 Iniciando run con opciones:", JSON.stringify(runOptions, null, 2));
     let run = await openai.beta.threads.runs.create(threadId, runOptions) as OpenAI.Beta.Threads.Runs.Run;
-    console.log("🤖 Run creado, esperando finalización...");
+    console.log("🤖 Run creado:", run.id, "Estado inicial:", run.status);
 
+    let iteration = 0;
     while (run.status !== "completed") {
+      iteration++;
+      console.log(`⏳ Iteración ${iteration} - Estado actual del run:`, run.status);
+
       if (run.status === "failed") {
-        const errorMessage = run.last_error?.message || "Error desconocido en run";
-        throw new Error(errorMessage);
+        console.error("❌ Run falló:", run.last_error);
+        throw new Error(run.last_error?.message || "Error desconocido en run");
       }
 
       // 🚀 Si el asistente llama a track_order
       if (run.required_action?.type === "submit_tool_outputs") {
+        console.log("📌 El asistente requiere acción: submit_tool_outputs");
         for (const toolCall of run.required_action.submit_tool_outputs.tool_calls) {
+          console.log("🔍 Tool call recibida:", toolCall.function.name, toolCall.function.arguments);
+
           if (toolCall.function.name === "track_order") {
             try {
               const args = JSON.parse(toolCall.function.arguments);
@@ -182,11 +190,11 @@ const runAssistantRunAndReply = async (
                 }
               });
 
+              console.log(`🌐 WooCommerce respuesta HTTP: ${wooRes.status}`);
               if (!wooRes.ok) {
                 const errorText = await wooRes.text();
                 console.error(`❌ WooCommerce API Error [${wooRes.status}]:`, errorText);
                 await sendWhatsApp(userId, "No pude encontrar tu pedido. Por favor revisa el número de orden.");
-                // Pasar salida vacía al asistente para que no se quede colgado
                 await openai.beta.threads.runs.submitToolOutputs(run.id, {
                   thread_id: threadId,
                   tool_outputs: [
@@ -200,12 +208,14 @@ const runAssistantRunAndReply = async (
               }
 
               const orderData = await wooRes.json();
-              console.log("📦 Datos de la orden recibidos:", orderData);
+              console.log("📦 Datos de la orden recibidos:", JSON.stringify(orderData, null, 2));
 
               const status = orderData.status;
               const reply = orderStatusMessages[status] || `Estado actual del pedido: ${status}`;
 
+              console.log("📤 Enviando mensaje WhatsApp con estado del pedido...");
               await sendWhatsApp(userId, reply);
+              console.log("✅ Mensaje de estado enviado");
 
               await openai.beta.threads.runs.submitToolOutputs(run.id, {
                 thread_id: threadId,
@@ -216,6 +226,7 @@ const runAssistantRunAndReply = async (
                   }
                 ]
               });
+              console.log("📨 Tool outputs enviados al asistente");
 
             } catch (err) {
               console.error("❌ Error ejecutando track_order:", err);
@@ -225,12 +236,14 @@ const runAssistantRunAndReply = async (
         }
       }
 
+      console.log("⏱ Esperando 1 segundo antes de reintentar...");
       await new Promise(resolve => setTimeout(resolve, 1000));
       run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: threadId });
     }
 
-    console.log("✅ Run completado. Obteniendo mensajes...");
+    console.log("✅ Run completado. Obteniendo mensajes finales...");
     const messages = await openai.beta.threads.messages.list(threadId, { order: "desc", limit: 1 });
+    console.log("📝 Mensajes recibidos:", JSON.stringify(messages.data, null, 2));
 
     let aiMessage = "Lo siento, no pude encontrar una respuesta.";
     const lastMessage = messages.data[0];
@@ -238,12 +251,15 @@ const runAssistantRunAndReply = async (
       aiMessage = lastMessage.content[0].text.value;
     }
 
+    console.log("📤 Enviando mensaje final por WhatsApp:", aiMessage);
     await sendWhatsApp(userId, aiMessage);
+    console.log("✅ Mensaje final enviado");
   } catch (err) {
     console.error("❌ Error en runAssistantRunAndReply:", err);
     await sendWhatsApp(userId, "Error buscando productos — inténtalo de nuevo o contacta con Alex: +34 620 92 99 44.");
   }
 };
+
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   console.log("📩 Llega POST a /whatsapp");
