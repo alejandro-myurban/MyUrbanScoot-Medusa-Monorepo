@@ -66,7 +66,7 @@ class SupplierManagementModuleService extends MedusaService({
   }
 
   async getSupplierOrderById(id: string): Promise<SupplierOrder | null> {
-    const orders = await this.listSupplierOrders({ id });
+    const orders = await this.listSupplierOrders({ id }, { relations: ["supplier"] });
     return orders[0] || null;
   }
 

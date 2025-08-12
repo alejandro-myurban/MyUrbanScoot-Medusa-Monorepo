@@ -20,6 +20,7 @@ export const GET = async (
     const orders = await supplierService.listSupplierOrders(filters, {
       skip: Number(offset),
       take: Number(limit),
+      relations: ["supplier"]
     });
     
     res.status(200).json({

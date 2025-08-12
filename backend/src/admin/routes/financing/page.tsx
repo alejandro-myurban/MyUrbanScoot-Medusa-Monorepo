@@ -25,6 +25,7 @@ type FinancingData = {
   company_start_date: string | null;
   freelance_rental_file_id: string | null;
   freelance_quote_file_id: string | null;
+  freelance_start_date: string | null;  // Nueva fecha de alta de autónomos
   pensioner_proof_file_id: string | null;
   bank_account_proof_file_id: string | null;
   financing_installment_count: string;
@@ -889,6 +890,19 @@ const FinancingPage = () => {
                     </Text>
                     <Text className="font-medium">
                       {formatDate(selectedRequest.company_start_date)}
+                    </Text>
+                  </div>
+                )}
+                {selectedRequest.contract_type === "freelance" && selectedRequest.freelance_start_date && (
+                  <div>
+                    <Text
+                      size="small"
+                      className="text-gray-600 dark:text-gray-400"
+                    >
+                      Fecha de alta autónomo
+                    </Text>
+                    <Text className="font-medium">
+                      {formatDate(selectedRequest.freelance_start_date)}
                     </Text>
                   </div>
                 )}

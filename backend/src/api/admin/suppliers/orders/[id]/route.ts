@@ -44,8 +44,17 @@ export const PUT = async (
         //@ts-ignore
     const order = await supplierService.updateSupplierOrder(id, req.body);
     
+    // Obtener el pedido completo con relaciones
+    const orderWithRelations = await supplierService.getSupplierOrderById(id);
+    
+    if (!orderWithRelations) {
+      return res.status(404).json({
+        message: "Supplier order not found after update"
+      });
+    }
+    
     res.status(200).json({
-      order,
+      order: orderWithRelations,
       message: "Supplier order updated successfully"
     });
   } catch (error) {

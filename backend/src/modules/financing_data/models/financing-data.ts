@@ -11,7 +11,8 @@ const FinancingData = model.define("financing_data", {
   company_position: model.text().nullable(),
   company_start_date: model.dateTime().nullable(),
   freelance_rental_file_id: model.text().nullable(), 
-  freelance_quote_file_id: model.text().nullable(),  
+  freelance_quote_file_id: model.text().nullable(),
+  freelance_start_date: model.dateTime().nullable(),  // Nueva fecha de alta de autónomos
   pensioner_proof_file_id: model.text().nullable(),  
   bank_account_proof_file_id: model.text().nullable(), 
   financing_installment_count: model.text(),

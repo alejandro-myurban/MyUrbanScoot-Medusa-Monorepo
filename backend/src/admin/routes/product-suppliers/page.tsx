@@ -58,6 +58,8 @@ const ProductSuppliersPage = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [showPriceHistory, setShowPriceHistory] = useState<string | null>(null);
+  const [productSearchTerm, setProductSearchTerm] = useState<string>("");
+  const [showProductDropdown, setShowProductDropdown] = useState<boolean>(false);
   const itemsPerPage = 20;
   const queryClient = useQueryClient();
 
@@ -99,6 +101,17 @@ const ProductSuppliersPage = () => {
         method: "GET",
       });
       return response as { suppliers: Supplier[] };
+    },
+  });
+
+  // Query para obtener productos (para mostrar nombres)
+  const { data: productsData } = useQuery<{ products: any[] }>({
+    queryKey: ["products"],
+    queryFn: async () => {
+      const response = await sdk.client.fetch("/admin/products?fields=id,title&limit=999", {
+        method: "GET",
+      });
+      return response as { products: any[] };
     },
   });
 
@@ -186,10 +199,13 @@ const ProductSuppliersPage = () => {
       is_workshop_consumable: false,
       exclude_from_storefront: false,
     });
+    setProductSearchTerm("");
+    setShowProductDropdown(false);
   };
 
   const handleEdit = (relation: ProductSupplier) => {
     setFormData(relation);
+    setProductSearchTerm(getProductName(relation.product_id));
     setShowCreateForm(true);
   };
 
@@ -273,6 +289,26 @@ const ProductSuppliersPage = () => {
 
   const relations: ProductSupplier[] = relationsData?.product_suppliers || [];
   const suppliers: Supplier[] = suppliersData?.suppliers || [];
+  const products: any[] = productsData?.products || [];
+
+  // Función para obtener el nombre del producto por ID
+  const getProductName = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    return product?.title || productId;
+  };
+
+  // Filtrar productos para el buscador
+  const filteredProducts = products.filter(product =>
+    product.title.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+    product.id.toLowerCase().includes(productSearchTerm.toLowerCase())
+  ).slice(0, 30); // Limitar a 10 resultados
+
+  // Manejar selección de producto
+  const handleProductSelect = (product: any) => {
+    setFormData({ ...formData, product_id: product.id });
+    setProductSearchTerm(product.title);
+    setShowProductDropdown(false);
+  };
 
   // Filtros
   const filteredRelations = relations.filter((relation) => {
@@ -284,8 +320,10 @@ const ProductSuppliersPage = () => {
       (filterByWorkshop === "workshop" && relation.is_workshop_consumable) ||
       (filterByWorkshop === "regular" && !relation.is_workshop_consumable);
 
+    const productName = getProductName(relation.product_id);
     const matchesSearch = !searchTerm.trim() || 
       relation.product_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       relation.supplier_sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       relation.supplier.name.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -331,7 +369,8 @@ const ProductSuppliersPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Text size="small" className="text-gray-600">Producto</Text>
-                <Text className="font-medium">{selectedRelationForHistory.product_id}</Text>
+                <Text className="font-medium">{getProductName(selectedRelationForHistory.product_id)}</Text>
+                <Text size="small" className="text-gray-400 font-mono">{selectedRelationForHistory.product_id}</Text>
                 {selectedRelationForHistory.supplier_sku && (
                   <Text size="small" className="text-gray-500">Ref: {selectedRelationForHistory.supplier_sku}</Text>
                 )}
@@ -461,16 +500,60 @@ const ProductSuppliersPage = () => {
                 <Heading level="h3" className="text-lg">Información Básica</Heading>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-2">ID del Producto *</label>
-                  <input
-                    type="text"
-                    value={formData.product_id || ""}
-                    onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                    placeholder="prod_123..."
-                    disabled={!!formData.id} // No editable si estamos editando
-                  />
+                  <label className="block text-sm font-medium mb-2">Producto *</label>
+                  <div className="relative">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={productSearchTerm}
+                        onChange={(e) => {
+                          setProductSearchTerm(e.target.value);
+                          setShowProductDropdown(true);
+                          if (!e.target.value) {
+                            setFormData({ ...formData, product_id: "" });
+                          }
+                        }}
+                        onFocus={() => setShowProductDropdown(true)}
+                        onBlur={() => {
+                          // Retrasar el cierre para permitir clicks en las opciones
+                          setTimeout(() => setShowProductDropdown(false), 200);
+                        }}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Buscar producto por nombre..."
+                        required
+                        disabled={!!formData.id} // No editable si estamos editando
+                      />
+                    </div>
+                    
+                    {/* Dropdown de productos */}
+                    {showProductDropdown && filteredProducts.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {filteredProducts.map((product) => (
+                          <div
+                            key={product.id}
+                            onClick={() => handleProductSelect(product)}
+                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                          >
+                            <div className="font-medium text-gray-900">{product.title}</div>
+                            <div className="text-sm text-gray-500 font-mono">{product.id}</div>
+                          </div>
+                        ))}
+                        {productSearchTerm && filteredProducts.length === 0 && (
+                          <div className="px-3 py-2 text-gray-500 text-sm">
+                            No se encontraron productos que coincidan con "{productSearchTerm}"
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Mostrar producto seleccionado */}
+                    {formData.product_id && (
+                      <div className="mt-1 text-xs text-green-600">
+                        ✓ Seleccionado: {getProductName(formData.product_id)} ({formData.product_id})
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -717,10 +800,10 @@ const ProductSuppliersPage = () => {
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por producto, SKU o proveedor"
+              placeholder="Buscar por nombre de producto, ID, SKU o proveedor"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm min-w-[250px]"
+              className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm min-w-[300px]"
             />
           </div>
           {(filterBySupplier || filterByPreferred || filterByWorkshop || searchTerm) && (
@@ -777,7 +860,8 @@ const ProductSuppliersPage = () => {
                   <Table.Row key={relation.id}>
                     <Table.Cell>
                       <div className="space-y-1">
-                        <Text className="font-medium font-mono">{relation.product_id}</Text>
+                        <Text className="font-medium">{getProductName(relation.product_id)}</Text>
+                        <Text size="small" className="text-gray-500 font-mono">{relation.product_id}</Text>
                         {relation.supplier_sku && (
                           <Text size="small" className="text-gray-500">Ref: {relation.supplier_sku}</Text>
                         )}

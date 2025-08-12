@@ -26,6 +26,7 @@ interface FinancingFormData {
   company_start_date: string
   freelance_rental_file_id: string | null
   freelance_quote_file_id: string | null
+  freelance_start_date: string  // Nueva fecha de alta de autónomos
   pensioner_proof_file_id: string | null
   bank_account_proof_file_id: string | null
   financing_installment_count: string
@@ -54,6 +55,7 @@ export default function FinancingPage() {
     company_start_date: "",
     freelance_rental_file_id: null,
     freelance_quote_file_id: null,
+    freelance_start_date: "",  // Nueva fecha de alta de autónomos
     pensioner_proof_file_id: null,
     bank_account_proof_file_id: null,
     financing_installment_count: "12",
@@ -168,7 +170,17 @@ export default function FinancingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // ✅ NUEVA VALIDACIÓN: Verificar documentos DNI antes del envío
+    // ✅ PRIMERA VALIDACIÓN: Verificar que todos los documentos requeridos estén presentes
+    if (!isFormValid) {
+      const missing = getMissingDocuments()
+      const missingText = missing.length > 1 
+        ? `${missing.slice(0, -1).join(", ")} y ${missing.slice(-1)}`
+        : missing[0]
+      toast.error(`Faltan documentos requeridos: ${missingText}`)
+      return
+    }
+
+    // ✅ SEGUNDA VALIDACIÓN: Verificar documentos DNI antes del envío
     if (documentVerifications.front && !documentVerifications.front.isValid) {
       toast.error(
         "El DNI frontal no es válido. Por favor, sube una imagen de mejor calidad."
@@ -315,9 +327,9 @@ export default function FinancingPage() {
     ) {
       questions.push(4, 5, 6)
     } else if (formData.contract_type === "freelance") {
-      questions.push(8, 9)
-    } else if (formData.contract_type === "pensioner") {
-      questions.push(10)
+      questions.push(7, 8, 9)  // 7 es la nueva pregunta de fecha de alta
+    } else if (formData.contract_type === "pensioner" || formData.contract_type === "unemployed") {
+      questions.push(10)  // Pensionistas y desempleados usan la misma pregunta
     }
 
     if (formData.contract_type) {
@@ -328,6 +340,88 @@ export default function FinancingPage() {
     return questions
   }
 
+  // --- Validación de documentos requeridos ---
+  const validateRequiredDocuments = () => {
+    // Siempre requeridos: DNI frontal y trasero
+    if (!files.identity_front_file_id || !files.identity_back_file_id) {
+      return false
+    }
+
+    // Siempre requerido: Justificante bancario (si hay contract_type seleccionado)
+    if (formData.contract_type && !files.bank_account_proof_file) {
+      return false
+    }
+
+    // Validación específica por tipo de contrato
+    switch (formData.contract_type) {
+      case "employee_temporary":
+      case "employee_permanent":
+        // Empleados: mínimo 1 nómina
+        if (!files.paysheet_file) {
+          return false
+        }
+        break
+
+      case "freelance":
+        // Autónomos: declaración de renta y cuota de autónomos
+        if (!files.freelance_rental_file || !files.freelance_quote_file) {
+          return false
+        }
+        break
+
+      case "pensioner":
+      case "unemployed":
+        // Pensionistas y desempleados: justificante de pensión/paro
+        if (!files.pensioner_proof_file) {
+          return false
+        }
+        break
+
+      default:
+        // Si no hay tipo de contrato seleccionado, no permitir envío
+        if (!formData.contract_type) {
+          return false
+        }
+        break
+    }
+
+    return true
+  }
+
+  // --- Obtener documentos faltantes ---
+  const getMissingDocuments = () => {
+    const missing = []
+    
+    if (!files.identity_front_file_id) missing.push("DNI frontal")
+    if (!files.identity_back_file_id) missing.push("DNI trasero")
+    if (!formData.contract_type) missing.push("Tipo de contrato")
+    
+    if (formData.contract_type && !files.bank_account_proof_file) {
+      missing.push("Justificante bancario")
+    }
+
+    switch (formData.contract_type) {
+      case "employee_temporary":
+      case "employee_permanent":
+        if (!files.paysheet_file) missing.push("Al menos una nómina")
+        break
+      case "freelance":
+        if (!files.freelance_rental_file) missing.push("Declaración de la renta")
+        if (!files.freelance_quote_file) missing.push("Cuota de autónomos")
+        break
+      case "pensioner":
+        if (!files.pensioner_proof_file) missing.push("Justificante de pensión")
+        break
+      case "unemployed":
+        if (!files.pensioner_proof_file) missing.push("Justificante de desempleo")
+        break
+    }
+
+    return missing
+  }
+
+  const isFormValid = validateRequiredDocuments()
+  const missingDocuments = getMissingDocuments()
   const visibleQuestions = getVisibleQuestions()
 
   return (
@@ -658,6 +752,31 @@ export default function FinancingPage() {
                 </div>
               )}
 
+              {/* Pregunta 7: Fecha de alta de autónomos */}
+              {visibleQuestions.includes(7) && (
+                <div className="space-y-6 border-t border-gray-100 pt-10">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="flex items-center justify-center w-10 h-10 bg-cyan-100 text-cyan-600 rounded-xl font-bold text-lg">
+                      7
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      Información de Alta como Autónomo
+                    </h3>
+                  </div>
+
+                  <div className="max-w-md">
+                    <FormInput
+                      label="Fecha de alta como autónomo"
+                      name="freelance_start_date"
+                      type="date"
+                      required
+                      value={formData.freelance_start_date}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Preguntas 8-9: Autónomos */}
               {visibleQuestions.includes(8) && (
                 <div className="space-y-6 border-t border-gray-100 pt-10">
@@ -705,7 +824,7 @@ export default function FinancingPage() {
                 </div>
               )}
 
-              {/* Pregunta 10: Pensionistas */}
+              {/* Pregunta 10: Pensionistas y Desempleados */}
               {visibleQuestions.includes(10) && (
                 <div className="space-y-6 border-t border-gray-100 pt-10">
                   <div className="flex items-center gap-4 mb-8">
@@ -713,19 +832,25 @@ export default function FinancingPage() {
                       10
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900">
-                      Documentación de Pensión
+                      {formData.contract_type === "pensioner" ? "Documentación de Pensión" : "Documentación de Desempleo"}
                     </h3>
                   </div>
 
                   <FileInputEnhanced
                     id="pensioner_proof_file"
-                    label="Justificante de pensión"
+                    label={formData.contract_type === "pensioner" ? "Justificante de pensión" : "Justificante de desempleo (paro, subsidio, etc.)"}
                     file={files.pensioner_proof_file}
                     onRemove={removeFile}
                     required={true}
                     onChange={handleFileChange}
                     disabled={submitting}
                   />
+                  
+                  <p className="text-gray-500 text-sm">
+                    {formData.contract_type === "pensioner" 
+                      ? "Sube el último justificante de tu pensión." 
+                      : "Sube el documento que acredite tu situación de desempleo (tarjeta de paro, subsidio, etc.)."}
+                  </p>
                 </div>
               )}
 
@@ -827,12 +952,33 @@ export default function FinancingPage() {
 
               {/* Botón de WhatsApp mejorado */}
               <div className="border-t border-gray-100 pt-10">
+                {/* Mostrar mensaje de documentos faltantes */}
+                {!isFormValid && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-semibold text-amber-800 mb-2">
+                          Documentos requeridos pendientes
+                        </h4>
+                        <ul className="text-sm text-amber-700 space-y-1">
+                          {missingDocuments.map((doc, index) => (
+                            <li key={index}>• {doc}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  disabled={submitting || submitted}
+                  disabled={submitting || submitted || !isFormValid}
                   className={`w-full flex justify-center items-center py-4 px-8 font-semibold rounded-xl shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] disabled:hover:scale-100 ${
                     submitted
                       ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white"
+                      : !isFormValid
+                      ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white cursor-not-allowed"
                       : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                   }`}
                 >
@@ -846,6 +992,11 @@ export default function FinancingPage() {
                       <CheckCircle2 className="mr-3 h-6 w-6" />
                       ¡Enviado con éxito!
                     </>
+                  ) : !isFormValid ? (
+                    <>
+                      <AlertCircle className="mr-3 h-6 w-6" />
+                      Faltan {missingDocuments.length} documento{missingDocuments.length === 1 ? '' : 's'}
+                    </>
                   ) : (
                     <>
                       <CheckCircle2 className="mr-3 h-6 w-6" />
@@ -857,6 +1008,8 @@ export default function FinancingPage() {
                 <p className="text-center text-sm text-gray-500 mt-4">
                   {submitted
                     ? "Redirigiendo a la página de confirmación..."
+                    : !isFormValid
+                    ? "Completa todos los documentos requeridos para continuar."
                     : "Al enviar esta solicitud, aceptas nuestros términos y condiciones de financiación."}
                 </p>
               </div>

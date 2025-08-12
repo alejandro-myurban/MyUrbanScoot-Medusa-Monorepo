@@ -106,6 +106,16 @@
           "nullable": true,
           "mappedType": "text"
         },
+        "freelance_start_date": {
+          "name": "freelance_start_date",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
         "pensioner_proof_file_id": {
           "name": "pensioner_proof_file_id",
           "type": "text",
