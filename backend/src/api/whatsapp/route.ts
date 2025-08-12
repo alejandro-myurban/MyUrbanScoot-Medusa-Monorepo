@@ -15,7 +15,7 @@ const assistantId = "asst_WHExxIFiHSzghOVeFvJmuON5";
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioNumber = process.env.TWILIO_NUMBER;
-
+// 
 const twilioClient = twilio(accountSid, authToken);
 
 // 📦 Mensajes por estado del pedido
