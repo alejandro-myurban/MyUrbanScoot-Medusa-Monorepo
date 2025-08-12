@@ -372,7 +372,7 @@ export const FileInputEnhanced = ({
             <div className="text-center">
               <p className="text-sm font-semibold">Seleccionar archivo</p>
               <p className="text-xs text-gray-400 mt-1">
-                {shouldVerify ? 'JPG, PNG (máx. 10MB)' : 'PDF, JPG, PNG (máx. 10MB)'}
+                {shouldVerify ? 'JPG, PNG, HEIC (máx. 10MB)' : 'PDF, JPG, PNG, HEIC (máx. 10MB)'}
               </p>
               {shouldVerify && (
                 <p className="text-xs text-blue-600 mt-1 font-medium">
@@ -385,7 +385,7 @@ export const FileInputEnhanced = ({
             id={id}
             name={id}
             type="file"
-            accept={shouldVerify ? ".jpg,.jpeg,.png,.pdf" : ".pdf,.jpg,.jpeg,.png"}
+            accept={shouldVerify ? ".jpg,.jpeg,.png,.pdf,.heic" : ".pdf,.jpg,.jpeg,.png,.heic"}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             onChange={handleFileChange}
             disabled={disabled}
