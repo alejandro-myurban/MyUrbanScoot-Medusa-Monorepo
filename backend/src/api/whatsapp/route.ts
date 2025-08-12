@@ -207,7 +207,6 @@ const runAssistantRunAndReply = async (
                   const status = orderData.status;
                   const reply = orderStatusMessages[status] || `Estado actual del pedido: ${status}`;
                   output = reply;
-                  await sendWhatsApp(userId, reply);
                 }
               }
             } catch (err) {
