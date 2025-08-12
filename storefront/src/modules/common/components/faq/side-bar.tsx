@@ -9,6 +9,7 @@ import {
   faFilter,
   faTimes
 } from "@fortawesome/free-solid-svg-icons";
+import { useTranslation } from "react-i18next";
 
 interface CategoryItem {
   name: string;
@@ -21,13 +22,13 @@ interface SidebarProps {
 }
 
 const SidebarFAQ: React.FC<SidebarProps> = ({ categories, popularQuestions }) => {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
   };
 
-  // Prevenir scroll del body cuando el modal está abierto
   useEffect(() => {
     if (isModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -35,7 +36,6 @@ const SidebarFAQ: React.FC<SidebarProps> = ({ categories, popularQuestions }) =>
       document.body.style.overflow = 'unset';
     }
 
-    // Cleanup
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -43,7 +43,6 @@ const SidebarFAQ: React.FC<SidebarProps> = ({ categories, popularQuestions }) =>
 
   return (
     <>
-      {/* Mobile Filter Button - Fixed */}
       <div className="lg:hidden fixed bottom-6 right-6 z-40">
         <button
           onClick={toggleModal}
@@ -53,12 +52,11 @@ const SidebarFAQ: React.FC<SidebarProps> = ({ categories, popularQuestions }) =>
         </button>
       </div>
 
-      {/* Desktop Sidebar */}
       <div className="hidden lg:block lg:col-span-1 bg-white rounded-xl shadow-lg p-6 h-fit sticky top-4">
         {/* Categorías */}
         <h2 className="text-xl font-bold font-archivoBlack uppercase text-gray-800 mb-4 flex items-center gap-2">
           <FontAwesomeIcon icon={faCog} className="text-gray-600" />
-          Categorías
+          {t("sidebar.categories.title")}
         </h2>
         <ul className="space-y-1 mb-8">
           {categories.map((category, index) => (
@@ -72,7 +70,7 @@ const SidebarFAQ: React.FC<SidebarProps> = ({ categories, popularQuestions }) =>
                 `}
               >
                 <span className={`${category.name === "Todas" ? "text-white" : "text-gray-700"}`}>
-                  {category.name}
+                  {category.name === "Todas" ? t("sidebar.allCategories") : category.name}
                 </span>
                 <span className={`
                   text-sm px-2 py-0.5 rounded-full
@@ -91,7 +89,7 @@ const SidebarFAQ: React.FC<SidebarProps> = ({ categories, popularQuestions }) =>
         {/* Más Populares */}
         <h2 className="text-xl font-bold text-gray-800 font-archivoBlack uppercase mb-4 flex items-center gap-2">
           <FontAwesomeIcon icon={faCircleQuestion} className="text-gray-600" />
-          Más Populares
+          {t("sidebar.popular.title")}
         </h2>
         <ul className="space-y-2">
           {popularQuestions.map((q) => (
@@ -110,19 +108,16 @@ const SidebarFAQ: React.FC<SidebarProps> = ({ categories, popularQuestions }) =>
       {/* Mobile Modal */}
       {isModalOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex items-end justify-center">
-          {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
             onClick={toggleModal}
           />
           
-          {/* Modal Content */}
           <div className="relative bg-white w-full max-h-[85vh] rounded-t-3xl shadow-2xl transform transition-all duration-300 ease-out animate-slide-up overflow-hidden">
-            {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold font-archivoBlack uppercase text-gray-800 flex items-center gap-2">
                 <FontAwesomeIcon icon={faFilter} className="text-gray-600" />
-                Filtros
+                {t("sidebar.filter")}
               </h2>
               <button
                 onClick={toggleModal}
@@ -132,13 +127,12 @@ const SidebarFAQ: React.FC<SidebarProps> = ({ categories, popularQuestions }) =>
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
               {/* Categorías */}
               <div className="mb-8">
                 <h3 className="text-lg font-bold font-archivoBlack uppercase text-gray-800 mb-4 flex items-center gap-2">
                   <FontAwesomeIcon icon={faCog} className="text-gray-600" />
-                  Categorías
+                  {t("sidebar.categories.title")}
                 </h3>
                 <ul className="space-y-2">
                   {categories.map((category, index) => (
@@ -153,7 +147,7 @@ const SidebarFAQ: React.FC<SidebarProps> = ({ categories, popularQuestions }) =>
                         onClick={toggleModal}
                       >
                         <span className={`${category.name === "Todas" ? "text-white" : "text-gray-700"}`}>
-                          {category.name}
+                          {category.name === "Todas" ? t("sidebar.allCategories") : category.name}
                         </span>
                         <span className={`
                           text-sm px-3 py-1 rounded-full font-medium
@@ -171,7 +165,7 @@ const SidebarFAQ: React.FC<SidebarProps> = ({ categories, popularQuestions }) =>
               <div>
                 <h3 className="text-lg font-bold text-gray-800 font-archivoBlack uppercase mb-4 flex items-center gap-2">
                   <FontAwesomeIcon icon={faCircleQuestion} className="text-gray-600" />
-                  Más Populares
+                  {t("sidebar.popular.title")}
                 </h3>
                 <ul className="space-y-3">
                   {popularQuestions.map((q) => (

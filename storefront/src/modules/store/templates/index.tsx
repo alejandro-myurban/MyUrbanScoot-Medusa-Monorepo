@@ -5,6 +5,7 @@ import RefinementList from "@modules/store/components/refinement-list"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 
 import PaginatedProducts from "./paginated-products"
+import type { StoreProduct } from "@medusajs/types"
 
 const StoreTemplate = ({
   sortBy,
@@ -17,6 +18,10 @@ const StoreTemplate = ({
 }) => {
   const pageNumber = page ? parseInt(page) : 1
   const sort = sortBy || "created_at"
+
+  // Valores por defecto para las props requeridas
+  const searchParams: { [key: string]: string | string[] | undefined } = {}
+  const allProducts: StoreProduct[] = []
 
   return (
     <div
@@ -33,6 +38,8 @@ const StoreTemplate = ({
             sortBy={sort}
             page={pageNumber}
             countryCode={countryCode}
+            searchParams={searchParams}
+            allProducts={allProducts}
           />
         </Suspense>
       </div>

@@ -141,7 +141,7 @@ const Item = ({ item, type = "full" }: ItemProps) => {
         <div className="flex flex-col sm:block gap-3">
           {/* Contenedor de imagen y precio en una fila en móvil */}
           <div className="flex items-start justify-between gap-3">
-            <LocalizedClientLink href={`/products/${handle}`} className="flex-shrink-0 relative z-10">
+            <LocalizedClientLink href={`/producto/${handle}`} className="flex-shrink-0 relative z-10">  { /* Apuntaba a product */}
               {loading ? (
                 <div className="w-16 h-16 sm:w-24 sm:h-24 flex items-center justify-center border rounded-lg bg-gray-100">
                   <Spinner />

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
+import { useTranslation } from "react-i18next";
 
 interface FAQItem {
   id: string;
@@ -15,6 +16,7 @@ interface FAQsSectionProps {
 }
 
 const FAQsSection: React.FC<FAQsSectionProps> = ({ searchTerm }) => {
+  const { t } = useTranslation();
   const [faqs, setFaqs] = useState<FAQItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,22 +56,24 @@ const FAQsSection: React.FC<FAQsSectionProps> = ({ searchTerm }) => {
     faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const faqCountMessage = t("faqs.resultsCount", { count: filteredFaqs.length });
+
   return (
     <div className="lg:col-span-3 space-y-6">
       <h2 className="text-2xl font-bold font-archivoBlack uppercase text-gray-800 mb-6">
-        Todas las preguntas
+        {t("faqs.title")}
         <span className="block text-base font-normal text-gray-600">
-          {loading ? "Cargando..." : `${filteredFaqs.length} preguntas encontradas`}
+          {loading ? t("faqs.loading") : faqCountMessage}
         </span>
       </h2>
 
       {loading ? (
-        <div className="text-center text-gray-600 py-10">Cargando preguntas frecuentes...</div>
+        <div className="text-center text-gray-600 py-10">{t("faqs.loadingMessage")}</div>
       ) : error ? (
-        <div className="text-center text-red-600 py-10">Error: {error}</div>
+        <div className="text-center text-red-600 py-10">{t("faqs.error", { message: error })}</div>
       ) : filteredFaqs.length === 0 ? (
         <div className="text-center text-gray-600 py-10">
-          No se encontraron preguntas para tu búsqueda.
+          {t("faqs.noResults")}
         </div>
       ) : (
         filteredFaqs.map((faq) => (
@@ -91,8 +95,9 @@ const FAQsSection: React.FC<FAQsSectionProps> = ({ searchTerm }) => {
             </button>
             
             <div
-        
-              ref={(el) => (contentRefs.current[faq.id] = el)}
+              ref={(el) => {
+                contentRefs.current[faq.id] = el;
+              }}
               className="overflow-hidden transition-all duration-500 ease-in-out"
               style={{
                 maxHeight: openFAQ === faq.id 

@@ -13,6 +13,7 @@ import {
 import { getPosts, StorePost } from "@lib/data/posts"
 import { useParams, useRouter } from "next/navigation"
 import Newsletter from "@modules/posts/components/newsletter"
+import { useTranslation } from "react-i18next"
 
 const BlogPage = () => {
   const [searchTerm, setSearchTerm] = useState("")
@@ -22,6 +23,7 @@ const BlogPage = () => {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const { countryCode } = useParams()
+  const { t, i18n } = useTranslation("blog")
 
   useEffect(() => {
     async function loadPosts() {
@@ -66,7 +68,7 @@ const BlogPage = () => {
     ) {
       return post.category.name as string
     }
-    return (post.category as string) || "Sin categoría"
+    return (post.category as string) || t("posts.noCategory")
   }
 
   // Helper function to calculate read time
@@ -77,7 +79,7 @@ const BlogPage = () => {
     const wordsPerMinute = 200
     const wordCount = text.split(/\s+/).length
     const readTime = Math.ceil(wordCount / wordsPerMinute)
-    return `${readTime} min`
+    return t("posts.readTime", { minutes: readTime })
   }
 
   // Get unique categories from posts
@@ -98,12 +100,14 @@ const BlogPage = () => {
 
   // For now, we'll consider all posts as regular posts since we don't have a featured field
   // You can modify this logic based on your business rules
-  const featuredPosts: StorePost[] = [] // filteredPosts.slice(0, 2) if you want to show first 2 as featured
+  const featuredPosts: StorePost[] = []
   const regularPosts = filteredPosts
 
   // Default image for posts without images
   const defaultImage =
     "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+
+  const locale = i18n.language || "es-ES"
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -112,11 +116,13 @@ const BlogPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Nuestro <span className="text-mysGreen-100">Blog</span>
+              {t("header.title").replace(t("header.titleHighlight"), "")}
+              <span className="text-mysGreen-100">
+                {t("header.titleHighlight")}
+              </span>
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Descubre los mejores consejos, tutoriales y reviews sobre
-              patinetes eléctricos
+              {t("header.subtitle")}
             </p>
           </div>
 
@@ -127,7 +133,7 @@ const BlogPage = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Buscar artículos..."
+                placeholder={t("search.placeholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mysGreen-100 focus:border-transparent"
@@ -145,7 +151,7 @@ const BlogPage = () => {
                 >
                   {categories.map((category) => (
                     <option key={category} value={category}>
-                      {category === "all" ? "Todas las categorías" : category}
+                      {category === "all" ? t("filters.allCategories") : category}
                     </option>
                   ))}
                 </select>
@@ -185,9 +191,9 @@ const BlogPage = () => {
           <section className="mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
               <span className="bg-mysGreen-100 text-white px-3 py-1 rounded-full text-sm mr-3">
-                Destacados
+                {t("posts.featured")}
               </span>
-              Artículos principales
+              {t("posts.featuredTitle")}
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {featuredPosts.map((post) => (
@@ -220,22 +226,20 @@ const BlogPage = () => {
                       <div className="flex items-center gap-4">
                         <div className="flex items-center">
                           <User className="w-4 h-4 mr-1" />
-                          {post.author_name || "MyUrbanScoot"}
+                          {post.author_name || t("posts.authorDefault")}
                         </div>
                         <div className="flex items-center">
                           <Calendar className="w-4 h-4 mr-1" />
-                          {new Date(post.published_at).toLocaleDateString(
-                            "es-ES"
-                          )}
+                          {new Date(post.published_at).toLocaleDateString(locale)}
                         </div>
                       </div>
-                      <span className="bg-gray-100 px-2 py-1 rounded">
-                        <Clock className="w-4 h-4 mr-2" />{" "}
+                      <span className="bg-gray-100 px-2 py-1 rounded flex items-center">
+                        <Clock className="w-4 h-4 mr-2" />
                         {calculateReadTime(post.content || "")}
                       </span>
                     </div>
                     <button className="flex items-center text-mysGreen-100 font-medium hover:text-mysGreen-100 transition-colors">
-                      Leer más
+                      {t("posts.readMore")}
                       <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
@@ -248,7 +252,7 @@ const BlogPage = () => {
         {/* Regular Posts */}
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Todos los artículos ({regularPosts.length})
+            {t("posts.allArticles")} ({filteredPosts.length})
           </h2>
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -280,13 +284,11 @@ const BlogPage = () => {
                     <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                       <div className="flex items-center">
                         <User className="w-3 h-3 mr-1" />
-                        {post.author_name || "MyUrbanScoot"}
+                        {post.author_name || t("posts.authorDefault")}
                       </div>
                       <div className="flex items-center">
                         <Calendar className="w-3 h-3 mr-1" />
-                        {new Date(post.published_at).toLocaleDateString(
-                          "es-ES"
-                        )}
+                        {new Date(post.published_at).toLocaleDateString(locale)}
                       </div>
                       <span className="bg-gray-100 px-2 py-1 rounded flex items-center ">
                         <Clock className="w-4 h-4 mr-2" />
@@ -294,7 +296,7 @@ const BlogPage = () => {
                       </span>
                     </div>
                     <button className="flex items-center text-mysGreen-100 font-medium text-sm hover:text-mysGreen-100 transition-colors">
-                      Leer más
+                      {t("posts.readMore")}
                       <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
@@ -338,17 +340,15 @@ const BlogPage = () => {
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           <div className="flex items-center">
                             <User className="w-3 h-3 mr-1" />
-                            {post.author_name || "MyUrbanScoot"}
+                            {post.author_name || t("posts.authorDefault")}
                           </div>
                           <div className="flex items-center">
                             <Calendar className="w-3 h-3 mr-1" />
-                            {new Date(post.published_at).toLocaleDateString(
-                              "es-ES"
-                            )}
+                            {new Date(post.published_at).toLocaleDateString(locale)}
                           </div>
                         </div>
                         <button className="flex items-center text-mysGreen-100 font-medium text-sm hover:text-mysGreen-100 transition-colors">
-                          Leer más
+                          {t("posts.readMore")}
                           <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
                         </button>
                       </div>
@@ -366,10 +366,10 @@ const BlogPage = () => {
               <Search className="w-16 h-16 mx-auto" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No se encontraron artículos
+              {t("search.noResultsTitle")}
             </h3>
             <p className="text-gray-600">
-              Intenta ajustar tu búsqueda o filtros
+              {t("search.noResultsText")}
             </p>
           </div>
         )}

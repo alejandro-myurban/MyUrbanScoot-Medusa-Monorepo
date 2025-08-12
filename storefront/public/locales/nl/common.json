@@ -85,5 +85,201 @@
     "register_link": "Geen account?",
     "register_button": "Registreren",
     "google": "Inloggen met Google"
+  },
+  "contact_page": {
+    "title": "Neem contact op",
+    "subtitle": "Heeft u vragen over onze elektrische scooters? We zijn er om u te helpen.",
+    "unknown_error": "Er is een onbekende fout opgetreden bij het verzenden van het bericht."
+  },
+  "submission_status": {
+    "loading_message": "Uw bericht wordt verzonden...",
+    "success_title": "Bericht verzonden! 🎉",
+    "success_message": "Bedankt voor uw contact. We nemen zo snel mogelijk contact met u op.",
+    "error_title": "Fout bij het verzenden van het bericht",
+    "retry_button": "Opnieuw proberen"
+  },
+  "contact_form": {
+    "title": "STUUR ONS EEN BERICHT",
+    "full_name_label": "Volledige naam",
+    "email_label": "E-mail",
+    "subject_label": "Onderwerp",
+    "phone_label": "Telefoon",
+    "message_placeholder": "Schrijf hier uw bericht...",
+    "sending_button": "Verzenden...",
+    "send_button": "Verzenden"
+  },
+  "contact_info": {
+    "title": "CONTACTINFORMATIE",
+    "address_label": "Adres",
+    "phone_label": "Telefoon",
+    "email_label": "E-mail",
+    "hours_label": "Openingstijden"
+  },
+  "stores_map": {
+    "loading_error_title": "Fout bij het laden van de kaarten",
+    "loading_error_message": "Controleer uw verbinding en probeer het opnieuw.",
+    "main_title": "Onze winkels",
+    "main_subtitle": "Bezoek ons op een van onze locaties. Elke winkel heeft experts die u helpen de perfecte scooter te vinden.",
+    "call_button": "Bellen",
+    "info_title": "Kunt u niet vinden wat u zoekt?",
+    "info_message": "Neem contact op met een van onze winkels en we helpen u de elektrische scooter te vinden die het beste bij uw behoeften past.",
+    "stores_status_open": "Alle winkels open",
+    "stores_status_advice": "Gratis advies",
+    "stores_status_test_drives": "Proefritten in de winkel"
+  },
+    "hero": {
+    "title": "Hulpcentrum",
+    "subtitle": "Vind snel antwoorden op uw meestgestelde vragen",
+    "searchPlaceholder": "Zoek hier uw vraag..."
+  },
+  "cta": {
+    "support": {
+      "title": "Contact opnemen met support",
+      "description": "Kunt u niet vinden wat u zoekt?",
+      "button": "Bericht verzenden"
+    },
+    "call": {
+      "title": "Bel nu",
+      "description": "Spreek direct met ons"
+    },
+    "guides": {
+      "title": "Gidsen en tutorials",
+      "description": "Leer stap voor stap",
+      "button": "Bekijk gidsen"
+    },
+    "modal": {
+      "message": "Nummer gekopieerd naar klembord!",
+      "close": "Sluiten"
+    }
+  },
+  "sidebar": {
+    "categories": {
+      "title": "Categorieën"
+    },
+    "popular": {
+      "title": "Meest populair"
+    },
+    "filter": "Filters",
+    "allCategories": "Alle"
+  },
+  "faqs": {
+    "title": "Alle vragen",
+    "loading": "Laden...",
+    "resultsCount_one": "{{count}} vraag gevonden",
+    "resultsCount_other": "{{count}} vragen gevonden",
+    "noResults": "Geen vragen gevonden voor uw zoekopdracht.",
+    "error": "Fout: {{message}}",
+    "loadingMessage": "Veelgestelde vragen worden geladen..."
+  },
+    "blog": {
+    "header": {
+      "title": "Onze Blog",
+      "titleHighlight": "Blog",
+      "subtitle": "Ontdek de beste tips, tutorials en reviews over elektrische scooters"
+    },
+    "search": {
+      "placeholder": "Zoek artikelen...",
+      "noResultsTitle": "Geen artikelen gevonden",
+      "noResultsText": "Probeer uw zoekopdracht of filters aan te passen"
+    },
+    "filters": {
+      "allCategories": "Alle categorieën",
+      "categoryLabel": "Categorie",
+      "filterLabel": "Filteren"
+    },
+    "posts": {
+      "allArticles": "Alle artikelen",
+      "featured": "Uitgelicht",
+      "featuredTitle": "Topartikelen",
+      "readTime": "{{minutes}} min",
+      "readMore": "Lees meer",
+      "noCategory": "Geen categorie",
+      "authorDefault": "MyUrbanScoot",
+      "resultsCount_one": "{{count}} artikel gevonden",
+      "resultsCount_other": "{{count}} artikelen gevonden"
+    }
+  },
+  "filters": {
+    "dgt": {
+      "title": "DGT-goedkeuring",
+      "options": {
+        "dgt": "DGT",
+        "noDgt": "GEEN DGT"
+      }
+    },
+    "motorType": {
+      "title": "Motortype",
+      "options": {
+        "single": "single",
+        "dual": "dual"
+      }
+    },
+    "hydraulicBrakes": {
+      "title": "Hydraulische remmen",
+      "options": {
+        "yes": "Ja",
+        "no": "Nee"
+      }
+    },
+    "tireSizes": {
+      "title": "Bandenmaat"
+    },
+    "gripTypes": {
+      "title": "Griptype"
+    },
+    "tireTypes": {
+      "title": "Bandtype"
+    },
+    "autonomy": {
+      "title": "Bereik (km)",
+      "label": "Bereik (km)"
+    },
+    "power": {
+      "title": "Motorvermogen (W)",
+      "label": "Motorvermogen (W)"
+    },
+    "voltage": {
+      "title": "Accuspanning (V)",
+      "label": "Accuspanning (V)"
+    },
+    "weight": {
+      "title": "Gewicht (kg)",
+      "label": "Gewicht (kg)"
+    },
+    "speed": {
+      "title": "Maximale snelheid (km/u)",
+      "label": "Maximale snelheid (km/u)"
+    }
+  },
+  "confirmation": {
+    "title_processing": "Betaling bevestigen",
+    "title_success": "Bevestiging gelukt!",
+    "title_error": "Bevestigingsfout",
+    "processing_message": "Uw betalingsbevestiging wordt verwerkt...",
+    "success_message": "Betaling succesvol bevestigd! Uw bestelling wordt verwerkt.",
+    "error_no_token": "Token niet verstrekt",
+    "error_generic": "Er is een fout opgetreden bij het bevestigen van de betaling",
+    "error_server_communication": "Er is een fout opgetreden bij de communicatie met de server",
+    "back_to_shop_button": "Terug naar de winkel",
+    "contact_support_button": "Contact opnemen met support"
+  },
+  "ProductInfo": {
+    "compatibleModels": "COMPATIBELE MODELLEN",
+    "viewDetails": "BEKIJK DETAILS",
+    "shippingAndReturns": "VERZENDING EN RETOUREN",
+    "shippingInformation": "Verzendinformatie",
+    "freeShipping": "Gratis verzending bij bestellingen boven €50",
+    "deliveryTime": "Levering in 24-48u",
+    "freeReturns": "Gratis retourneren tot 30 dagen",
+    "warranty": "2 jaar garantie",
+    "priceNotAvailable": "Prijs niet beschikbaar",
+    "singlePrice": "€ {price}",
+    "priceRange": "€ {minPrice} - € {maxPrice}"
+  },
+  "SortProducts": {
+    "filterBy": "Filteren op",
+    "latestArrivals": "Nieuwste aankomsten",
+    "lowestPrice": "Laagste prijs",
+    "highestPrice": "Hoogste prijs"
   }
 }

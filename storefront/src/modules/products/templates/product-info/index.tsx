@@ -1,45 +1,48 @@
 'use client'
-import { HttpTypes } from "@medusajs/types"
-import { Heading, Text } from "@medusajs/ui"
-import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import { ProductAverageReview } from "@modules/product-reviews/components/ProductAverageReview"
-import ReviewButton from "@modules/product-reviews/components/ReviewButton"
-import Accordion from "@modules/products/components/product-info-accordion"
-import CompatibleScooters from "../../components/product-compatible/compatible-scooters"
+
+import { HttpTypes } from '@medusajs/types'
+import { Heading, Text } from '@medusajs/ui'
+import LocalizedClientLink from '@modules/common/components/localized-client-link'
+import { ProductAverageReview } from '@modules/product-reviews/components/ProductAverageReview'
+import ReviewButton from '@modules/product-reviews/components/ReviewButton'
+import Accordion from '@modules/products/components/product-info-accordion'
+import CompatibleScooters from '../../components/product-compatible/compatible-scooters'
+import { useTranslation } from 'react-i18next'
 
 type ProductInfoProps = {
   product: HttpTypes.StoreProduct
 }
 
 const ProductInfo = ({ product }: ProductInfoProps) => {
+  const { t } = useTranslation('ProductInfo')
+
   const hasCompatibleCategory = product.categories?.some(
-    (c) => c.handle === "vinilos" || c.handle === "modelos"
+    (c) => c.handle === 'vinilos' || c.handle === 'modelos'
   )
 
   const accordionItems = [
     ...(hasCompatibleCategory
       ? [
           {
-            id: "modelos-compatibles",
-            title: "MODELOS COMPATIBLES",
+            id: 'modelos-compatibles',
+            title: t('compatibleModels'),
             content: <CompatibleScooters product={product} />,
           },
         ]
       : []),
     {
-      id: "ver-detalles",
-      title: "VER DETALLES",
+      id: 'ver-detalles',
+      title: t('viewDetails'),
       content: (
         <div>
           <ul className="mt-2 space-y-1">
-            {/* Descripción rica */}
             <Text
               className="text-medium text-ui-fg-subtle font-dmSans py-2 max-h-32 overflow-y-auto transition-all duration-200 hover:max-h-48"
               data-testid="product-description"
               asChild
             >
               <div
-                dangerouslySetInnerHTML={{ __html: product.description || "" }}
+                dangerouslySetInnerHTML={{ __html: product.description || '' }}
                 className="whitespace-pre-line rich-text-content"
               />
             </Text>
@@ -48,18 +51,18 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
       ),
     },
     {
-      id: "envio-devoluciones",
-      title: "ENVÍO Y DEVOLUCIONES",
+      id: 'envio-devoluciones',
+      title: t('shippingAndReturns'),
       content: (
         <div>
           <p>
-            <strong>Información de envío:</strong>
+            <strong>{t('shippingInformation')}:</strong>
           </p>
           <ul className="mt-2 space-y-1">
-            <li>• Envío gratuito en pedidos superiores a 50€</li>
-            <li>• Entrega en 24-48h</li>
-            <li>• Devoluciones gratuitas hasta 30 días</li>
-            <li>• Garantía de 2 años</li>
+            <li>• {t('freeShipping')}</li>
+            <li>• {t('deliveryTime')}</li>
+            <li>• {t('freeReturns')}</li>
+            <li>• {t('warranty')}</li>
           </ul>
         </div>
       ),
@@ -71,24 +74,21 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
       ?.map((v) => v.calculated_price?.calculated_amount)
       .filter(
         (amount): amount is number =>
-          typeof amount === "number" && !isNaN(amount)
+          typeof amount === 'number' && !isNaN(amount)
       ) ?? []
 
-  // 2. Calcular precio mínimo y máximo (en la misma unidad).
   const minAmount = rawPrices.length > 0 ? Math.min(...rawPrices) : 0
   const maxAmount = rawPrices.length > 0 ? Math.max(...rawPrices) : 0
 
-  // 3. Convertir a “euros” (aquí asumimos que calculated_amount ya está en la unidad final;
-  //    si viene en céntimos, habría que dividir entre 100).
-  const minPrice = minAmount.toFixed(2)
-  const maxPrice = maxAmount.toFixed(2)
+  const minPrice = (minAmount / 100).toFixed(2)
+  const maxPrice = (maxAmount / 100).toFixed(2)
 
   const priceText =
     rawPrices.length === 0
-      ? "Precio no disponible"
+      ? t('priceNotAvailable')
       : minAmount === maxAmount
-      ? `${minPrice} €`
-      : `${minPrice} € - ${maxPrice} €`
+      ? t('singlePrice', { price: minPrice })
+      : t('priceRange', { minPrice, maxPrice })
 
   return (
     <div id="product-info">
@@ -102,7 +102,6 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
           </LocalizedClientLink>
         )}
 
-        {/* Reseñas promedio */}
         <ProductAverageReview productId={product.id} />
 
         <Heading
@@ -113,7 +112,6 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
           {product.title}
         </Heading>
 
-        {/* Precio mínimo/máximo */}
         <Text
           className="text-2xl font-semibold font-archivoBlack text-ui-fg-base"
           data-testid="product-price"
@@ -132,7 +130,6 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
   )
 }
 
-// Estilos globales para contenido HTML enriquecido
 const RichTextStyles = `
   .rich-text-content {
     line-height: 1.6;
@@ -186,9 +183,8 @@ const RichTextStyles = `
   }
 `
 
-// Añade los estilos globales (solo si estamos en navegador)
-if (typeof window !== "undefined") {
-  const styleTag = document.createElement("style")
+if (typeof window !== 'undefined') {
+  const styleTag = document.createElement('style')
   styleTag.textContent = RichTextStyles
   document.head.appendChild(styleTag)
 }
