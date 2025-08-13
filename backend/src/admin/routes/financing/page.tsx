@@ -499,6 +499,17 @@ const FinancingPage = () => {
 
   const financing: FinancingData[] = financingData?.financing_data || [];
 
+  // Ordenar por fecha de creación para generar IDs secuenciales consistentes
+  const sortedFinancing = [...financing].sort((a, b) => 
+    new Date(a.requested_at).getTime() - new Date(b.requested_at).getTime()
+  );
+
+  // Crear función para obtener ID secuencial
+  const getSequentialId = (item: FinancingData) => {
+    const index = sortedFinancing.findIndex(f => f.id === item.id);
+    return (index + 1).toString().padStart(4, '0');
+  };
+
   // Filtrar por tipo de contrato, estado, contactado y término de búsqueda
   const filteredFinancing = financing.filter((item) => {
     // Filtro por tipo de contrato
@@ -515,18 +526,20 @@ const FinancingPage = () => {
       (filterByContacted === "contacted" && item.contacted === true) ||
       (filterByContacted === "not_contacted" && item.contacted !== true);
 
-    // Filtro por término de búsqueda (teléfono o nombre extraído del DNI)
+    // Filtro por término de búsqueda (teléfono, nombre o número de DNI)
     let matchesSearch = true;
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
       const phoneMatch = item.phone_mumber.toLowerCase().includes(searchLower);
 
-      // Buscar en el nombre extraído del DNI
+      // Buscar en los datos extraídos del DNI
       const dniInfo = extractDniInfo(item);
       const nameMatch =
         dniInfo.fullName?.toLowerCase().includes(searchLower) || false;
+      const dniNumberMatch = 
+        dniInfo.documentNumber?.toLowerCase().includes(searchLower) || false;
 
-      matchesSearch = phoneMatch || nameMatch;
+      matchesSearch = phoneMatch || nameMatch || dniNumberMatch;
     }
 
     return matchesContract && matchesStatus && matchesContacted && matchesSearch;
@@ -557,7 +570,7 @@ const FinancingPage = () => {
             </Button>
             <Heading level="h2">Detalle de Solicitud</Heading>
           </div>
-          <Badge size="small">ID: {selectedRequest.id.slice(-8)}</Badge>
+          <Badge size="small">ID: #{getSequentialId(selectedRequest)}</Badge>
         </div>
 
         <div className="px-6 py-8 space-y-8">
@@ -1215,7 +1228,7 @@ const FinancingPage = () => {
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por teléfono"
+              placeholder="Buscar por teléfono o DNI"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm min-w-[200px]"
@@ -1249,8 +1262,10 @@ const FinancingPage = () => {
           <Table>
             <Table.Header>
               <Table.Row>
+                <Table.HeaderCell>#ID</Table.HeaderCell>
                 <Table.HeaderCell>Estado</Table.HeaderCell>
                 <Table.HeaderCell>Contactado</Table.HeaderCell>
+                <Table.HeaderCell>DNI</Table.HeaderCell>
                 <Table.HeaderCell>Cliente</Table.HeaderCell>
                 <Table.HeaderCell>Contacto</Table.HeaderCell>
                 <Table.HeaderCell>Trabajo</Table.HeaderCell>
@@ -1268,8 +1283,15 @@ const FinancingPage = () => {
                   console.warn(`⚠️ Item sin ID en posición ${index}:`, item);
                 }
 
+                const dniInfo = extractDniInfo(item);
+                
                 return (
                   <Table.Row key={item.id || `no-id-${index}`}>
+                    <Table.Cell>
+                      <Text size="small" className="font-mono text-gray-400">
+                        #{getSequentialId(item)}
+                      </Text>
+                    </Table.Cell>
                     <Table.Cell>
                       <select
                         value={item.status || "pending"}
@@ -1325,6 +1347,18 @@ const FinancingPage = () => {
                         <span className="text-xs text-gray-600 dark:text-gray-300">
                           {item.contacted ? "Contactado" : "No contactado"}
                         </span>
+                      </div>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <div className="space-y-1">
+                        <Text size="small" className="font-mono">
+                          {dniInfo.documentNumber || "No extraído"}
+                        </Text>
+                        {dniInfo.fullName && (
+                          <Text size="small" className="text-gray-500 truncate max-w-32" title={dniInfo.fullName}>
+                            {dniInfo.fullName}
+                          </Text>
+                        )}
                       </div>
                     </Table.Cell>
                     <Table.Cell>
