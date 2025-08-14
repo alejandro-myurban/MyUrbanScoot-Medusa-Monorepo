@@ -29,9 +29,7 @@ const cleanUserId = (userId: string) => {
 
 const ChatHistoryDashboard = () => {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  
   const [searchUserId, setSearchUserId] = useState<string>("");
-  
   const [searchDate, setSearchDate] = useState<string>("");
 
   const { data, isLoading, error } = useQuery<ChatMessage[]>({
@@ -43,13 +41,13 @@ const ChatHistoryDashboard = () => {
       }
       return [];
     },
+    refetchInterval: 4000, // Refresca cada 4 segundos
   });
 
   const history = data || [];
 
   const filteredHistory = useMemo(() => {
     let filtered = history;
-
     if (searchUserId) {
       filtered = filtered.filter(msg => cleanUserId(msg.user_id).includes(searchUserId));
     }
@@ -132,10 +130,8 @@ const ChatHistoryDashboard = () => {
   return (
     <Container>
       <Heading level="h2" className="mb-4 flex items-center gap-2">
-        <MessageCircle className="w-6 h-6" /> Historial de Chats
+        <BotMessageSquare className="w-6 h-6" /> Historial de Chats
       </Heading>
-
-      {/* ✅ Nuevos campos de filtro */}
       <div className="flex gap-4 mb-4 items-center">
         <div className="relative">
           <Input 
@@ -157,7 +153,6 @@ const ChatHistoryDashboard = () => {
           <CalendarDays className="w-4 h-4 absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400" />
         </div>
       </div>
-
       <Table>
         <Table.Header>
           <Table.Row>
