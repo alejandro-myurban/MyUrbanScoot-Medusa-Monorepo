@@ -17,6 +17,8 @@ type InjectedDependencies = {
 export class DocumentVerificationModuleService {
   protected logger_: Logger;
   private openai: OpenAI;
+  private sharedAssistant: any = null; // Assistant reutilizable
+  private assistantInitialized = false;
 
   constructor({ logger }: InjectedDependencies) {
     this.logger_ = logger;
@@ -28,6 +30,41 @@ export class DocumentVerificationModuleService {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+  }
+
+  // ✅ CREAR O REUTILIZAR ASSISTANT COMPARTIDO
+  private async getOrCreateSharedAssistant() {
+    if (this.sharedAssistant && this.assistantInitialized) {
+      this.logger_.info("♻️ Reutilizando assistant existente");
+      return this.sharedAssistant;
+    }
+
+    try {
+      this.logger_.info("🆕 Creando assistant compartido para análisis de documentos...");
+      
+      this.sharedAssistant = await this.openai.beta.assistants.create({
+        name: "Document Analyzer Shared",
+        instructions: `Eres un experto analizador de documentos españoles especializado en:
+        - DNI y NIE (anverso y reverso)
+        - Nóminas españolas (PDF e imágenes)
+        - Documentos bancarios (certificados y extractos)
+        - Justificantes de pensión y paro
+        
+        SIEMPRE responde con JSON válido según el formato solicitado.
+        Nunca agregues texto antes o después del JSON.
+        Eres preciso, confiable y detectas falsificaciones.`,
+        model: "gpt-4o",
+        tools: [{ type: "file_search" }],
+      });
+
+      this.assistantInitialized = true;
+      this.logger_.info(`✅ Assistant compartido creado: ${this.sharedAssistant.id}`);
+      
+      return this.sharedAssistant;
+    } catch (error: any) {
+      this.logger_.error(`❌ Error creando assistant compartido: ${error.message}`);
+      throw error;
+    }
   }
 
   async verifyIdentityDocument(
@@ -1159,13 +1196,8 @@ ELEMENTOS CLAVE A BUSCAR:
       
       this.logger_.info(`📤 Archivo subido a OpenAI: ${file.id}`);
       
-      // Crear asistente temporal
-      const assistant = await this.openai.beta.assistants.create({
-        name: "Document Analyzer",
-        instructions: `Eres un experto analizador de documentos. ${prompt}`,
-        model: "gpt-4o",
-        tools: [{ type: "file_search" }],
-      });
+      // ✅ USAR ASSISTANT COMPARTIDO EN LUGAR DE CREAR UNO NUEVO
+      const assistant = await this.getOrCreateSharedAssistant();
       
       // Crear hilo de conversación
       const { id: threadId } = await this.openai.beta.threads.create();
@@ -1240,8 +1272,8 @@ ELEMENTOS CLAVE A BUSCAR:
         
         this.logger_.info(`📥 Respuesta recibida, tipo: ${response.type}`);
         
-        // Limpiar recursos
-        await this.cleanupOpenAIResources(file.id, assistant.id, threadId);
+        // ✅ LIMPIAR RECURSOS PERO MANTENER EL ASSISTANT COMPARTIDO
+        await this.cleanupOpenAIResources(file.id, null, threadId); // null = no eliminar assistant
         if (fs.existsSync(tempFilePath)) {
           fs.unlinkSync(tempFilePath);
         }
@@ -1276,7 +1308,7 @@ ELEMENTOS CLAVE A BUSCAR:
     }
   }
   
-  private async cleanupOpenAIResources(fileId: string, assistantId: string, threadId: string) {
+  private async cleanupOpenAIResources(fileId: string, assistantId: string | null, threadId: string) {
     try {
       this.logger_.info("🧹 Limpiando recursos de OpenAI...");
       
@@ -1292,6 +1324,7 @@ ELEMENTOS CLAVE A BUSCAR:
         );
       }
       
+      // ✅ SOLO ELIMINAR ASSISTANT SI NO ES EL COMPARTIDO (assistantId !== null)
       if (assistantId) {
         cleanupPromises.push(
                //@ts-ignore
@@ -1300,6 +1333,9 @@ ELEMENTOS CLAVE A BUSCAR:
             this.logger_.warn(`Error eliminando asistente ${assistantId}:`, err.message)
           )
         );
+        this.logger_.info(`🗑️ Eliminando assistant temporal: ${assistantId}`);
+      } else {
+        this.logger_.info("♻️ Manteniendo assistant compartido");
       }
       
       await Promise.allSettled(cleanupPromises);
@@ -1412,12 +1448,29 @@ ELEMENTOS CLAVE A BUSCAR:
     };
   }
 
+  // ✅ LIMPIAR EL ASSISTANT COMPARTIDO AL CERRAR EL SERVICIO
+  async cleanup() {
+    if (this.sharedAssistant && this.assistantInitialized) {
+      try {
+        this.logger_.info("🧹 Limpiando assistant compartido al cerrar servicio...");
+        await this.openai.beta.assistants.del(this.sharedAssistant.id);
+        this.sharedAssistant = null;
+        this.assistantInitialized = false;
+        this.logger_.info("✅ Assistant compartido eliminado");
+      } catch (error: any) {
+        this.logger_.warn("Advertencia limpiando assistant compartido:", error.message);
+      }
+    }
+  }
+
   // Método para obtener el estado del servicio
   async getServiceStatus() {
     return {
       service: "Document Verification Module",
       status: "healthy",
       hasApiKey: !!process.env.OPENAI_API_KEY,
+      hasSharedAssistant: !!this.sharedAssistant,
+      assistantInitialized: this.assistantInitialized,
       timestamp: new Date().toISOString(),
     };
   }

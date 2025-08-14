@@ -1,5 +1,5 @@
 import { Container, Heading, Table, Badge, Text, Button } from "@medusajs/ui";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { defineRouteConfig } from "@medusajs/admin-sdk";
 import { useState, useEffect } from "react";
 import {
@@ -9,9 +9,13 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Edit,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { sdk } from "../../lib/sdk";
 import Whatsapp from "../../components/whatsapp";
+import EditableField from "../../components/editable-field";
 
 type FinancingData = {
   id: string;
@@ -62,6 +66,9 @@ const FinancingPage = () => {
   const itemsPerPage = 30;
   const [adminNotes, setAdminNotes] = useState<string>("");
   const [isSavingNotes, setIsSavingNotes] = useState<boolean>(false);
+  
+  // Estados para acordeón de datos extraídos
+  const [showExtractedData, setShowExtractedData] = useState<boolean>(false);
 
   const {
     data: financingData,
@@ -79,6 +86,7 @@ const FinancingPage = () => {
   });
 
   const downloadAllDocuments = async (request: FinancingData) => {
+    console.log("🍎 Iniciando descarga en:", navigator.platform || "Plataforma desconocida");
     const documents = [
       { url: request.identity_front_file_id, name: "DNI_anverso" },
       { url: request.identity_back_file_id, name: "DNI_reverso" },
@@ -132,21 +140,39 @@ const FinancingPage = () => {
         const link = document.createElement("a");
         link.href = downloadUrl;
         link.download = `${prefix}_${doc.name}.${extension}`;
+        
+        // Asegurar compatibilidad cross-browser
+        link.style.display = "none";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
 
         // Hacer clic automáticamente para descargar
         document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Liberar memoria
-        window.URL.revokeObjectURL(downloadUrl);
+        
+        // Timeout para Safari/Mac
+        setTimeout(() => {
+          link.click();
+          
+          // Limpiar después del clic
+          setTimeout(() => {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+          }, 100);
+        }, 50);
 
         // Pequeña pausa entre descargas para no saturar el navegador
         if (i < documents.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
+        
+        console.log(`✅ Descargado: ${doc.name}`);
       } catch (error) {
-        console.error(`Error descargando ${doc.name}:`, error);
+        console.error(`❌ Error descargando ${doc.name}:`, error);
+        
+        // En Mac, mostrar mensaje específico si hay problemas
+        if (navigator.platform.includes('Mac')) {
+          console.warn("💡 Mac: Verifica que las descargas automáticas estén habilitadas en Safari");
+        }
       }
     }
   };
@@ -174,11 +200,45 @@ const FinancingPage = () => {
       employee_permanent: "Fijo",
       employee_temporary: "Temporal",
       freelance: "Autónomo",
+      freelancer: "Autónomo", // API usa freelancer
       pensioner: "Pensionista",
       unemployed: "Desempleado",
     };
     return labels[type as keyof typeof labels] || type;
   };
+
+  // Mapeos para los options de select
+  const getContractTypeOptions = () => [
+    { value: 'employee_permanent', label: 'Empleado Fijo' },
+    { value: 'employee_temporary', label: 'Empleado Temporal' },
+    { value: 'freelancer', label: 'Autónomo' },
+    { value: 'pensioner', label: 'Pensionista' },
+    { value: 'unemployed', label: 'Desempleado' }
+  ];
+
+  const getCivilStatusOptions = () => [
+    { value: 'single', label: 'Soltero/a' },
+    { value: 'married', label: 'Casado/a' },
+    { value: 'divorced', label: 'Divorciado/a' },
+    { value: 'widowed', label: 'Viudo/a' },
+    { value: 'domestic_partnership', label: 'Pareja de hecho' }
+  ];
+
+  const getHousingTypeOptions = () => [
+    { value: 'own', label: 'Propia' },
+    { value: 'rent', label: 'Alquiler' },
+    { value: 'family', label: 'Familiar' },
+    { value: 'other', label: 'Otra' }
+  ];
+
+  const getInstallmentOptions = () => [
+    { value: '6', label: '6 meses' },
+    { value: '12', label: '12 meses' },
+    { value: '18', label: '18 meses' },
+    { value: '24', label: '24 meses' },
+    { value: '36', label: '36 meses' },
+    { value: '48', label: '48 meses' }
+  ];
 
   const getContractTypeBadgeColor = (type: string) => {
     const colors = {
@@ -441,12 +501,65 @@ const FinancingPage = () => {
     }
   };
 
+  // Función genérica para actualizar cualquier campo
+  const updateField = async (field: string, value: any) => {
+    if (!selectedRequest?.id) {
+      console.error("❌ Error: No hay solicitud seleccionada");
+      return;
+    }
+
+    try {
+      console.log(`🔄 Actualizando campo ${field} para ID: ${selectedRequest.id} -> ${value}`);
+      
+      const response = await sdk.client.fetch(
+        `/admin/financing-data/${selectedRequest.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: { [field]: value },
+        }
+      );
+
+      console.log(`✅ Campo ${field} actualizado exitosamente`);
+      
+      // Actualizar el selectedRequest en tiempo real para renderizado inmediato
+      setSelectedRequest(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          [field]: value
+        };
+      });
+      
+      // También refrescar los datos completos
+      refetch();
+      
+    } catch (error: any) {
+      console.error(`❌ Error actualizando campo ${field}:`, error);
+      throw new Error(`Error al actualizar ${field}: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
   // Cargar las notas cuando se selecciona una solicitud
   useEffect(() => {
     if (selectedRequest) {
       setAdminNotes(selectedRequest.admin_notes || "");
     }
   }, [selectedRequest]);
+
+  // Sincronizar selectedRequest cuando se actualizan los datos
+  useEffect(() => {
+    if (selectedRequest && financingData?.financing_data) {
+      const updatedRequest = financingData.financing_data.find(
+        item => item.id === selectedRequest.id
+      );
+      if (updatedRequest) {
+        setSelectedRequest(updatedRequest);
+      }
+    }
+  }, [financingData?.financing_data]);
 
   const hasDocuments = (request: FinancingData) => {
     let count = 0;
@@ -662,52 +775,369 @@ const FinancingPage = () => {
                     </>
                   );
                 })()}
-                <div>
-                  <Text
-                    size="small"
-                    className="text-gray-600 dark:text-gray-400"
-                  >
-                    Email
-                  </Text>
-                  <Text className="font-medium">{selectedRequest.email}</Text>
-                </div>
-                <div>
-                  <Text
-                    size="small"
-                    className="text-gray-600 dark:text-gray-400"
-                  >
-                    Teléfono
-                  </Text>
-                  <Text className="font-medium flex gap-3 items-center  ">
-                    {selectedRequest.phone_mumber}
-                    <a
-                      className="bg-green-400 w-10 flex items-center justify-center rounded-lg p-2  hover:bg-green-200 transition-all duration-150"
-                      target="_blank"
-                      href={`https://wa.me/34${
-                        selectedRequest.phone_mumber
-                      }?text=Hola%20${
-                        extractDniInfo(selectedRequest).fullName || ""
-                      }`}
+                
+                {/* Botón para mostrar/ocultar datos extraídos */}
+                {(selectedRequest.dni_front_verification?.extractedData || 
+                  selectedRequest.dni_back_verification?.extractedData ||
+                  selectedRequest.payroll_verification?.extractedData) && (
+                  <div className="space-y-2">
+                    <Button
+                      variant="secondary"
+                      size="small"
+                      onClick={() => setShowExtractedData(!showExtractedData)}
+                      className="flex items-center gap-2"
                     >
-                      <Whatsapp className="w-5 h-5 hover:scale-100" />
-                    </a>
-                  </Text>
-                </div>
-                <div>
-                  <Text
-                    size="small"
-                    className="text-gray-600 dark:text-gray-400"
+                      <Edit className="w-4 h-4" />
+                      Editar Datos Extraídos
+                      {showExtractedData ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </Button>
+
+                    {/* Acordeón con datos extraídos */}
+                    {showExtractedData && (
+                      <div className="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        
+                        {/* DNI Frontal */}
+                        {selectedRequest.dni_front_verification?.extractedData && (
+                          <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <Text className="font-medium text-sm text-blue-800 dark:text-blue-300">
+                              📋 Datos Extraídos del DNI Frontal
+                            </Text>
+                            
+                            <EditableField
+                              label="Nombre Completo (DNI)"
+                              value={selectedRequest.dni_front_verification.extractedData.fullName}
+                              type="text"
+                              required={false}
+                              onSave={(value) => {
+                                const updated = {
+                                  ...selectedRequest.dni_front_verification,
+                                  extractedData: {
+                                    ...selectedRequest.dni_front_verification.extractedData,
+                                    fullName: value
+                                  }
+                                };
+                                return updateField("dni_front_verification", updated);
+                              }}
+                            />
+                            
+                            <EditableField
+                              label="Número de Documento (DNI)"
+                              value={selectedRequest.dni_front_verification.extractedData.documentNumber}
+                              type="text"
+                              required={false}
+                              onSave={(value) => {
+                                const updated = {
+                                  ...selectedRequest.dni_front_verification,
+                                  extractedData: {
+                                    ...selectedRequest.dni_front_verification.extractedData,
+                                    documentNumber: value
+                                  }
+                                };
+                                return updateField("dni_front_verification", updated);
+                              }}
+                            />
+                            
+                            <EditableField
+                              label="Fecha de Nacimiento (DNI)"
+                              value={selectedRequest.dni_front_verification.extractedData.birthDate}
+                              type="text"
+                              required={false}
+                              placeholder="DD MM YYYY"
+                              onSave={(value) => {
+                                const updated = {
+                                  ...selectedRequest.dni_front_verification,
+                                  extractedData: {
+                                    ...selectedRequest.dni_front_verification.extractedData,
+                                    birthDate: value
+                                  }
+                                };
+                                return updateField("dni_front_verification", updated);
+                              }}
+                            />
+                            
+                            <EditableField
+                              label="Sexo (DNI)"
+                              value={selectedRequest.dni_front_verification.extractedData.sex}
+                              type="select"
+                              options={[
+                                { value: 'M', label: 'Masculino' },
+                                { value: 'F', label: 'Femenino' }
+                              ]}
+                              required={false}
+                              onSave={(value) => {
+                                const updated = {
+                                  ...selectedRequest.dni_front_verification,
+                                  extractedData: {
+                                    ...selectedRequest.dni_front_verification.extractedData,
+                                    sex: value
+                                  }
+                                };
+                                return updateField("dni_front_verification", updated);
+                              }}
+                            />
+                            
+                            <EditableField
+                              label="Nacionalidad (DNI)"
+                              value={selectedRequest.dni_front_verification.extractedData.nationality}
+                              type="text"
+                              required={false}
+                              placeholder="ESP"
+                              onSave={(value) => {
+                                const updated = {
+                                  ...selectedRequest.dni_front_verification,
+                                  extractedData: {
+                                    ...selectedRequest.dni_front_verification.extractedData,
+                                    nationality: value
+                                  }
+                                };
+                                return updateField("dni_front_verification", updated);
+                              }}
+                            />
+                          </div>
+                        )}
+                        
+                        {/* DNI Trasero */}
+                        {selectedRequest.dni_back_verification?.extractedData && (
+                          <div className="space-y-2 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <Text className="font-medium text-sm text-green-800 dark:text-green-300">
+                              📋 Datos Extraídos del DNI Trasero
+                            </Text>
+                            
+                            {selectedRequest.dni_back_verification.extractedData.addresses && (
+                              <EditableField
+                                label="Dirección (DNI Trasero)"
+                                value={(() => {
+                                  const fullAddress = selectedRequest.dni_back_verification.extractedData.addresses;
+                                  // Verificar que sea string antes de hacer split
+                                  if (typeof fullAddress === 'string') {
+                                    const streetOnly = fullAddress.split(',')[0]?.trim() || fullAddress;
+                                    return streetOnly;
+                                  }
+                                  // Si no es string, devolver tal como está
+                                  return fullAddress;
+                                })()}
+                                type="text"
+                                required={false}
+                                placeholder="Ej: C. JOSEP BONATERA 44"
+                                onSave={(value) => {
+                                  const currentAddress = selectedRequest.dni_back_verification.extractedData.addresses;
+                                  
+                                  // Si la dirección actual es string, hacer el split
+                                  if (typeof currentAddress === 'string') {
+                                    const parts = currentAddress.split(',');
+                                    parts[0] = value;
+                                    const newFullAddress = parts.join(',');
+                                    
+                                    const updated = {
+                                      ...selectedRequest.dni_back_verification,
+                                      extractedData: {
+                                        ...selectedRequest.dni_back_verification.extractedData,
+                                        addresses: newFullAddress
+                                      }
+                                    };
+                                    return updateField("dni_back_verification", updated);
+                                  } else {
+                                    // Si no es string, solo actualizar con el valor nuevo
+                                    const updated = {
+                                      ...selectedRequest.dni_back_verification,
+                                      extractedData: {
+                                        ...selectedRequest.dni_back_verification.extractedData,
+                                        addresses: value
+                                      }
+                                    };
+                                    return updateField("dni_back_verification", updated);
+                                  }
+                                }}
+                              />
+                            )}
+                          </div>
+                        )}
+
+                        {/* Nómina */}
+                        {selectedRequest.payroll_verification?.extractedData && (
+                          <div className="space-y-2 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                            <Text className="font-medium text-sm text-yellow-800 dark:text-yellow-300">
+                              💼 Datos Extraídos de la Nómina
+                            </Text>
+                            
+                            {selectedRequest.payroll_verification.extractedData.employerName && (
+                              <EditableField
+                                label="Nombre de la Empresa (Nómina)"
+                                value={selectedRequest.payroll_verification.extractedData.employerName}
+                                type="text"
+                                required={false}
+                                onSave={(value) => {
+                                  const updated = {
+                                    ...selectedRequest.payroll_verification,
+                                    extractedData: {
+                                      ...selectedRequest.payroll_verification.extractedData,
+                                      employerName: value
+                                    }
+                                  };
+                                  return updateField("payroll_verification", updated);
+                                }}
+                              />
+                            )}
+                            
+                            {selectedRequest.payroll_verification.extractedData.employeeName && (
+                              <EditableField
+                                label="Nombre del Empleado (Nómina)"
+                                value={selectedRequest.payroll_verification.extractedData.employeeName}
+                                type="text"
+                                required={false}
+                                onSave={(value) => {
+                                  const updated = {
+                                    ...selectedRequest.payroll_verification,
+                                    extractedData: {
+                                      ...selectedRequest.payroll_verification.extractedData,
+                                      employeeName: value
+                                    }
+                                  };
+                                  return updateField("payroll_verification", updated);
+                                }}
+                              />
+                            )}
+                            
+                            {selectedRequest.payroll_verification.extractedData.jobTitle && (
+                              <EditableField
+                                label="Puesto de Trabajo (Nómina)"
+                                value={selectedRequest.payroll_verification.extractedData.jobTitle}
+                                type="text"
+                                required={false}
+                                onSave={(value) => {
+                                  const updated = {
+                                    ...selectedRequest.payroll_verification,
+                                    extractedData: {
+                                      ...selectedRequest.payroll_verification.extractedData,
+                                      jobTitle: value
+                                    }
+                                  };
+                                  return updateField("payroll_verification", updated);
+                                }}
+                              />
+                            )}
+                            
+                            {selectedRequest.payroll_verification.extractedData.grossSalary && (
+                              <EditableField
+                                label="Salario Bruto (Nómina)"
+                                value={typeof selectedRequest.payroll_verification.extractedData.grossSalary === 'string' 
+                                  ? selectedRequest.payroll_verification.extractedData.grossSalary.replace(/【[^】]*】/g, '') 
+                                  : selectedRequest.payroll_verification.extractedData.grossSalary}
+                                type="text"
+                                required={false}
+                                placeholder="Ej: 2.500,00 €"
+                                onSave={(value) => {
+                                  const updated = {
+                                    ...selectedRequest.payroll_verification,
+                                    extractedData: {
+                                      ...selectedRequest.payroll_verification.extractedData,
+                                      grossSalary: value
+                                    }
+                                  };
+                                  return updateField("payroll_verification", updated);
+                                }}
+                              />
+                            )}
+                            
+                            {selectedRequest.payroll_verification.extractedData.netSalary && (
+                              <EditableField
+                                label="Salario Neto (Nómina)"
+                                value={typeof selectedRequest.payroll_verification.extractedData.netSalary === 'string' 
+                                  ? selectedRequest.payroll_verification.extractedData.netSalary.replace(/【[^】]*】/g, '') 
+                                  : selectedRequest.payroll_verification.extractedData.netSalary}
+                                type="text"
+                                required={false}
+                                placeholder="Ej: 2.100,00 €"
+                                onSave={(value) => {
+                                  const updated = {
+                                    ...selectedRequest.payroll_verification,
+                                    extractedData: {
+                                      ...selectedRequest.payroll_verification.extractedData,
+                                      netSalary: value
+                                    }
+                                  };
+                                  return updateField("payroll_verification", updated);
+                                }}
+                              />
+                            )}
+                            
+                            {selectedRequest.payroll_verification.extractedData.payrollPeriod && (
+                              <EditableField
+                                label="Período de Nómina"
+                                value={selectedRequest.payroll_verification.extractedData.payrollPeriod}
+                                type="text"
+                                required={false}
+                                placeholder="Ej: Enero 2024"
+                                onSave={(value) => {
+                                  const updated = {
+                                    ...selectedRequest.payroll_verification,
+                                    extractedData: {
+                                      ...selectedRequest.payroll_verification.extractedData,
+                                      payrollPeriod: value
+                                    }
+                                  };
+                                  return updateField("payroll_verification", updated);
+                                }}
+                              />
+                            )}
+                          </div>
+                        )}
+
+
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <EditableField
+                  label="Email"
+                  value={selectedRequest.email}
+                  type="email"
+                  required={true}
+                  onSave={(value) => updateField("email", value)}
+                />
+                <div className="space-y-1">
+                  <EditableField
+                    label="Teléfono"
+                    value={selectedRequest.phone_mumber}
+                    type="text"
+                    required={true}
+                    onSave={(value) => updateField("phone_mumber", value)}
+                  />
+                  <a
+                    className="bg-green-400 w-1/3 text-sm  flex items-center justify-center rounded-lg p-2 hover:bg-green-200 transition-all duration-150 mt-2"
+                    target="_blank"
+                    href={`https://wa.me/34${
+                      selectedRequest.phone_mumber
+                    }?text=Hola%20${
+                      extractDniInfo(selectedRequest).fullName || ""
+                    }`}
                   >
-                    Estado Civil
-                  </Text>
-                  <Text className="font-medium">
-                    {getCivilStatusLabel(selectedRequest.civil_status)}
-                  </Text>
-                  {selectedRequest.marital_status_details && (
-                    <Text size="small" className="text-gray-500">
-                      {selectedRequest.marital_status_details}
-                    </Text>
-                  )}
+                    Contactar con WhatsApp
+                    <Whatsapp className="ml-2 w-5 h-5 hover:scale-100" />
+                  </a>
+                </div>
+                <div className="space-y-2">
+                  <EditableField
+                    label="Estado Civil"
+                    value={selectedRequest.civil_status}
+                    type="select"
+                    options={getCivilStatusOptions()}
+                    required={true}
+                    onSave={(value) => updateField("civil_status", value)}
+                  />
+                  <EditableField
+                    label="Detalles Estado Civil"
+                    value={selectedRequest.marital_status_details}
+                    type="text"
+                    required={false}
+                    placeholder="Detalles adicionales del estado civil"
+                    onSave={(value) => updateField("marital_status_details", value)}
+                  />
                 </div>
               </div>
             </div>
@@ -717,70 +1147,53 @@ const FinancingPage = () => {
                 Domicilio
               </Heading>
               <div className="space-y-2">
-                <div>
-                  <Text
-                    size="small"
-                    className="text-gray-600 dark:text-gray-400"
-                  >
-                    Dirección
-                  </Text>
-                  {(() => {
-                    const dniInfo = extractDniInfo(selectedRequest);
-                    return dniInfo.addresses ? (
-                      <span>{dniInfo.addresses}</span>
-                    ) : (
-                      <span>{selectedRequest.address}</span>
-                    );
-                  })()}
-                </div>
+                <EditableField
+                  label="Dirección"
+                  value={selectedRequest.address}
+                  type="text"
+                  required={true}
+                  onSave={(value) => updateField("address", value)}
+                />
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Text
-                      size="small"
-                      className="text-gray-600 dark:text-gray-400"
-                    >
-                      Código Postal
-                    </Text>
-                    <Text className="font-medium">
-                      {selectedRequest.postal_code}
-                    </Text>
-                  </div>
-                  <div>
-                    <Text
-                      size="small"
-                      className="text-gray-600 dark:text-gray-400"
-                    >
-                      Ciudad
-                    </Text>
-                    <Text className="font-medium">{selectedRequest.city}</Text>
-                  </div>
+                  <EditableField
+                    label="Código Postal"
+                    value={selectedRequest.postal_code}
+                    type="text"
+                    required={true}
+                    onSave={(value) => updateField("postal_code", value)}
+                  />
+                  <EditableField
+                    label="Ciudad"
+                    value={selectedRequest.city}
+                    type="text"
+                    required={true}
+                    onSave={(value) => updateField("city", value)}
+                  />
                 </div>
-                <div>
-                  <Text
-                    size="small"
-                    className="text-gray-600 dark:text-gray-400"
-                  >
-                    Provincia
-                  </Text>
-                  <Text className="font-medium">
-                    {selectedRequest.province}
-                  </Text>
-                </div>
-                <div>
-                  <Text
-                    size="small"
-                    className="text-gray-600 dark:text-gray-400"
-                  >
-                    Tipo de Vivienda
-                  </Text>
-                  <Text className="font-medium">
-                    {getHousingTypeLabel(selectedRequest.housing_type)}
-                  </Text>
-                  {selectedRequest.housing_type_details && (
-                    <Text size="small" className="text-gray-500">
-                      {selectedRequest.housing_type_details}
-                    </Text>
-                  )}
+                <EditableField
+                  label="Provincia"
+                  value={selectedRequest.province}
+                  type="text"
+                  required={true}
+                  onSave={(value) => updateField("province", value)}
+                />
+                <div className="space-y-2">
+                  <EditableField
+                    label="Tipo de Vivienda"
+                    value={selectedRequest.housing_type}
+                    type="select"
+                    options={getHousingTypeOptions()}
+                    required={true}
+                    onSave={(value) => updateField("housing_type", value)}
+                  />
+                  <EditableField
+                    label="Detalles Tipo de Vivienda"
+                    value={selectedRequest.housing_type_details}
+                    type="text"
+                    required={false}
+                    placeholder="Detalles adicionales del tipo de vivienda"
+                    onSave={(value) => updateField("housing_type_details", value)}
+                  />
                 </div>
               </div>
             </div>
@@ -793,21 +1206,14 @@ const FinancingPage = () => {
                 Información Laboral
               </Heading>
               <div className="space-y-2">
-                <div>
-                  <Text
-                    size="small"
-                    className="text-gray-600 dark:text-gray-400"
-                  >
-                    Tipo de Contrato
-                  </Text>
-                  <Badge
-                    className={getContractTypeBadgeColor(
-                      selectedRequest.contract_type
-                    )}
-                  >
-                    {getContractTypeLabel(selectedRequest.contract_type)}
-                  </Badge>
-                </div>
+                <EditableField
+                  label="Tipo de Contrato"
+                  value={selectedRequest.contract_type}
+                  type="select"
+                  options={getContractTypeOptions()}
+                  required={true}
+                  onSave={(value) => updateField("contract_type", value)}
+                />
                 {(() => {
                   const payrollInfo = extractPayrollInfo(selectedRequest);
                   return (
@@ -849,7 +1255,9 @@ const FinancingPage = () => {
                             Salario Bruto (Nómina)
                           </Text>
                           <Text className="font-semibold text-base text-blue-600">
-                            {payrollInfo.grossSalary}
+                            {typeof payrollInfo.grossSalary === 'string' 
+                              ? payrollInfo.grossSalary.replace(/【[^】]*】/g, '') 
+                              : payrollInfo.grossSalary}
                           </Text>
                         </div>
                       )}
@@ -862,62 +1270,48 @@ const FinancingPage = () => {
                             Salario Neto (Nómina)
                           </Text>
                           <Text className="font-semibold text-base text-green-600">
-                            {payrollInfo.netSalary}
+                            {typeof payrollInfo.netSalary === 'string' 
+                              ? payrollInfo.netSalary.replace(/【[^】]*】/g, '') 
+                              : payrollInfo.netSalary}
                           </Text>
                         </div>
                       )}
                     </>
                   );
                 })()}
-                <div>
-                  <Text
-                    size="small"
-                    className="text-gray-600 dark:text-gray-400"
-                  >
-                    Ingresos Mensuales (Declarados)
-                  </Text>
-                  <Text className="font-semibold text-green-600 text-base">
-                    {formatIncome(selectedRequest.income)}
-                  </Text>
-                </div>
-                {selectedRequest.company_position && (
-                  <div>
-                    <Text
-                      size="small"
-                      className="text-gray-600 dark:text-gray-400"
-                    >
-                      Cargo
-                    </Text>
-                    <Text className="font-medium">
-                      {selectedRequest.company_position}
-                    </Text>
-                  </div>
-                )}
-                {selectedRequest.company_start_date && (
-                  <div>
-                    <Text
-                      size="small"
-                      className="text-gray-600 dark:text-gray-400"
-                    >
-                      Fecha de inicio
-                    </Text>
-                    <Text className="font-medium">
-                      {formatDate(selectedRequest.company_start_date)}
-                    </Text>
-                  </div>
-                )}
-                {selectedRequest.contract_type === "freelance" && selectedRequest.freelance_start_date && (
-                  <div>
-                    <Text
-                      size="small"
-                      className="text-gray-600 dark:text-gray-400"
-                    >
-                      Fecha de alta autónomo
-                    </Text>
-                    <Text className="font-medium">
-                      {formatDate(selectedRequest.freelance_start_date)}
-                    </Text>
-                  </div>
+                
+                
+                <EditableField
+                  label="Ingresos Mensuales (Declarados)"
+                  value={selectedRequest.income}
+                  type="text"
+                  required={true}
+                  placeholder="Ingrese el ingreso mensual en euros"
+                  onSave={(value) => updateField("income", value)}
+                />
+                <EditableField
+                  label="Cargo"
+                  value={selectedRequest.company_position}
+                  type="text"
+                  required={false}
+                  placeholder="Cargo o puesto de trabajo"
+                  onSave={(value) => updateField("company_position", value)}
+                />
+                <EditableField
+                  label="Fecha de inicio"
+                  value={selectedRequest.company_start_date}
+                  type="date"
+                  required={false}
+                  onSave={(value) => updateField("company_start_date", value)}
+                />
+                {selectedRequest.contract_type === "freelance" && (
+                  <EditableField
+                    label="Fecha de alta autónomo"
+                    value={selectedRequest.freelance_start_date}
+                    type="date"
+                    required={false}
+                    onSave={(value) => updateField("freelance_start_date", value)}
+                  />
                 )}
               </div>
             </div>
@@ -927,17 +1321,15 @@ const FinancingPage = () => {
                 Financiación
               </Heading>
               <div className="space-y-2">
-                <div>
-                  <Text
-                    size="small"
-                    className="text-gray-600 dark:text-gray-400"
-                  >
-                    Plazos Solicitados
-                  </Text>
-                  <Badge size="large">
-                    {selectedRequest.financing_installment_count} meses
-                  </Badge>
-                </div>
+                <EditableField
+                  label="Plazos Solicitados"
+                  value={selectedRequest.financing_installment_count}
+                  type="select"
+                  options={getInstallmentOptions()}
+                  required={true}
+                  onSave={(value) => updateField("financing_installment_count", value)}
+                />
+                
                 <div>
                   <Text
                     size="small"
@@ -1106,16 +1498,19 @@ const FinancingPage = () => {
           </div>
 
           {/* Comentarios */}
-          {selectedRequest.doubts && (
-            <div className="space-y-4">
-              <Heading level="h3" className="text-lg">
-                Comentarios del Cliente
-              </Heading>
-              <div className="bg-gray-50 dark:bg-gray-300 dark:text-black p-4 rounded-lg">
-                <Text>{selectedRequest.doubts}</Text>
-              </div>
-            </div>
-          )}
+          <div className="space-y-4">
+            <Heading level="h3" className="text-lg">
+              Comentarios del Cliente
+            </Heading>
+            <EditableField
+              label="Comentarios/Dudas del Cliente"
+              value={selectedRequest.doubts}
+              type="textarea"
+              required={false}
+              placeholder="Comentarios o dudas del cliente"
+              onSave={(value) => updateField("doubts", value)}
+            />
+          </div>
 
           {/* Notas del Admin */}
           <div className="space-y-4">
