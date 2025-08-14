@@ -62,6 +62,7 @@ const FinancingPage = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterByStatus, setFilterByStatus] = useState<string>("");
   const [filterByContacted, setFilterByContacted] = useState<string>("");
+  const [showCancelledDelivered, setShowCancelledDelivered] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 30;
   const [adminNotes, setAdminNotes] = useState<string>("");
@@ -639,6 +640,11 @@ const FinancingPage = () => {
       (filterByContacted === "contacted" && item.contacted === true) ||
       (filterByContacted === "not_contacted" && item.contacted !== true);
 
+    // Filtro para canceladas/entregadas (por defecto ocultas)
+    const status = item.status || "pending";
+    const isCancelledOrDelivered = status === "cancelled" || status === "delivered";
+    const matchesCancelledDeliveredFilter = showCancelledDelivered || !isCancelledOrDelivered;
+
     // Filtro por término de búsqueda (teléfono, nombre o número de DNI)
     let matchesSearch = true;
     if (searchTerm.trim()) {
@@ -655,7 +661,7 @@ const FinancingPage = () => {
       matchesSearch = phoneMatch || nameMatch || dniNumberMatch;
     }
 
-    return matchesContract && matchesStatus && matchesContacted && matchesSearch;
+    return matchesContract && matchesStatus && matchesContacted && matchesSearch && matchesCancelledDeliveredFilter;
   });
 
   // Paginación
@@ -667,7 +673,7 @@ const FinancingPage = () => {
   // Reset página cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterByContractType, searchTerm, filterByStatus, filterByContacted]);
+  }, [filterByContractType, searchTerm, filterByStatus, filterByContacted, showCancelledDelivered]);
 
   if (selectedRequest) {
     return (
@@ -1619,6 +1625,18 @@ const FinancingPage = () => {
             <option value="contacted">✅ Contactados</option>
             <option value="not_contacted">❌ No contactados</option>
           </select>
+          
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showCancelledDelivered}
+              onChange={(e) => setShowCancelledDelivered(e.target.checked)}
+              className="w-4 h-4 text-blue-500 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-gray-700 dark:text-gray-300">
+              Mostrar canceladas/entregadas
+            </span>
+          </label>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -1629,13 +1647,14 @@ const FinancingPage = () => {
               className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm min-w-[200px]"
             />
           </div>
-          {(filterByContractType || searchTerm || filterByStatus || filterByContacted) && (
+          {(filterByContractType || searchTerm || filterByStatus || filterByContacted || showCancelledDelivered) && (
             <button
               onClick={() => {
                 setFilterByContractType("");
                 setSearchTerm("");
                 setFilterByStatus("");
                 setFilterByContacted("");
+                setShowCancelledDelivered(false);
                 setCurrentPage(1);
               }}
               className="px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:text-gray-700 underline"
@@ -1649,8 +1668,8 @@ const FinancingPage = () => {
       <div className="px-6 py-8 overflow-scroll">
         {paginatedFinancing.length === 0 && filteredFinancing.length === 0 ? (
           <Text className="text-gray-500">
-            {filterByContractType || searchTerm || filterByStatus || filterByContacted
-              ? `No se encontraron solicitudes que coincidan con los filtros aplicados`
+            {filterByContractType || searchTerm || filterByStatus || filterByContacted || !showCancelledDelivered
+              ? `No se encontraron solicitudes que coincidan con los filtros aplicados${!showCancelledDelivered ? ' (canceladas/entregadas ocultas)' : ''}`
               : `No hay solicitudes de financiación todavía`}
           </Text>
         ) : (
