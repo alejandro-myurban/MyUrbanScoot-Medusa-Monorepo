@@ -97,6 +97,10 @@ const SupplierOrdersPage = () => {
   });
 
   const [orderLines, setOrderLines] = useState<Partial<SupplierOrderLine>[]>([]);
+  
+  // Estados para búsqueda de productos
+  const [productSearchTerms, setProductSearchTerms] = useState<{[key: number]: string}>({});
+  const [showProductDropdowns, setShowProductDropdowns] = useState<{[key: number]: boolean}>({});
 
   // Query para obtener pedidos
   const {
@@ -122,6 +126,41 @@ const SupplierOrdersPage = () => {
         method: "GET",
       });
       return response as { suppliers: Supplier[] };
+    },
+  });
+
+  // Query para obtener productos reales de la DB
+  const { data: productsData } = useQuery<{ products: any[] }>({
+    queryKey: ["products"],
+    queryFn: async () => {
+      console.log("🚀 Cargando todos los productos...");
+      const response = await sdk.client.fetch("/admin/products?limit=1000", {
+        method: "GET",
+      });
+      console.log("📦 Total productos cargados:", response?.products?.length);
+      return response as { products: any[] };
+    },
+  });
+
+  // Query para obtener ubicaciones/almacenes de Medusa
+  const { data: locationsData } = useQuery<{ stock_locations: any[] }>({
+    queryKey: ["stock-locations"],
+    queryFn: async () => {
+      const response = await sdk.client.fetch("/admin/stock-locations", {
+        method: "GET",
+      });
+      return response as { stock_locations: any[] };
+    },
+  });
+
+  // Query para obtener información del usuario actual
+  const { data: currentUserData } = useQuery<{ user: any }>({
+    queryKey: ["current-user"],
+    queryFn: async () => {
+      const response = await sdk.client.fetch("/admin/users/me", {
+        method: "GET",
+      });
+      return response as { user: any };
     },
   });
 
@@ -160,14 +199,19 @@ const SupplierOrdersPage = () => {
       if (orderLines.length > 0) {
         for (const line of orderLines) {
           if (line.product_title && line.quantity_ordered) {
+            const lineData = {
+              product_id: line.product_id, // ✅ CRÍTICO: Incluir product_id para productos de Medusa
+              product_title: line.product_title,
+              supplier_sku: line.supplier_sku,
+              quantity_ordered: line.quantity_ordered,
+              unit_price: line.unit_price || 0,
+            };
+            
+            console.log(`🔍 DEBUG Frontend - Enviando línea:`, JSON.stringify(lineData, null, 2));
+            
             await sdk.client.fetch(`/admin/suppliers/orders/${orderResponse.order.id}/lines`, {
               method: "POST",
-              body: {
-                product_title: line.product_title,
-                supplier_sku: line.supplier_sku,
-                quantity_ordered: line.quantity_ordered,
-                unit_price: line.unit_price || 0,
-              },
+              body: lineData,
             });
           }
         }
@@ -275,6 +319,7 @@ const SupplierOrdersPage = () => {
 
   const addOrderLine = () => {
     setOrderLines([...orderLines, {
+      product_id: "", // ✅ CRÍTICO: Incluir product_id para productos de Medusa
       product_title: "",
       supplier_sku: "",
       quantity_ordered: 1,
@@ -290,6 +335,46 @@ const SupplierOrdersPage = () => {
     const newLines = [...orderLines];
     newLines[index] = { ...newLines[index], [field]: value };
     setOrderLines(newLines);
+  };
+
+  // Funciones helper para búsqueda de productos (similar a product-suppliers)
+  const getProductName = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    return product?.title || productId;
+  };
+
+  const handleProductSearch = (index: number, searchTerm: string) => {
+    setProductSearchTerms({ ...productSearchTerms, [index]: searchTerm });
+    setShowProductDropdowns({ ...showProductDropdowns, [index]: searchTerm.length > 0 });
+  };
+
+  const selectProduct = (index: number, product: any) => {
+    console.log(`🔍 DEBUG selectProduct - Seleccionando:`, { id: product.id, title: product.title });
+    
+    updateOrderLine(index, "product_id", product.id);
+    updateOrderLine(index, "product_title", product.title);
+    setProductSearchTerms({ ...productSearchTerms, [index]: product.title });
+    setShowProductDropdowns({ ...showProductDropdowns, [index]: false });
+    
+    console.log(`🔍 DEBUG selectProduct - orderLines después de actualizar:`, orderLines[index]);
+  };
+
+  const getFilteredProducts = (index: number) => {
+    const searchTerm = productSearchTerms[index] || "";
+    if (!searchTerm.trim() || searchTerm.length < 2) return [];
+    
+    console.log("🔍 Buscando:", searchTerm, "en", products.length, "productos");
+    
+    const filtered = products.filter(product => 
+      product.title && product.title.toLowerCase().includes(searchTerm.toLowerCase())
+    ).slice(0, 15); // Mostrar hasta 15 resultados
+    
+    console.log("✨ Encontrados:", filtered.length, "productos");
+    if (filtered.length > 0) {
+      console.log("📋 Primeros resultados:", filtered.slice(0, 3).map(p => ({ id: p.id, title: p.title })));
+    }
+    
+    return filtered;
   };
 
   const handleReceiveItems = (line: SupplierOrderLine) => {
@@ -412,6 +497,8 @@ const SupplierOrdersPage = () => {
   const orders: SupplierOrder[] = ordersData?.orders || [];
   const suppliers: Supplier[] = suppliersData?.suppliers || [];
   const lines: SupplierOrderLine[] = orderLinesData?.lines || [];
+  const products: any[] = productsData?.products || [];
+  const locations: any[] = locationsData?.stock_locations || [];
 
   // Filtros
   const filteredOrders = orders.filter((order) => {
@@ -436,6 +523,17 @@ const SupplierOrdersPage = () => {
     setCurrentPage(1);
   }, [filterByStatus, filterBySupplier, searchTerm]);
 
+  // Auto-completar el campo "created_by" con el usuario logueado
+  useEffect(() => {
+    if (currentUserData?.user && !orderFormData.created_by) {
+      const user = currentUserData.user;
+      const userName = user.first_name && user.last_name 
+        ? `${user.first_name} ${user.last_name}`
+        : user.email;
+      setOrderFormData(prev => ({ ...prev, created_by: userName }));
+    }
+  }, [currentUserData, orderFormData.created_by]);
+
   // Modal de recepción
   if (showReceiveModal) {
     return (
@@ -451,7 +549,7 @@ const SupplierOrdersPage = () => {
 
         <div className="px-6 py-8 max-w-2xl">
           <div className="space-y-6">
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+            <div className="bg-gray-50 dark:bg-gray-600 p-4 rounded-lg">
               <div className="space-y-2">
                 <Text className="font-medium">{showReceiveModal.product_title}</Text>
                 {showReceiveModal.supplier_sku && (
@@ -840,13 +938,13 @@ const SupplierOrdersPage = () => {
                   <input
                     type="text"
                     value={orderFormData.created_by}
-                    onChange={(e) => setOrderFormData({ ...orderFormData, created_by: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nombre de quien realiza el pedido"
-                    required
+                    className="w-full px-3 py-2  border border-gray-300 rounded-lg text-gray-700 dark:text-white cursor-not-allowed"
+                    placeholder="Cargando usuario..."
+                    disabled
+                    readOnly
                   />
                   <Text size="small" className="text-gray-500 mt-1">
-                    Persona responsable de realizar este pedido
+                    Usuario logueado automáticamente
                   </Text>
                 </div>
               </div>
@@ -855,16 +953,22 @@ const SupplierOrdersPage = () => {
                 <Heading level="h3" className="text-lg">Detalles de Entrega</Heading>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Ubicación de Destino</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium mb-2">Ubicación de Destino *</label>
+                  <select
                     value={orderFormData.destination_location_id}
                     onChange={(e) => setOrderFormData({ ...orderFormData, destination_location_id: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="default, warehouse_1, etc."
-                  />
+                    required
+                  >
+                    <option value="">Seleccionar almacén</option>
+                    {locations.map((location) => (
+                      <option key={location.id} value={location.id}>
+                        {location.name}
+                      </option>
+                    ))}
+                  </select>
                   <Text size="small" className="text-gray-500 mt-1">
-                    Ubicación donde se recibirá la mercancía
+                    Almacén donde se recibirá la mercancía
                   </Text>
                 </div>
 
@@ -893,76 +997,117 @@ const SupplierOrdersPage = () => {
               {orderLines.length > 0 ? (
                 <div className="space-y-4">
                   {orderLines.map((line, index) => (
-                    <div key={index} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        <div>
+                    <div key={index} className="bg-gray-50 dark:bg-gray-500 p-4 rounded-lg">
+                      <div className="space-y-4">
+                        {/* Primera fila: Producto (ocupa todo el ancho) */}
+                        <div className="relative">
                           <label className="block text-sm font-medium mb-1">Producto *</label>
                           <input
                             type="text"
-                            value={line.product_title || ""}
-                            onChange={(e) => updateOrderLine(index, "product_title", e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                            placeholder="Nombre del producto"
+                            value={productSearchTerms[index] || line.product_title || ""}
+                            onChange={(e) => {
+                              handleProductSearch(index, e.target.value);
+                              updateOrderLine(index, "product_title", e.target.value);
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Buscar producto por nombre..."
                             required
                           />
+                          
+                          {/* Dropdown de productos filtrados */}
+                          {showProductDropdowns[index] && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {getFilteredProducts(index).length > 0 ? (
+                                getFilteredProducts(index).map((product) => (
+                                  <button
+                                    key={product.id}
+                                    type="button"
+                                    onClick={() => selectProduct(index, product)}
+                                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                  >
+                                    <div className="font-medium text-gray-900">{product.title}</div>
+                                    <div className="text-gray-500 text-xs">
+                                      ID: {product.id}
+                                    </div>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-3 py-2 text-sm text-gray-500">
+                                  No se encontraron productos para "{productSearchTerms[index] || ""}"
+                                  <br />
+                                  <span className="text-xs">Total productos: {products.length}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">SKU Proveedor</label>
-                          <input
-                            type="text"
-                            value={line.supplier_sku || ""}
-                            onChange={(e) => updateOrderLine(index, "supplier_sku", e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                            placeholder="Código del proveedor"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Cantidad *</label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={line.quantity_ordered || 1}
-                            onChange={(e) => updateOrderLine(index, "quantity_ordered", parseInt(e.target.value) || 1)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Precio Unit.</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={line.unit_price || 0}
-                            onChange={(e) => updateOrderLine(index, "unit_price", parseFloat(e.target.value) || 0)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                            placeholder="0.00"
-                          />
-                        </div>
-                        <div className="flex items-end">
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="small"
-                            onClick={() => removeOrderLine(index)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                        
+                        {/* Segunda fila: Resto de campos */}
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-1">SKU Proveedor</label>
+                            <input
+                              type="text"
+                              value={line.supplier_sku || ""}
+                              onChange={(e) => updateOrderLine(index, "supplier_sku", e.target.value)}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              placeholder="Código del proveedor"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Cantidad *</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={line.quantity_ordered || 1}
+                              onChange={(e) => updateOrderLine(index, "quantity_ordered", parseInt(e.target.value) || 1)}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Precio Unit.</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={line.unit_price || 0}
+                              onChange={(e) => updateOrderLine(index, "unit_price", parseFloat(e.target.value) || 0)}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              placeholder="0.00"
+                            />
+                          </div>
+                          <div>
+                            {(line.quantity_ordered && line.unit_price) ? (
+                              <div>
+                                <label className="block text-sm font-medium mb-1">Total Línea</label>
+                                <div className="px-2 py-1 bg-blue-50 border border-blue-200 rounded text-sm font-medium text-blue-800">
+                                  {formatCurrency((line.quantity_ordered || 0) * (line.unit_price || 0), "EUR")}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="h-8"></div>
+                            )}
+                          </div>
+                          <div className="flex items-end">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="small"
+                              onClick={() => removeOrderLine(index)}
+                              className="w-full"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Eliminar
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                      
-                      {(line.quantity_ordered && line.unit_price) ? (
-                        <div className="mt-2 text-right">
-                          <Text size="small" className="text-gray-600">
-                            Total línea: {formatCurrency((line.quantity_ordered || 0) * (line.unit_price || 0), "EUR")}
-                          </Text>
-                        </div>
-                      ) : null}
                     </div>
                   ))}
                   
                   {orderLines.length > 0 && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                    <div className="bg-blue-50 dark:bg-gray-500 p-4 rounded-lg">
                       <div className="text-right">
                         <Text className="font-medium">
                           Total Pedido: {formatCurrency(
@@ -989,7 +1134,7 @@ const SupplierOrdersPage = () => {
             <div className="flex items-center gap-4 pt-6 border-t">
               <Button
                 type="submit"
-                disabled={createOrderMutation.isPending || !orderFormData.supplier_id || !orderFormData.created_by}
+                disabled={createOrderMutation.isPending || !orderFormData.supplier_id || !orderFormData.created_by || !orderFormData.destination_location_id}
               >
                 {createOrderMutation.isPending ? "Creando..." : "Crear Pedido"}
               </Button>
