@@ -1453,11 +1453,13 @@ ELEMENTOS CLAVE A BUSCAR:
     if (this.sharedAssistant && this.assistantInitialized) {
       try {
         this.logger_.info("🧹 Limpiando assistant compartido al cerrar servicio...");
+          //@ts-ignore
         await this.openai.beta.assistants.del(this.sharedAssistant.id);
         this.sharedAssistant = null;
         this.assistantInitialized = false;
         this.logger_.info("✅ Assistant compartido eliminado");
       } catch (error: any) {
+          //@ts-ignore
         this.logger_.warn("Advertencia limpiando assistant compartido:", error.message);
       }
     }

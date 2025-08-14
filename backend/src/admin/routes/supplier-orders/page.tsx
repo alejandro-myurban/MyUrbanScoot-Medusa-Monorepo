@@ -137,7 +137,6 @@ const SupplierOrdersPage = () => {
       const response = await sdk.client.fetch("/admin/products?limit=1000", {
         method: "GET",
       });
-      console.log("📦 Total productos cargados:", response?.products?.length);
       return response as { products: any[] };
     },
   });
@@ -208,7 +207,7 @@ const SupplierOrdersPage = () => {
             };
             
             console.log(`🔍 DEBUG Frontend - Enviando línea:`, JSON.stringify(lineData, null, 2));
-            
+            //@ts-ignore
             await sdk.client.fetch(`/admin/suppliers/orders/${orderResponse.order.id}/lines`, {
               method: "POST",
               body: lineData,
