@@ -114,6 +114,9 @@ const medusaConfig = {
       resolve: "./src/modules/supplier-management",
     },
     {
+      resolve: "./src/modules/chat-history"
+    },
+    {
       key: Modules.FILE,
       resolve: "@medusajs/file",
       options: {
