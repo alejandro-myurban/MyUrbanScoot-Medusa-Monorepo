@@ -101,7 +101,7 @@ export default class ChatHistoryService extends MedusaService({
         user_id: userId,
         role: "assistant",
         status: newStatus,
-        message: "El agente ha vuelto a IA",
+        message: "El agente ha cerrado la conversación",
       };
     }
 

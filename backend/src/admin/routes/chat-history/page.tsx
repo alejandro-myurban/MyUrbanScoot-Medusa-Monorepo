@@ -2,7 +2,7 @@ import { Container, Heading, Table, Text, Badge, Button, Input } from "@medusajs
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { defineRouteConfig } from "@medusajs/admin-sdk";
-import { BotMessageSquare, ChevronLeft, CalendarDays, Search, ChevronRight, Send, MessageSquarePlus, User, Bot, Crown } from "lucide-react";
+import { BotMessageSquare, ChevronLeft, CalendarDays, Search, ChevronRight, Send, MessageSquarePlus, User, Bot, Crown, AlertTriangle, Info, Sun, Moon } from "lucide-react";
 import { sdk } from "../../lib/sdk";
 
 type ChatMessage = {
@@ -28,15 +28,116 @@ const cleanUserId = (userId: string) => {
   return userId.replace("whatsapp:", "");
 };
 
+// Componente para manejar las burbujas de chat
+const ChatBubble = ({ message, role, status }: ChatMessage) => {
+  const isAssistant = role === "assistant";
+  const isAgent = isAssistant && status === "AGENTE";
+  const isAI = isAssistant && status === "IA";
+  
+  let senderLabel = "Usuario";
+  let icon = <User className="w-4 h-4 text-white" />;
+  
+  if (isAgent) {
+    senderLabel = "Agente";
+    icon = <Crown className="w-4 h-4 text-white" />;
+  } else if (isAI) {
+    senderLabel = "Asistente";
+    icon = <Bot className="w-4 h-4 text-white" />;
+  }
+
+  // Regex para identificar mensajes con la lista numerada
+  const optionsRegex = /^\d+\.\s.*$/gm;
+  const isOptionsMessage = isAssistant && message.match(optionsRegex);
+  const messageLines = message.split('\n');
+
+  return (
+    <div
+      className={`flex items-start gap-3 ${
+        isAssistant ? "justify-end" : "justify-start"
+      }`}
+    >
+      {/* Icono del usuario, solo si no es asistente */}
+      {!isAssistant && (
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
+          <User className="w-4 h-4 text-white" />
+        </div>
+      )}
+      <div
+        className={`max-w-[75%] rounded-lg p-3 shadow-md transition-all duration-300 ${
+          isAssistant
+            ? "bg-gray-100 dark:bg-gray-700"
+            : "bg-blue-500 text-white dark:bg-blue-600"
+        }`}
+      >
+        <div className="flex items-center gap-2 mb-1">
+          {/* Icono del asistente/agente */}
+          {isAssistant && (
+            <div
+              className={`flex-shrink-0 w-6 h-6 rounded-full ${isAgent ? 'bg-purple-500' : 'bg-blue-500'} flex items-center justify-center shadow-sm`}
+            >
+              {icon}
+            </div>
+          )}
+          <Text size="small" className={`font-bold ${isAssistant ? 'text-gray-900 dark:text-gray-100' : 'text-white'}`}>
+            {senderLabel}
+          </Text>
+        </div>
+        
+        {/* Renderizado del mensaje */}
+        {isOptionsMessage ? (
+          <>
+            <Text className="mb-2 whitespace-pre-wrap">{messageLines[0]}</Text>
+            <div className="flex flex-col gap-2 mt-2">
+              {messageLines.slice(1).map((line, index) => {
+                const optionText = line.trim();
+                if (!optionText) return null;
+                return (
+                  <Button key={index} variant="secondary" className="justify-start text-left w-full">
+                    {optionText}
+                  </Button>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <Text className="whitespace-pre-wrap">{message}</Text>
+        )}
+        
+        <Text
+          size="xsmall"
+          className={`mt-1 text-right ${
+            isAssistant ? "text-gray-400" : "text-white/70"
+          }`}
+        >
+          {new Date(message.created_at).toLocaleString("es-ES")}
+        </Text>
+      </div>
+    </div>
+  );
+};
+
+
+const GuideItem = ({ icon, title, description }: { icon: JSX.Element, title: string, description: string }) => (
+  <div className="flex-1 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-sm">
+    <div className="flex items-center gap-2 mb-2">
+      {icon}
+      <Text className="font-semibold text-gray-700 dark:text-gray-200">{title}</Text>
+    </div>
+    <Text size="small" className="text-gray-600 dark:text-gray-400">{description}</Text>
+  </div>
+);
+
 const ChatHistoryDashboard = () => {
   const queryClient = useQueryClient();
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [searchUserId, setSearchUserId] = useState<string>("");
   const [searchDate, setSearchDate] = useState<string>("");
+  const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [agentMessage, setAgentMessage] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<"TODOS" | "IA" | "AGENTE">("TODOS");
   const [page, setPage] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data, isLoading, error } = useQuery<ChatMessage[]>({
     queryKey: ["chat-history", filterStatus],
@@ -107,8 +208,13 @@ const ChatHistoryDashboard = () => {
         msg.created_at.startsWith(filterDate)
       );
     }
+    if (searchKeyword) {
+      filtered = filtered.filter((msg) =>
+        msg.message.toLowerCase().includes(searchKeyword.toLowerCase())
+      );
+    }
     return filtered;
-  }, [history, searchUserId, searchDate]);
+  }, [history, searchUserId, searchDate, searchKeyword]);
 
   const grouped = groupChatsByUser(filteredHistory);
   const userChats = useMemo(() => {
@@ -149,6 +255,15 @@ const ChatHistoryDashboard = () => {
       sendMessageMutation.mutate(agentMessage);
     }
   };
+  
+  // Función para auto-expandir el textarea
+  const handleTextareaChange = (e) => {
+    setAgentMessage(e.target.value);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  };
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -184,6 +299,16 @@ const ChatHistoryDashboard = () => {
               new Date(a.created_at).getTime()
           )[0].status
         : "IA";
+    
+    const lastUserMessage = userMessages.filter(msg => msg.role === 'user').sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0];
+    const needsAgentAttention = lastUserMessage && lastUserMessage.message.toUpperCase().includes("ASISTENCIA PERSONAL") && currentStatus !== "AGENTE";
+
+    // Define un estilo de fondo dinámico para el contenedor del chat
+    const chatContainerBg = currentStatus === "AGENTE" 
+      ? "bg-purple-50 dark:bg-purple-950/30" 
+      : "bg-blue-50 dark:bg-blue-950/30";
 
     return (
       <Container className="flex flex-col h-full">
@@ -218,114 +343,60 @@ const ChatHistoryDashboard = () => {
           </div>
         </div>
 
-        <div className="h-[70vh] overflow-y-auto space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+        {needsAgentAttention && (
+          <div className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 p-3 mb-4 rounded-lg border border-yellow-300">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+            <Text className="font-semibold text-sm">
+              El usuario ha solicitado **ASISTENCIA PERSONAL**.
+            </Text>
+          </div>
+        )}
+
+        <div className={`h-[70vh] overflow-y-auto space-y-4 p-4 border rounded-lg shadow-inner ${chatContainerBg}`}>
           {userMessages
             .sort(
               (a, b) =>
                 new Date(a.created_at).getTime() -
                 new Date(b.created_at).getTime()
             )
-            .map((msg) => {
-              const isAssistant = msg.role === "assistant";
-              const isAgent = isAssistant && msg.status === "AGENTE";
-              const isAI = isAssistant && msg.status === "IA";
-              const isUser = msg.role === "user";
-
-              let senderLabel = "Usuario";
-              let icon = <User className="w-4 h-4 text-white" />;
-              
-              if (isAgent) {
-                senderLabel = "Agente";
-                icon = <Crown className="w-4 h-4 text-white" />;
-              } else if (isAI) {
-                senderLabel = "Asistente";
-                icon = <Bot className="w-4 h-4 text-white" />;
-              }
-
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex items-start gap-3 animate-fade-in ${
-                    isAssistant ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  {!isAssistant && (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                      <User className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                  <div
-                    className={`max-w-[75%] rounded-lg p-3 shadow-md transition-all duration-300 ${
-                      isAssistant
-                        ? "bg-gray-100 dark:bg-gray-700"
-                        : "bg-blue-500 text-white dark:bg-blue-600"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      {isAssistant && (
-                        <div
-                          className={`flex-shrink-0 w-6 h-6 rounded-full ${isAgent ? 'bg-purple-500' : 'bg-blue-500'} flex items-center justify-center`}
-                        >
-                          {icon}
-                        </div>
-                      )}
-                      <Text size="small" className={`font-bold ${isAssistant ? 'text-gray-900 dark:text-gray-100' : 'text-white'}`}>
-                        {senderLabel}
-                      </Text>
-                    </div>
-                    <Text className="whitespace-pre-wrap">{msg.message}</Text>
-                    <Text
-                      size="xsmall"
-                      className={`mt-1 text-right ${
-                        isAssistant ? "text-gray-400" : "text-white/70"
-                      }`}
-                    >
-                      {new Date(msg.created_at).toLocaleString("es-ES")}
-                    </Text>
-                  </div>
-                  {isAssistant && (
-                    <div
-                      className={`flex-shrink-0 w-8 h-8 rounded-full ${isAgent ? 'bg-purple-500' : 'bg-blue-500'} flex items-center justify-center`}
-                    >
-                      {isAgent ? (
-                        <Crown className="w-4 h-4 text-white" />
-                      ) : (
-                        <Bot className="w-4 h-4 text-white" />
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            .map((msg) => (
+              <ChatBubble key={msg.id} {...msg} />
+            ))}
           <div ref={chatEndRef} />
         </div>
 
         {currentStatus === "AGENTE" ? (
-          <div className="flex items-center mt-4 gap-2">
-            <div className="relative flex-1">
-              <textarea
-                placeholder="Escribe tu mensaje..."
-                value={agentMessage}
-                onChange={(e) => setAgentMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                className="w-full p-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 resize-none overflow-hidden pl-8 transition-all duration-200 focus:border-blue-500"
-                rows={1}
-              />
-              <MessageSquarePlus className="absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400" />
+          <>
+            <div className="p-3 mt-4 bg-yellow-100 border border-yellow-300 rounded-lg text-center text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-900 dark:text-yellow-300">
+                <Text>El bot ha pausado su respuesta. Responde como agente.</Text>
             </div>
-            <Button
-              onClick={handleSendMessage}
-              variant="primary"
-              className="flex items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95"
-            >
-              Enviar <Send className="w-4 h-4" />
-            </Button>
-          </div>
+            <div className="flex items-center mt-4 gap-2">
+              <div className="relative flex-1">
+                <textarea
+                  ref={textareaRef}
+                  placeholder="Escribe tu mensaje..."
+                  value={agentMessage}
+                  onChange={handleTextareaChange}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  className="w-full p-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 resize-none overflow-hidden pl-8 transition-all duration-200 focus:border-blue-500"
+                  rows={1}
+                />
+                <MessageSquarePlus className="absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400" />
+              </div>
+              <Button
+                onClick={handleSendMessage}
+                variant="primary"
+                className="flex items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95"
+              >
+                Enviar <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </>
         ) : (
           <div className="p-3 mt-4 bg-gray-100 rounded-lg text-center text-gray-500 dark:bg-gray-800 dark:text-gray-400">
             En modo IA, no se pueden enviar mensajes manuales.
@@ -336,42 +407,88 @@ const ChatHistoryDashboard = () => {
   }
 
   return (
-    <Container>
-      <Heading level="h2" className="mb-4 flex items-center gap-2">
-        <BotMessageSquare className="w-6 h-6" /> Historial de Chats
+    <Container className="p-4">
+      <Heading level="h2" className="mb-4 flex items-center gap-2 text-gray-800 dark:text-white">
+        <BotMessageSquare className="w-8 h-8 text-blue-500" /> Historial de Chats
       </Heading>
-      <div className="flex gap-4 mb-4 items-center">
-        <div className="relative">
+      <div className="flex flex-col md:flex-row gap-4 mb-4 items-center">
+        <div className="relative flex-1 w-full md:w-auto">
           <Input
             type="text"
             placeholder="Filtrar por número de usuario..."
             value={searchUserId}
             onChange={(e) => setSearchUserId(e.target.value)}
-            className="pl-8"
+            className="pl-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
           />
           <Search className="w-4 h-4 absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400" />
         </div>
-        <div className="relative">
+        <div className="relative flex-1 w-full md:w-auto">
           <Input
             type="date"
             value={searchDate}
             onChange={(e) => setSearchDate(e.target.value)}
-            className="pl-8"
+            className="pl-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
           />
           <CalendarDays className="w-4 h-4 absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400" />
+        </div>
+        <div className="relative flex-1 w-full md:w-auto">
+          <Input
+            type="text"
+            placeholder="Filtrar por palabra clave en el mensaje..."
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            className="pl-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+          />
+          <Search className="w-4 h-4 absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400" />
         </div>
         <select
           value={filterStatus}
           onChange={(e) =>
             setFilterStatus(e.target.value as "TODOS" | "IA" | "AGENTE")
           }
-          className="px-2 py-1 rounded-lg border-2 border-gray-200 text-sm"
+          className="w-full md:w-auto px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
         >
           <option value="TODOS">Todos los chats</option>
           <option value="AGENTE">Chats en AGENTE</option>
           <option value="IA">Chats en IA</option>
         </select>
       </div>
+      
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <Heading level="h3" className="text-gray-700 dark:text-gray-200">Guía Rápida</Heading>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <GuideItem 
+            icon={<BotMessageSquare className="w-5 h-5 text-blue-500" />}
+            title="Modo IA"
+            description="El chat está siendo gestionado por el asistente de inteligencia artificial."
+          />
+          <GuideItem 
+            icon={<Crown className="w-5 h-5 text-purple-500" />}
+            title="Modo AGENTE"
+            description="El chat está en modo manual. Un agente puede responder directamente."
+          />
+          <GuideItem 
+            icon={<AlertTriangle className="w-5 h-5 text-orange-500" />}
+            title="Atención Urgente"
+            description="Este ícono indica que el último mensaje del usuario ha solicitado asistencia personal."
+          />
+          <GuideItem
+            icon={<Search className="w-5 h-5 text-gray-500" />}
+            title="Búsqueda Avanzada"
+            description="Puedes encontrar chats específicos usando palabras clave, ID de usuario o fecha."
+          />
+          <div className="flex-1 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg shadow-sm border border-yellow-200 dark:border-yellow-800">
+             <div className="flex items-center gap-2 mb-2">
+              <Info className="w-5 h-5 text-yellow-500" />
+              <Text className="font-semibold text-gray-700 dark:text-gray-200">Fila Destacada</Text>
+            </div>
+            <Text size="small" className="text-gray-600 dark:text-gray-400">Una fila con este fondo resalta chats que necesitan ser revisados por un agente.</Text>
+          </div>
+        </div>
+      </div>
+
       <Table>
         <Table.Header>
           <Table.Row>
@@ -385,11 +502,22 @@ const ChatHistoryDashboard = () => {
         <Table.Body>
           {paginatedChats.length > 0 ? (
             paginatedChats.map((lastMsg) => {
+              const lastUserMessage = grouped[lastMsg.user_id]?.filter(msg => msg.role === 'user').sort(
+                (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+              )[0];
+              const needsAgentAttentionInConversation = lastUserMessage && lastUserMessage.message.toUpperCase().includes("ASISTENCIA PERSONAL") && lastMsg.status !== 'AGENTE';
+
               return (
-                <Table.Row key={lastMsg.user_id} className="transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <Table.Row 
+                  key={lastMsg.user_id} 
+                  className={`transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 ${needsAgentAttentionInConversation ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}`}
+                >
                   <Table.Cell>
-                    <Text className="font-mono">
+                    <Text className="font-mono flex items-center gap-2">
                       {cleanUserId(lastMsg.user_id)}
+                      {needsAgentAttentionInConversation && (
+                        <AlertTriangle className="w-4 h-4 text-orange-500" />
+                      )}
                     </Text>
                   </Table.Cell>
                   <Table.Cell>
