@@ -3,7 +3,6 @@ import twilio from "twilio";
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 import ChatHistoryService from "modules/chat-history/service";
 
-// Mapa simple para asociar usuarios con sus threads de conversación
 const userThreads: Record<string, string> = {};
 
 const openai = new OpenAI({
@@ -18,7 +17,6 @@ const twilioNumber = process.env.TWILIO_NUMBER;
 
 const twilioClient = twilio(accountSid, authToken);
 
-// 📦 Mensajes por estado del pedido
 const orderStatusMessages: Record<string, string> = {
   processing: `🛠️ ¡Estamos trabajando en tu pedido!
 Tu pedido ya está en nuestras manos y nos encontramos preparando todo para que esté listo lo antes posible. 🚀
@@ -64,10 +62,12 @@ type TwilioRequestBody = {
 };
 
 // Envia mensaje via Twilio WhatsApp
-const sendWhatsApp = async (to: string, body: string) => {
+export const sendWhatsApp = async (to: string, body: string) => {
+  console.log(`➡️ [TWILIO] Mensaje de entrada completo: ${body}`);
   const MAX_TWILIO_MESSAGE_LENGTH = 1600;
   const whatsappTo = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
-  // console.log(`➡️ Enviando a ${whatsappTo}: ${body}`);
+  console.log("➡️ [TWILIO] Invocando la función sendWhatsApp.");
+  console.log(`➡️ [TWILIO] Destinatario: ${to}, Mensaje (truncado): ${body.substring(0, 50)}...`);
 
   if (body.length > MAX_TWILIO_MESSAGE_LENGTH) {
     const messagesToSend = [];
@@ -76,8 +76,10 @@ const sendWhatsApp = async (to: string, body: string) => {
     for (const word of words) {
       if ((currentMessage + ' ' + word).length <= MAX_TWILIO_MESSAGE_LENGTH) {
         currentMessage += (currentMessage.length > 0 ? ' ' : '') + word;
+        console.log(`➡️ [TWILIO] Construyendo mensaje: ${currentMessage.substring(0, 50)}...`);
       } else {
         messagesToSend.push(currentMessage);
+        console.log(`➡️ [TWILIO] Fragmento de mensaje listo: ${currentMessage.substring(0, 50)}...`);
         currentMessage = word;
       }
     }
@@ -89,9 +91,9 @@ const sendWhatsApp = async (to: string, body: string) => {
           to: whatsappTo,
           from: "whatsapp:" + twilioNumber,
           body: msg,
-        });
+        }).then((message) => console.log(`✅ Mensaje Twilio enviado (SID: ${message.sid}): ${msg.substring(0, 50)}...`));
       } catch (err) {
-        console.error("Error enviando WhatsApp:", err);
+        console.error("Error enviando WhatsApp:", err.message || err);
       }
     }
   } else {
@@ -107,6 +109,21 @@ const sendWhatsApp = async (to: string, body: string) => {
   }
 };
 
+export const sendWhatsAppTemplate = async (to: string, templateName: string) => {
+  const whatsappTo = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
+  try {
+    await twilioClient.messages.create({
+      to: whatsappTo,
+      from: "whatsapp:" + twilioNumber,
+      contentSid: templateName,
+    });
+    console.log(`✅ Plantilla de mensaje '${templateName}' enviada a ${to}`);
+  } catch (err) {
+    console.error("❌ Error enviando plantilla de WhatsApp:", err);
+  }
+};
+
+
 const processWhatsAppMessage = async (userId: string, incomingMsgRaw: string, chatService: ChatHistoryService) => {
   const incomingMsg = incomingMsgRaw.trim();
   let threadId = userThreads[userId];
@@ -116,16 +133,12 @@ const processWhatsAppMessage = async (userId: string, incomingMsgRaw: string, ch
       const thread = await openai.beta.threads.create();
       threadId = thread.id;
       userThreads[userId] = threadId;
-      // console.log(`➕ Creando nuevo thread para ${userId}: ${threadId}`); 
-    } else {
-      // console.log(`🔗 Usando thread existente para ${userId}: ${threadId}`); 
     }
 
     await openai.beta.threads.messages.create(threadId, {
       role: "user",
       content: incomingMsg,
     });
-    // console.log(`💬 Mensaje añadido al thread: "${incomingMsg}"`); 
 
     const runOptions: OpenAI.Beta.Threads.Runs.RunCreateParams = {
       assistant_id: assistantId,
@@ -168,9 +181,8 @@ const runAssistantRunAndReply = async (
 ) => {
   try {
     let run = await openai.beta.threads.runs.create(threadId, runOptions) as OpenAI.Beta.Threads.Runs.Run;
-    // console.log("🤖 Run creado, esperando finalización...");
 
-    const maxAttempts = 30; // 30 segundos
+    const maxAttempts = 30;
     let attempts = 0;
 
     while (run.status !== "completed") {
@@ -194,9 +206,8 @@ const runAssistantRunAndReply = async (
                 output = "No se ha proporcionado un ID de pedido válido.";
                 await sendWhatsApp(userId, "Por favor, proporciónanos un número de pedido para poder ayudarte. ¡Gracias!");
               } else {
-                // console.log(`📦 Consultando estado de la orden: ${orderId}`);
-              const wooRes = await fetch(`${process.env.WC_URL}/orders/${orderId}`, {
-                headers: {
+                const wooRes = await fetch(`${process.env.WC_URL}/orders/${orderId}`, {
+                  headers: {
                     Authorization: `Basic ${Buffer.from(`${process.env.WC_CONSUMER_KEY}:${process.env.WC_CONSUMER_KEY_S}`).toString("base64")}`,
                     "Content-Type": "application/json"
                   },
@@ -208,7 +219,6 @@ const runAssistantRunAndReply = async (
                   output = `Error consultando orden: ${wooRes.status}`;
                 } else {
                   const orderData = await wooRes.json();
-                  // console.log("📦 Datos de la orden recibidos:", orderData);
                   const status = orderData.status;
                   const reply = orderStatusMessages[status] || `Estado actual del pedido: ${status}`;
                   output = reply;
@@ -236,7 +246,6 @@ const runAssistantRunAndReply = async (
       attempts++;
     }
 
-    // console.log("✅ Run completado. Obteniendo mensajes...");
     const messages = await openai.beta.threads.messages.list(threadId, { order: "desc", limit: 1 });
 
     let aiMessage = "Lo siento, no pude encontrar una respuesta.";
@@ -249,6 +258,7 @@ const runAssistantRunAndReply = async (
       user_id: userId,
       message: aiMessage,
       role: "assistant",
+      status: "IA", // Este es el cambio clave
     });
 
     await sendWhatsApp(userId, aiMessage);
@@ -269,24 +279,33 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       typeof req.body.From !== "string"
     ) {
       console.warn("⚠️ [VALIDACIÓN] Cuerpo inválido o faltan campos obligatorios");
-      return res.status(400).send({
-        code: "invalid_request",
-        message: "Cuerpo de la solicitud no válido o faltan campos obligatorios.",
-      });
+      return res.status(400).send("<Response></Response>");
     }
 
-    const { Body, From } = req.body as TwilioRequestBody;
+    const { Body, From } = req.body as { Body: string; From: string };
     const userId = From;
     const incomingMsg = Body.trim();
 
     const chatService = req.scope.resolve("chat_history") as ChatHistoryService;
+    
+    // 1. Obtenemos el estado de la conversación (IA o AGENTE)
+    const lastStatus = await chatService.getConversationStatus(userId);
 
+    // Guardamos el mensaje del usuario con el estado actual real
     await chatService.saveMessage({
       user_id: userId,
       message: incomingMsg,
       role: "user",
+      status: lastStatus,
     });
+
+    // 3. Lógica condicional: Si está en modo AGENTE, no hacemos nada más.
+    if (lastStatus === "AGENTE") {
+      console.log(`💬 Mensaje recibido de ${userId} en modo AGENTE. No se procesa con IA.`);
+      return res.status(200).send("<Response></Response>");
+    }
     
+    // 4. Si el estado es IA, procesamos el mensaje con la IA
     await processWhatsAppMessage(userId, incomingMsg, chatService);
 
     return res.status(200).send("<Response></Response>");

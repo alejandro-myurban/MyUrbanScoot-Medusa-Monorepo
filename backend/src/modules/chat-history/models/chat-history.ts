@@ -7,4 +7,5 @@ export const ChatHistory = model.define("chat_history", {
   message: model.text(),
   role: model.enum(["user", "assistant"]),
   conversation_id: model.text().nullable(),
+  status: model.enum(["IA", "AGENTE"]).default("IA"),
 })
