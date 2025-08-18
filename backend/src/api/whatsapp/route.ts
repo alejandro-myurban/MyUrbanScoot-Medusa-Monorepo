@@ -109,18 +109,21 @@ export const sendWhatsApp = async (to: string, body: string) => {
   }
 };
 
-export const sendWhatsAppTemplate = async (to: string, templateName: string) => {
-  const whatsappTo = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
-  try {
-    await twilioClient.messages.create({
-      to: whatsappTo,
-      from: "whatsapp:" + twilioNumber,
-      contentSid: templateName,
-    });
-    console.log(`✅ Plantilla de mensaje '${templateName}' enviada a ${to}`);
-  } catch (err) {
-    console.error("❌ Error enviando plantilla de WhatsApp:", err);
-  }
+// Se agregó un parámetro `fallbackMessage` y una lógica de `try...catch` para manejar errores.
+export const sendWhatsAppTemplate = async (to: string, templateName: string, fallbackMessage: string) => {
+  const whatsappTo = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
+  try {
+    await twilioClient.messages.create({
+      to: whatsappTo,
+      from: "whatsapp:" + twilioNumber,
+      contentSid: templateName,
+    });
+    console.log(`✅ Plantilla de mensaje '${templateName}' enviada a ${to}`);
+  } catch (err) {
+    console.error(`❌ Error enviando plantilla de WhatsApp (${templateName}). Intentando con un mensaje normal:`, err);
+    // Si la plantilla falla, se enviará el mensaje de respaldo
+    await sendWhatsApp(to, fallbackMessage);
+  }
 };
 
 

@@ -20,27 +20,33 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       });
     }
 
+    // 2. Resuelve el servicio de historial de chat de Medusa
     const chatService = req.scope.resolve("chat_history") as ChatHistoryService;
 
-    // Obtener la fecha del último mensaje del usuario
-    const lastUserMessageDate = await chatService.getLastMessageDate(userId);
-    const now = new Date();
-    const hoursElapsed = (now.getTime() - lastUserMessageDate.getTime()) / (1000 * 60 * 60);
+    // // Lógica para enviar mensaje según la ventana de 24 horas - COMENTADA
+    // // Obtener la fecha del último mensaje del usuario
+    // const lastUserMessageDate = await chatService.getLastMessageDate(userId);
+    // const now = new Date();
+    // const hoursElapsed = (now.getTime() - lastUserMessageDate.getTime()) / (1000 * 60 * 60);
 
-    // Lógica para enviar mensaje según la ventana de 24 horas
-    if (hoursElapsed > 24) {
-      // Usar el nombre de la plantilla que has aprobado en Twilio
-      await sendWhatsAppTemplate(userId, 'continuar_conversacion');
-    } else {
-      await sendWhatsApp(userId, message);
-    }
+    // // Si han pasado más de 24 horas, intenta enviar la plantilla
+    // if (hoursElapsed > 24) {
+    //   // El segundo parámetro es el ID de la plantilla.
+    //   // El tercer parámetro es el mensaje de "fallback" si la plantilla falla.
+    //   await sendWhatsAppTemplate(userId, 'HXf8c3a0533779893f37cbdc48b11e84a4', message);
+    // } else {
+    //   // Si no han pasado 24 horas, envía un mensaje normal
+    //   await sendWhatsApp(userId, message);
+    // }
 
-    // Guardar el mensaje del agente en la base de datos
+    await sendWhatsApp(userId, message);
+
+
     await chatService.saveMessage({
       user_id: userId,
       message: message,
-      role: "assistant",
-      status: "AGENTE",
+      role: "assistant", 
+      status: "AGENTE", 
     });
 
     return res.status(200).send({ success: true, message: "Mensaje procesado." });
