@@ -2,7 +2,7 @@ import { Container, Heading, Table, Text, Badge, Button, Input } from "@medusajs
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { defineRouteConfig } from "@medusajs/admin-sdk";
-import { BotMessageSquare, ChevronLeft, CalendarDays, Search, ChevronRight, Send, MessageSquarePlus, User, Bot, Crown, AlertTriangle, Info, Sun, Moon } from "lucide-react";
+import { BotMessageSquare, ChevronLeft, CalendarDays, Search, ChevronRight, Send, MessageSquarePlus, User, Bot, Crown, AlertTriangle, Info, Trash } from "lucide-react";
 import { sdk } from "../../lib/sdk";
 
 type ChatMessage = {
@@ -29,7 +29,7 @@ const cleanUserId = (userId: string) => {
 };
 
 // Componente para manejar las burbujas de chat
-const ChatBubble = ({ message, role, status }: ChatMessage) => {
+const ChatBubble = ({ message, role, status, created_at }: ChatMessage) => {
   const isAssistant = role === "assistant";
   const isAgent = isAssistant && status === "AGENTE";
   const isAI = isAssistant && status === "IA";
@@ -45,10 +45,14 @@ const ChatBubble = ({ message, role, status }: ChatMessage) => {
     icon = <Bot className="w-4 h-4 text-white" />;
   }
 
-  // Regex para identificar mensajes con la lista numerada
   const optionsRegex = /^\d+\.\s.*$/gm;
   const isOptionsMessage = isAssistant && message.match(optionsRegex);
   const messageLines = message.split('\n');
+
+  const formattedDate = useMemo(() => {
+    const date = new Date(created_at);
+    return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString("es-ES");
+  }, [created_at]);
 
   return (
     <div
@@ -56,7 +60,6 @@ const ChatBubble = ({ message, role, status }: ChatMessage) => {
         isAssistant ? "justify-end" : "justify-start"
       }`}
     >
-      {/* Icono del usuario, solo si no es asistente */}
       {!isAssistant && (
         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
           <User className="w-4 h-4 text-white" />
@@ -70,7 +73,6 @@ const ChatBubble = ({ message, role, status }: ChatMessage) => {
         }`}
       >
         <div className="flex items-center gap-2 mb-1">
-          {/* Icono del asistente/agente */}
           {isAssistant && (
             <div
               className={`flex-shrink-0 w-6 h-6 rounded-full ${isAgent ? 'bg-purple-500' : 'bg-blue-500'} flex items-center justify-center shadow-sm`}
@@ -83,7 +85,6 @@ const ChatBubble = ({ message, role, status }: ChatMessage) => {
           </Text>
         </div>
         
-        {/* Renderizado del mensaje */}
         {isOptionsMessage ? (
           <>
             <Text className="mb-2 whitespace-pre-wrap">{messageLines[0]}</Text>
@@ -109,13 +110,12 @@ const ChatBubble = ({ message, role, status }: ChatMessage) => {
             isAssistant ? "text-gray-400" : "text-white/70"
           }`}
         >
-          {new Date(message.created_at).toLocaleString("es-ES")}
+          {formattedDate}
         </Text>
       </div>
     </div>
   );
 };
-
 
 const GuideItem = ({ icon, title, description }: { icon: JSX.Element, title: string, description: string }) => (
   <div className="flex-1 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-sm">
@@ -193,6 +193,25 @@ const ChatHistoryDashboard = () => {
     }
   });
 
+  // NUEVA MUTACIÓN PARA ELIMINAR LA CONVERSACIÓN
+  const deleteConversationMutation = useMutation({
+    mutationFn: (userId: string) => {
+      const url = `/admin/delete-conversation/${encodeURIComponent(userId)}`;
+      console.log("🗑️ Llamando al endpoint de eliminación:", url);
+      return sdk.client.fetch(url, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      console.log("✅ Conversación eliminada con éxito.");
+      setSelectedUser(null); // Vuelve a la vista de lista
+      queryClient.invalidateQueries({ queryKey: ["chat-history"] });
+    },
+    onError: (error) => {
+      console.error("❌ Error en la mutación deleteConversation:", error);
+    }
+  });
+
   const history = data || [];
 
   const filteredHistory = useMemo(() => {
@@ -255,6 +274,14 @@ const ChatHistoryDashboard = () => {
       sendMessageMutation.mutate(agentMessage);
     }
   };
+
+  const handleDeleteConversation = () => {
+    if (selectedUser) {
+      if (window.confirm(`¿Estás seguro de que quieres eliminar esta conversación con ${cleanUserId(selectedUser)}? Esta acción es irreversible.`)) {
+        deleteConversationMutation.mutate(selectedUser);
+      }
+    }
+  };
   
   // Función para auto-expandir el textarea
   const handleTextareaChange = (e) => {
@@ -305,7 +332,6 @@ const ChatHistoryDashboard = () => {
     )[0];
     const needsAgentAttention = lastUserMessage && lastUserMessage.message.toUpperCase().includes("ASISTENCIA PERSONAL") && currentStatus !== "AGENTE";
 
-    // Define un estilo de fondo dinámico para el contenedor del chat
     const chatContainerBg = currentStatus === "AGENTE" 
       ? "bg-purple-50 dark:bg-purple-950/30" 
       : "bg-blue-50 dark:bg-blue-950/30";
@@ -325,6 +351,16 @@ const ChatHistoryDashboard = () => {
             <Heading level="h2">Chat con {cleanUserId(selectedUser)}</Heading>
           </div>
           <div className="flex items-center gap-2">
+            {/* BOTÓN DE ELIMINAR */}
+            <Button
+              variant="danger"
+              size="small"
+              onClick={handleDeleteConversation}
+              isLoading={deleteConversationMutation.isPending}
+              className="flex items-center gap-1"
+            >
+              <Trash className="w-4 h-4" /> Eliminar
+            </Button>
             <Badge
               color={currentStatus === "IA" ? "blue" : "purple"}
             >
@@ -480,9 +516,9 @@ const ChatHistoryDashboard = () => {
             description="Puedes encontrar chats específicos usando palabras clave, ID de usuario o fecha."
           />
           <div className="flex-1 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg shadow-sm border border-yellow-200 dark:border-yellow-800">
-             <div className="flex items-center gap-2 mb-2">
-              <Info className="w-5 h-5 text-yellow-500" />
-              <Text className="font-semibold text-gray-700 dark:text-gray-200">Fila Destacada</Text>
+               <div className="flex items-center gap-2 mb-2">
+               <Info className="w-5 h-5 text-yellow-500" />
+               <Text className="font-semibold text-gray-700 dark:text-gray-200">Fila Destacada</Text>
             </div>
             <Text size="small" className="text-gray-600 dark:text-gray-400">Una fila con este fondo resalta chats que necesitan ser revisados por un agente.</Text>
           </div>
@@ -506,6 +542,9 @@ const ChatHistoryDashboard = () => {
                 (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
               )[0];
               const needsAgentAttentionInConversation = lastUserMessage && lastUserMessage.message.toUpperCase().includes("ASISTENCIA PERSONAL") && lastMsg.status !== 'AGENTE';
+
+              const lastMessageDate = new Date(lastMsg.created_at);
+              const formattedDate = isNaN(lastMessageDate.getTime()) ? 'Invalid Date' : lastMessageDate.toLocaleString("es-ES");
 
               return (
                 <Table.Row 
@@ -532,7 +571,7 @@ const ChatHistoryDashboard = () => {
                   </Table.Cell>
                   <Table.Cell>
                     <Text size="small" className="text-gray-400">
-                      {new Date(lastMsg.created_at).toLocaleString("es-ES")}
+                      {formattedDate}
                     </Text>
                   </Table.Cell>
                   <Table.Cell>

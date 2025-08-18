@@ -96,7 +96,6 @@ export default class ChatHistoryService extends MedusaService({
         status: newStatus,
       };
     } else {
-      // Para IA, guardamos solo el estado sin mensaje
       messageData = {
         user_id: userId,
         role: "assistant",
@@ -125,5 +124,26 @@ export default class ChatHistoryService extends MedusaService({
     );
     return latestMessage?.created_at || new Date(0);
   }
+
+  @InjectManager()
+  async deleteConversation(
+    userId: string,
+    @MedusaContext() context?: { manager: EntityManager }
+  ) {
+    console.log(`🗑️ [SERVICE:deleteConversation] Intentando eliminar la conversación para el usuario: ${userId}`);
+
+    try {
+      const result = await this.chatHistoryRepository_.delete(
+        { user_id: userId },
+        context
+      );
+      console.log(`✅ [SERVICE:deleteConversation] Registros eliminados: ${result}`);
+      return { success: true, deletedCount: result };
+    } catch (error) {
+      console.error(`❌ [SERVICE:deleteConversation] Error al eliminar la conversación:`, error);
+      throw new Error("No se pudo eliminar la conversación.");
+    }
+  }
+
 
 }
