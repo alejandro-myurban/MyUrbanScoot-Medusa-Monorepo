@@ -44,7 +44,7 @@ export const POST = async (
     console.log("🔥 Backend API /store/financing-data/check-phone called");
     console.log("📋 Request body:", JSON.stringify(req.body, null, 2));
     
-    const { phone_number } = req.body;
+    const { phone_number } = req.body as { phone_number?: string };
 
     console.log(`🔍 Checking phone number existence: "${phone_number}"`);
     console.log(`📏 Phone number length: ${phone_number?.length}`);
@@ -71,6 +71,7 @@ export const POST = async (
     console.log(`🔎 Buscando solicitudes con phone_mumber: "${normalizedPhoneNumber}"`);
     
     // Buscar si existe alguna solicitud con este número de teléfono normalizado
+    //@ts-ignore
     const existingRequestsNormalized = await financingDataModule.listFinancingData({
       phone_mumber: normalizedPhoneNumber
     });
@@ -82,7 +83,7 @@ export const POST = async (
     if (normalizedPhoneNumber.startsWith('+34')) {
       const phoneWithoutPrefix = normalizedPhoneNumber.replace('+34', '');
       console.log(`🔎 Buscando también solicitudes sin prefijo: "${phoneWithoutPrefix}"`);
-      
+        //@ts-ignore
       existingRequestsWithoutPrefix = await financingDataModule.listFinancingData({
         phone_mumber: phoneWithoutPrefix
       });
