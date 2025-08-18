@@ -2,6 +2,40 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { FINANCING_MODULE } from "modules/financing_data";
 import FinancingModuleService from "modules/financing_data/service";
 
+// Función para normalizar el número de teléfono
+const normalizePhoneNumber = (phone: string): string => {
+  if (!phone) return phone;
+  
+  // Limpiar espacios y caracteres especiales excepto +
+  const cleanPhone = phone.trim().replace(/[^\d+]/g, '');
+  
+  console.log(`📞 Normalizando teléfono: "${phone}" -> "${cleanPhone}"`);
+  
+  // Si ya tiene un prefijo internacional (empieza con +), dejarlo como está
+  if (cleanPhone.startsWith('+')) {
+    console.log(`✅ Teléfono ya tiene prefijo internacional: ${cleanPhone}`);
+    return cleanPhone;
+  }
+  
+  // Si empieza con 34 sin +, añadir el +
+  if (cleanPhone.startsWith('34') && cleanPhone.length >= 11) {
+    const normalized = `+${cleanPhone}`;
+    console.log(`🔄 Añadiendo + a prefijo 34: ${normalized}`);
+    return normalized;
+  }
+  
+  // Si no tiene prefijo y tiene 9 dígitos (típico español), añadir +34
+  if (cleanPhone.length === 9 && /^[67]/.test(cleanPhone)) {
+    const normalized = `+34${cleanPhone}`;
+    console.log(`🇪🇸 Añadiendo prefijo español +34: ${normalized}`);
+    return normalized;
+  }
+  
+  // Si no cumple ninguna condición anterior, devolver tal como está
+  console.log(`⚠️ Teléfono no normalizado (formato no reconocido): ${cleanPhone}`);
+  return cleanPhone;
+};
+
 // Tipo actualizado que coincide con tu modelo y frontend
 type FinancingRequestData = {
   email: string;
@@ -42,6 +76,13 @@ export const POST = async (
   console.log("🚀 Datos recibidos en financing-data:", req.body);
   
   const requestData = req.body;
+
+  // Normalizar el número de teléfono antes de procesar
+  if (requestData.phone_mumber) {
+    const originalPhone = requestData.phone_mumber;
+    requestData.phone_mumber = normalizePhoneNumber(requestData.phone_mumber);
+    console.log(`📞 Teléfono normalizado: "${originalPhone}" -> "${requestData.phone_mumber}"`);
+  }
 
   // Validaciones básicas
   if (!requestData.email) {

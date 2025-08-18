@@ -1117,7 +1117,7 @@ const FinancingPage = () => {
                   <a
                     className="bg-green-400 w-1/3 text-sm  flex items-center justify-center rounded-lg p-2 hover:bg-green-200 transition-all duration-150 mt-2"
                     target="_blank"
-                    href={`https://wa.me/34${
+                    href={`https://wa.me/${
                       selectedRequest.phone_mumber
                     }?text=Hola%20${
                       extractDniInfo(selectedRequest).fullName || ""
