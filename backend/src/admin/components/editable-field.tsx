@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@medusajs/ui";
-import { Edit3, Check, X, Loader2 } from "lucide-react";
+import { Edit3, Check, X, Loader2, Copy } from "lucide-react";
 
 type FieldType = 'text' | 'email' | 'textarea' | 'select' | 'date' | 'boolean' | 'readonly' | 'json-object';
 
@@ -29,6 +29,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
   const [currentValue, setCurrentValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string>("");
+  const [showCopyFeedback, setShowCopyFeedback] = useState(false);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
 
   // Sincronizar valor cuando cambie externamente
@@ -48,6 +49,27 @@ const EditableField: React.FC<EditableFieldProps> = ({
     setIsEditing(true);
     setCurrentValue(value);
     setError("");
+  };
+
+  const handleCopy = async () => {
+    if (value === null || value === undefined || value === '') return;
+    
+    let textToCopy = '';
+    
+    // Para objetos JSON, copiar el JSON formateado
+    if (type === 'json-object' && typeof value === 'object') {
+      textToCopy = JSON.stringify(value, null, 2);
+    } else {
+      textToCopy = value.toString();
+    }
+
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setShowCopyFeedback(true);
+      setTimeout(() => setShowCopyFeedback(false), 2000);
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+    }
   };
 
   const handleCancel = () => {
@@ -294,18 +316,37 @@ const EditableField: React.FC<EditableFieldProps> = ({
           </div>
         </div>
       ) : (
-        <div 
-          className={`group flex items-center justify-between px-3 py-2 text-sm ${
-            disabled ? 'text-gray-500' : 'cursor-pointer hover:text-gray-700'
-          }`}
-          onClick={handleEdit}
-        >
+        <div className="group flex items-center justify-between px-3 py-2 text-sm border border-gray-200 rounded-md bg-gray-50 dark:bg-gray-800 dark:border-gray-600">
           <span className={`flex-1 ${label === 'Ingresos Mensuales (Declarados)' ? 'text-green-600 font-semibold' : ''}`}>
             {formatDisplayValue(value)}
           </span>
-          {!disabled && (
-            <Edit3 className="w-4 h-4 text-gray-400 group-hover:text-gray-600 ml-2" />
-          )}
+          <div className="flex items-center gap-1 ml-2">
+            {/* Botón de copiar - solo si hay valor */}
+            {value !== null && value !== undefined && value !== '' && (
+              <button
+                onClick={handleCopy}
+                className="p-1 text-gray-400 hover:text-blue-600 transition-colors relative"
+                title="Copiar valor"
+              >
+                <Copy className="w-4 h-4" />
+                {showCopyFeedback && (
+                  <span className="absolute -top-8 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                    ¡Copiado!
+                  </span>
+                )}
+              </button>
+            )}
+            {/* Botón de editar - solo si no está deshabilitado */}
+            {!disabled && type !== 'readonly' && (
+              <button
+                onClick={handleEdit}
+                className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                title="Editar campo"
+              >
+                <Edit3 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
