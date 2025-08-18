@@ -137,6 +137,7 @@ const SupplierOrdersPage = () => {
       const response = await sdk.client.fetch("/admin/products?limit=1000", {
         method: "GET",
       });
+      console.log("🔍 DEBUG - Productos cargados:", response);
       return response as { products: any[] };
     },
   });
@@ -206,7 +207,10 @@ const SupplierOrdersPage = () => {
               unit_price: line.unit_price || 0,
             };
             
+            console.log(`🔍 DEBUG Frontend - Línea original del estado:`, JSON.stringify(line, null, 2));
             console.log(`🔍 DEBUG Frontend - Enviando línea:`, JSON.stringify(lineData, null, 2));
+            console.log(`🔍 DEBUG Frontend - product_id específico:`, line.product_id);
+            console.log(`🔍 DEBUG Frontend - product_id es vacío?:`, !line.product_id || line.product_id.trim() === '');
             //@ts-ignore
             await sdk.client.fetch(`/admin/suppliers/orders/${orderResponse.order.id}/lines`, {
               method: "POST",
@@ -349,13 +353,25 @@ const SupplierOrdersPage = () => {
 
   const selectProduct = (index: number, product: any) => {
     console.log(`🔍 DEBUG selectProduct - Seleccionando:`, { id: product.id, title: product.title });
+    console.log(`🔍 DEBUG selectProduct - Producto completo:`, JSON.stringify(product, null, 2));
     
-    updateOrderLine(index, "product_id", product.id);
-    updateOrderLine(index, "product_title", product.title);
+    // Actualizar múltiples campos en una sola operación para evitar problemas de concurrencia
+    const newLines = [...orderLines];
+    newLines[index] = { 
+      ...newLines[index], 
+      product_id: product.id,
+      product_title: product.title 
+    };
+    setOrderLines(newLines);
+    
     setProductSearchTerms({ ...productSearchTerms, [index]: product.title });
     setShowProductDropdowns({ ...showProductDropdowns, [index]: false });
     
-    console.log(`🔍 DEBUG selectProduct - orderLines después de actualizar:`, orderLines[index]);
+    // Usar setTimeout para ver el estado actualizado después del re-render
+    setTimeout(() => {
+      console.log(`🔍 DEBUG selectProduct - orderLines después de actualizar:`, newLines[index]);
+      console.log(`🔍 DEBUG selectProduct - Estado completo de orderLines:`, newLines);
+    }, 100);
   };
 
   const getFilteredProducts = (index: number) => {

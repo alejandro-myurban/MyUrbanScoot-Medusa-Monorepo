@@ -1,10 +1,11 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { LoaderCircle, CheckCircle2, AlertCircle } from "lucide-react"
 import { toast, Toaster } from "@medusajs/ui"
+import { z } from "zod"
 import { FormInput } from "@/modules/financing/components/form-input"
 import {
   FileInputEnhanced,
@@ -14,6 +15,67 @@ import { FormSelect } from "@/modules/financing/components/select-input"
 import { FormTextarea } from "@/modules/financing/components/textarea-input"
 import { sdk } from "@/lib/config"
 import WhatsApp from "@/modules/common/icons/whatsapp"
+
+// Esquema de validación Zod para teléfono
+const phoneSchema = z.string()
+  .min(1, "El número de teléfono es requerido")
+  .regex(/^[+]?[\d\s\-\(\)]+$/, "El número de teléfono solo puede contener dígitos, espacios, guiones y paréntesis")
+  .refine((phone) => {
+    // Limpiar el teléfono de espacios y caracteres especiales
+    const cleanPhone = phone.replace(/[^\d+]/g, '')
+    
+    // Si tiene prefijo internacional, validar longitud apropiada
+    if (cleanPhone.startsWith('+')) {
+      const withoutPlus = cleanPhone.substring(1)
+      
+      // +34 (España): 11-12 dígitos total (+34 + 9 dígitos)
+      if (withoutPlus.startsWith('34')) {
+        return cleanPhone.length >= 12 && cleanPhone.length <= 13
+      }
+      
+      // +33 (Francia), +32 (Bélgica), etc.: 10-14 dígitos total
+      if (withoutPlus.match(/^(33|32|31|49|44|39|41|43|351|352)/)) {
+        return cleanPhone.length >= 10 && cleanPhone.length <= 14
+      }
+      
+      // Otros prefijos internacionales: 8-15 dígitos total
+      return cleanPhone.length >= 8 && cleanPhone.length <= 15
+    }
+    
+    // Sin prefijo: debe ser 9 dígitos españoles o 10-11 dígitos con 34
+    if (cleanPhone.length === 9) {
+      // Números españoles sin prefijo: deben empezar con 6, 7, 8 o 9
+      return /^[6789]/.test(cleanPhone)
+    }
+    
+    if (cleanPhone.length >= 10 && cleanPhone.length <= 11) {
+      // Podría ser 34 + número español
+      return cleanPhone.startsWith('34') && /^34[6789]/.test(cleanPhone)
+    }
+    
+    return false
+  }, {
+    message: "Formato de teléfono inválido. Use: 600123456, +34600123456, o +33123456789"
+  })
+  .refine((phone) => {
+    // Validación adicional: no permitir números obviamente falsos
+    const cleanPhone = phone.replace(/[^\d+]/g, '')
+    const digitsOnly = cleanPhone.replace(/^\+/, '')
+    
+    // No permitir todos los dígitos iguales
+    if (/^(\d)\1+$/.test(digitsOnly)) {
+      return false
+    }
+    
+    // No permitir secuencias obvias como 123456789
+    if (digitsOnly.includes('123456789') || digitsOnly.includes('987654321')) {
+      return false
+    }
+    
+    return true
+  }, {
+    message: "Número de teléfono no válido (no puede ser secuencial o repetitivo)"
+  })
 
 // --- Tipos de datos ---
 interface FinancingFormData {
@@ -44,6 +106,8 @@ interface FinancingFormData {
 
 export default function FinancingPage() {
   const router = useRouter()
+  const phoneTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const zodValidationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const [formData, setFormData] = useState<FinancingFormData>({
     email: "",
@@ -85,6 +149,19 @@ export default function FinancingPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [phoneValidation, setPhoneValidation] = useState<{
+    isChecking: boolean
+    exists: boolean | null
+    message: string
+  }>({
+    isChecking: false,
+    exists: null,
+    message: ""
+  })
+
+  const [phoneValidationError, setPhoneValidationError] = useState<string | null>(null)
+  
+  // console.log("🔍 Estado actual phoneValidation:", phoneValidation)
   const [documentVerifications, setDocumentVerifications] = useState<{
     front?: any
     back?: any
@@ -104,6 +181,98 @@ export default function FinancingPage() {
     }))
   }
 
+  // --- Función para validar formato Zod ---
+  const validatePhoneWithZod = (phoneNumber: string) => {
+    console.log("🔍 Validando teléfono con Zod:", phoneNumber)
+    
+    // Solo validar si tiene al menos 3 caracteres para evitar validación inmediata
+    if (!phoneNumber || phoneNumber.trim().length < 3) {
+      setPhoneValidationError(null)
+      return
+    }
+
+    const zodValidation = phoneSchema.safeParse(phoneNumber)
+    if (!zodValidation.success) {
+      const firstError = zodValidation.error.errors[0]?.message
+      console.log("❌ Error de Zod:", firstError)
+      setPhoneValidationError(firstError)
+    } else {
+      console.log("✅ Validación Zod exitosa")
+      setPhoneValidationError(null)
+    }
+  }
+
+  // --- Función para validar teléfono ---
+  const checkPhoneExists = async (phoneNumber: string) => {
+    console.log("🔍 checkPhoneExists llamado con:", phoneNumber)
+    
+    if (!phoneNumber || phoneNumber.trim().length < 9) {
+      console.log("❌ Teléfono demasiado corto o vacío:", phoneNumber)
+      setPhoneValidation({ isChecking: false, exists: null, message: "" })
+      return
+    }
+
+    console.log("🔄 Iniciando validación de teléfono:", phoneNumber.trim())
+    setPhoneValidation({ isChecking: true, exists: null, message: "Verificando..." })
+
+    try {
+      console.log("📡 Enviando request a /api/store/financing-data/check-phone")
+      const response = await fetch("/api/store/financing-data/check-phone", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone_number: phoneNumber.trim()
+        })
+      })
+
+      console.log("📨 Response status:", response.status)
+      const result = await response.json()
+      console.log("📊 Response data:", result)
+      console.log("📊 result.exists:", result.exists)
+      console.log("📊 result.exists type:", typeof result.exists)
+      console.log("📊 result.message:", result.message)
+      console.log("📊 result.normalized_phone:", result.normalized_phone)
+
+      const newValidationState = {
+        isChecking: false,
+        exists: result.exists,
+        message: result.message
+      }
+      
+      console.log("📊 Actualizando phoneValidation a:", newValidationState)
+      setPhoneValidation(newValidationState)
+
+      // Si el backend devolvió un teléfono normalizado, actualizar el campo
+      if (result.normalized_phone && result.normalized_phone !== phoneNumber) {
+        console.log(`📞 Actualizando teléfono con versión normalizada: "${phoneNumber}" -> "${result.normalized_phone}"`)
+        setFormData((prev) => {
+          console.log("📞 Actualizando formData, prev:", prev.phone_mumber, "new:", result.normalized_phone)
+          const newData = { ...prev, phone_mumber: result.normalized_phone }
+          console.log("📞 Nuevo formData:", newData.phone_mumber)
+          return newData
+        })
+      } else {
+        console.log(`📞 No se actualiza teléfono. normalized_phone: "${result.normalized_phone}", phoneNumber: "${phoneNumber}"`)
+      }
+
+      if (result.exists) {
+        console.log("❌ Teléfono YA EXISTE en la base de datos")
+      } else {
+        console.log("✅ Teléfono DISPONIBLE")
+      }
+
+    } catch (error) {
+      console.error("❌ Error validando teléfono:", error)
+      setPhoneValidation({
+        isChecking: false,
+        exists: null,
+        message: "Error al validar teléfono"
+      })
+    }
+  }
+
   // --- Manejadores de eventos ---
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -112,6 +281,87 @@ export default function FinancingPage() {
   ) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+
+    // Si es el campo del teléfono, validar después de un delay
+    if (name === "phone_mumber") {
+      console.log("📞 Campo teléfono detectado, valor:", value)
+      
+      // Limpiar validaciones anteriores
+      setPhoneValidation({ isChecking: false, exists: null, message: "" })
+      
+      // Limpiar timeouts anteriores si existen
+      if (phoneTimeoutRef.current) {
+        console.log("⏰ Limpiando timeout de duplicados anterior")
+        clearTimeout(phoneTimeoutRef.current)
+        phoneTimeoutRef.current = null
+      }
+      
+      if (zodValidationTimeoutRef.current) {
+        console.log("⏰ Limpiando timeout de Zod anterior")
+        clearTimeout(zodValidationTimeoutRef.current)
+        zodValidationTimeoutRef.current = null
+      }
+      
+      // Limpiar error de Zod anterior si el campo está vacío
+      if (!value || value.trim().length < 3) {
+        setPhoneValidationError(null)
+      }
+      
+      // Configurar timeout para validación de Zod (1.5 segundos)
+      console.log("⏰ Configurando timeout para validación Zod en 1.5 segundos")
+      zodValidationTimeoutRef.current = setTimeout(() => {
+        console.log("⏰ Timeout Zod ejecutado para:", value)
+        validatePhoneWithZod(value)
+        zodValidationTimeoutRef.current = null
+      }, 1500)
+      
+      // Solo configurar timeout para duplicados si parece un teléfono válido
+      if (value && value.trim().length >= 9) {
+        console.log("⏰ Configurando timeout para validación de duplicados en 2 segundos")
+        phoneTimeoutRef.current = setTimeout(() => {
+          console.log("⏰ Timeout duplicados ejecutado para:", value)
+          // Primero validar con Zod antes de validar duplicados
+          const zodValidation = phoneSchema.safeParse(value)
+          if (zodValidation.success) {
+            checkPhoneExists(value)
+          } else {
+            console.log("❌ No se valida duplicados porque Zod falló")
+          }
+          phoneTimeoutRef.current = null
+        }, 2000)
+      }
+    }
+  }
+
+  // --- Manejo del onBlur para el teléfono ---
+  const handlePhoneBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    console.log("🔍 onBlur detectado para teléfono:", value)
+    
+    // Validar inmediatamente cuando se quita el foco
+    if (value && value.trim().length >= 3) {
+      // Limpiar timeouts pendientes ya que validamos inmediatamente
+      if (zodValidationTimeoutRef.current) {
+        clearTimeout(zodValidationTimeoutRef.current)
+        zodValidationTimeoutRef.current = null
+      }
+      
+      if (phoneTimeoutRef.current) {
+        clearTimeout(phoneTimeoutRef.current)
+        phoneTimeoutRef.current = null
+      }
+      
+      // Validar formato inmediatamente
+      console.log("📞 Validando formato por onBlur")
+      validatePhoneWithZod(value)
+      
+      // Si el formato es válido, validar duplicados también
+      const zodValidation = phoneSchema.safeParse(value)
+      if (zodValidation.success && value.trim().length >= 9) {
+        console.log("📞 Validando duplicados por onBlur")
+        setTimeout(() => checkPhoneExists(value), 100) // Pequeño delay para que se vea el loading
+      }
+    }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,6 +427,26 @@ export default function FinancingPage() {
         ? `${missing.slice(0, -1).join(", ")} y ${missing.slice(-1)}`
         : missing[0]
       toast.error(`Faltan documentos requeridos: ${missingText}`)
+      return
+    }
+
+    // ✅ VALIDACIÓN ZOD DE TELÉFONO: Verificar formato
+    const phoneZodValidation = phoneSchema.safeParse(formData.phone_mumber)
+    if (!phoneZodValidation.success) {
+      const firstError = phoneZodValidation.error.errors[0]?.message
+      toast.error(`Error en el teléfono: ${firstError}`)
+      return
+    }
+
+    // ✅ VALIDACIÓN DE TELÉFONO: Verificar que el teléfono no esté duplicado
+    if (phoneValidation.exists) {
+      toast.error("Ya existe una solicitud con este número de teléfono. Por favor, usa un número diferente.")
+      return
+    }
+
+    // Si aún está validando el teléfono, esperar un momento
+    if (phoneValidation.isChecking) {
+      toast.error("Espera un momento mientras verificamos el número de teléfono...")
       return
     }
 
@@ -420,7 +690,8 @@ export default function FinancingPage() {
     return missing
   }
 
-  const isFormValid = validateRequiredDocuments()
+  const isPhoneValidZod = phoneSchema.safeParse(formData.phone_mumber).success
+  const isFormValid = validateRequiredDocuments() && !phoneValidation.exists && phoneValidation.exists !== null && isPhoneValidZod && !phoneValidationError
   const missingDocuments = getMissingDocuments()
   const visibleQuestions = getVisibleQuestions()
 
@@ -473,15 +744,48 @@ export default function FinancingPage() {
                       placeholder="tu@email.com"
                     />
 
-                    <FormInput
-                      label="Teléfono"
-                      name="phone_mumber"
-                      type="tel"
-                      required
-                      value={formData.phone_mumber}
-                      onChange={handleInputChange}
-                      placeholder="+34 600 000 000"
-                    />
+                    <div>
+                      <FormInput
+                        label="Teléfono"
+                        name="phone_mumber"
+                        type="tel"
+                        required
+                        value={formData.phone_mumber}
+                        onChange={handleInputChange}
+                        onBlur={handlePhoneBlur}
+                        placeholder="+34 600 000 000"
+                      />
+                      {/* Estado de validación del teléfono */}
+                      {formData.phone_mumber && formData.phone_mumber.trim().length >= 1 && (
+                        <div className="mt-2">
+                          {phoneValidationError ? (
+                            <div className="flex items-center text-red-600 text-sm">
+                              <AlertCircle className="h-4 w-4 mr-2" />
+                              {phoneValidationError}
+                            </div>
+                          ) : phoneValidation.isChecking ? (
+                            <div className="flex items-center text-blue-600 text-sm">
+                              <LoaderCircle className="animate-spin h-4 w-4 mr-2" />
+                              Verificando número de teléfono...
+                            </div>
+                          ) : phoneValidation.exists === true ? (
+                            <div className="flex items-center text-red-600 text-sm">
+                              <AlertCircle className="h-4 w-4 mr-2" />
+                              Ya existe una solicitud con este número
+                            </div>
+                          ) : phoneValidation.exists === false ? (
+                            <div className="flex items-center text-green-600 text-sm">
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              Número de teléfono disponible
+                            </div>
+                          ) : formData.phone_mumber.trim().length >= 9 ? (
+                            <div className="text-gray-400 text-sm">
+                              Validando formato...
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
                     <FileInputEnhanced
                       id="identity_front_file_id"
                       label="Imagen del anverso del DNI"
