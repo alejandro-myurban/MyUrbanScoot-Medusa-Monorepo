@@ -2,7 +2,7 @@ import { Container, Heading, Text, Badge, Button, Input } from "@medusajs/ui";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { BotMessageSquare, ChevronLeft, Send, MessageSquarePlus, User, Bot, Crown, AlertTriangle, Trash } from "lucide-react";
+import { BotMessageSquare, ChevronLeft, Send, MessageSquarePlus, User, Bot, Crown, AlertTriangle, Trash, Image as ImageIcon } from "lucide-react";
 import { sdk } from "../../../lib/sdk";
 import { cleanUserId, groupChatsByUser } from "../utils/chat-helpers";
 
@@ -34,6 +34,14 @@ const ChatBubble = ({ message, role, status, created_at }: ChatMessage) => {
     icon = <Bot className="w-4 h-4 text-white" />;
   }
 
+  // ✅ Lógica corregida para la detección de mensajes de imagen.
+  const imageMarker = "[Imagen] - ";
+  const imageMarkerIndex = message.indexOf(imageMarker);
+  const isImageMessage = imageMarkerIndex !== -1;
+  const imageUrl = isImageMessage ? message.substring(imageMarkerIndex + imageMarker.length) : null;
+  const textMessage = isImageMessage ? message.substring(0, imageMarkerIndex).trim() : message;
+
+  // Lógica para detectar mensajes con opciones (de la versión vieja)
   const optionsRegex = /^\d+\.\s.*$/gm;
   const isOptionsMessage = isAssistant && message.match(optionsRegex);
   const messageLines = message.split('\n');
@@ -74,6 +82,7 @@ const ChatBubble = ({ message, role, status, created_at }: ChatMessage) => {
           </Text>
         </div>
         
+        {/* Lógica fusionada: si es mensaje de opciones, lo muestra como botones. Si es de imagen, la muestra. Si no, es texto normal. */}
         {isOptionsMessage ? (
           <>
             <Text className="mb-2 whitespace-pre-wrap">{messageLines[0]}</Text>
@@ -90,7 +99,29 @@ const ChatBubble = ({ message, role, status, created_at }: ChatMessage) => {
             </div>
           </>
         ) : (
-          <Text className="whitespace-pre-wrap">{message}</Text>
+          <>
+            {textMessage && <Text className="whitespace-pre-wrap">{textMessage}</Text>}
+            {isImageMessage && (
+              <div className="flex flex-col items-start gap-2 mt-2">
+                <a href={imageUrl} target="_blank" rel="noopener noreferrer">
+                  <img 
+                    src={imageUrl} 
+                    alt="Imagen compartida en el chat" 
+                    className="max-w-full h-auto rounded-md shadow-md"
+                    style={{ maxHeight: '250px' }}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://placehold.co/600x400?text=Imagen+no+disponible';
+                    }}
+                  />
+                </a>
+                <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                  <ImageIcon className="w-4 h-4" />
+                  <Text size="small">Imagen enviada</Text>
+                </div>
+              </div>
+            )}
+          </>
         )}
         
         <Text
@@ -108,16 +139,12 @@ const ChatBubble = ({ message, role, status, created_at }: ChatMessage) => {
 
 
 const ChatDetailsPage = () => {
-  // 💡 SOLUCIÓN SIN DEPENDENCIAS: Obtener el parámetro directamente de la URL
   const pathname = window.location.pathname;
   const parts = pathname.split('/');
   const encodedUserId = parts[parts.length - 1];
   
   const userid = encodedUserId ? decodeURIComponent(encodedUserId) : undefined;
   
-  console.log('Valor crudo de la URL:', encodedUserId);
-  console.log('Valor decodificado (userid):', userid);
-
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [agentMessage, setAgentMessage] = useState<string>("");
@@ -127,7 +154,6 @@ const ChatDetailsPage = () => {
   const { data, isLoading, error } = useQuery<ChatMessage[]>({
     queryKey: ["chat-history", userid],
     queryFn: async () => {
-      console.log('Llamando a la API con userId:', userid);
       const res = await sdk.client.fetch<{ history: ChatMessage[] }>(
         `/admin/chat-history?userId=${userid}`,
         { method: "GET" }
@@ -231,7 +257,6 @@ const ChatDetailsPage = () => {
   }, [userMessages]);
 
   if (!userid) {
-    console.log('¡ATENCIÓN! userid es undefined, mostrando mensaje de error.');
     return (
       <Container><Text>No se encontró un ID de chat.</Text></Container>
     );
