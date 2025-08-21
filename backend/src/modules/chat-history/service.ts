@@ -48,18 +48,18 @@ export default class ChatHistoryService extends MedusaService({
     },
     @MedusaContext() context?: { manager: EntityManager }
   ) {
-    console.log("💾 [SERVICE:saveMessage] Intentando guardar:", data)
+    // console.log("💾 [SERVICE:saveMessage] Intentando guardar:", data)
 
     const [chat] = await this.chatHistoryRepository_.create([data], context)
 
-    console.log("✅ [SERVICE:saveMessage] Registro creado:", chat)
+    // console.log("✅ [SERVICE:saveMessage] Registro creado:", chat)
 
     const [fresh] = await this.chatHistoryRepository_.find(
       { where: { id: chat.id } },
       context
     )
 
-    console.log("🔍 [SERVICE:saveMessage] Registro verificado en BD:", fresh)
+    // console.log("🔍 [SERVICE:saveMessage] Registro verificado en BD:", fresh)
 
     return fresh
   }
@@ -130,17 +130,17 @@ export default class ChatHistoryService extends MedusaService({
     userId: string,
     @MedusaContext() context?: { manager: EntityManager }
   ) {
-    console.log(`🗑️ [SERVICE:deleteConversation] Intentando eliminar la conversación para el usuario: ${userId}`);
+//     console.log(`🗑️ [SERVICE:deleteConversation] Intentando eliminar la conversación para el usuario: ${userId}`);
 
     try {
       const result = await this.chatHistoryRepository_.delete(
         { user_id: userId },
         context
       );
-      console.log(`✅ [SERVICE:deleteConversation] Registros eliminados: ${result}`);
+//       console.log(`✅ [SERVICE:deleteConversation] Registros eliminados: ${result}`);
       return { success: true, deletedCount: result };
     } catch (error) {
-      console.error(`❌ [SERVICE:deleteConversation] Error al eliminar la conversación:`, error);
+//       console.error(`❌ [SERVICE:deleteConversation] Error al eliminar la conversación:`, error);
       throw new Error("No se pudo eliminar la conversación.");
     }
   }

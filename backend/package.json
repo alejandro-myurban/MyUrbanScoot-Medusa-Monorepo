@@ -47,6 +47,8 @@
     "@types/puppeteer": "^7.0.4",
     "algoliasearch": "^5.27.0",
     "awilix": "^8.0.1",
+    "busboy": "^1.6.0",
+    "cloudinary": "^2.7.0",
     "file-type": "16.5.4",
     "html-pdf-node": "^1.0.8",
     "jsonwebtoken": "^9.0.2",
