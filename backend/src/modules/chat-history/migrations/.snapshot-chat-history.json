@@ -69,6 +69,15 @@
           ],
           "mappedType": "enum"
         },
+        "profile_name": {
+          "name": "profile_name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz",

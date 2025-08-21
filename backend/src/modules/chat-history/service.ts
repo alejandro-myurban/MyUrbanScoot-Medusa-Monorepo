@@ -44,7 +44,8 @@ export default class ChatHistoryService extends MedusaService({
       message?: string; 
       role: "user" | "assistant" ;
       status?: "IA" | "AGENTE";
-      conversation_id?: string 
+      conversation_id?: string;
+      profile_name?: string;
     },
     @MedusaContext() context?: { manager: EntityManager }
   ) {

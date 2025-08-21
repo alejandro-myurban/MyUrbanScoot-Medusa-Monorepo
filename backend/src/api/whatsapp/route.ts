@@ -16,6 +16,7 @@ type TwilioWebhookBody = {
   From: string;
   NumMedia?: string;
   MediaUrl0?: string;
+  ProfileName?: string; // <-- Campo agregado
 };
 
 const assistantId = "asst_WHExxIFiHSzghOVeFvJmuON5";
@@ -85,6 +86,9 @@ const downloadTwilioMedia = async (mediaUrl: string): Promise<string> => {
   }
 };
 
+// ❌ Se eliminó la función getProfileName y su lógica
+//    debido a que la API de Twilio Lookups no soporta el campo 'profile_name'.
+
 // Envia mensaje via Twilio WhatsApp
 export const sendWhatsApp = async (to: string, body: string, mediaUrl?: string) => {
   console.log(`➡️ [TWILIO] Mensaje de entrada completo: ${body}`);
@@ -99,8 +103,8 @@ export const sendWhatsApp = async (to: string, body: string, mediaUrl?: string) 
       const message = await twilioClient.messages.create({
         to: whatsappTo,
         from: "whatsapp:" + twilioNumber,
-        body: body || "",        // Puede ir vacío si solo es archivo
-        mediaUrl: [mediaUrl],    // Twilio soporta array de URLs
+        body: body || "",       // Puede ir vacío si solo es archivo
+        mediaUrl: [mediaUrl],     // Twilio soporta array de URLs
       });
       console.log(`✅ WhatsApp con archivo enviado (SID: ${message.sid})`);
     } catch (err: any) {
@@ -135,8 +139,8 @@ export const sendWhatsApp = async (to: string, body: string, mediaUrl?: string) 
         console.log(`✅ Mensaje Twilio enviado (SID: ${message.sid})`);
       } catch (err: any) {
         console.error("❌ Error enviando WhatsApp:", err.message || err);
-      }
     }
+  }
   } else {
     try {
       const message = await twilioClient.messages.create({
@@ -344,81 +348,88 @@ const runAssistantRunAndReply = async (
 };
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
-  try {
-    if (!req.body || typeof req.body !== "object" || !("From" in req.body) || typeof req.body.From !== "string") {
-      console.warn("⚠️ [VALIDACIÓN] Cuerpo inválido o faltan campos obligatorios");
-      return res.status(400).send("<Response></Response>");
-    }
+  try {
+    // ➡️ Log completo del webhook entrante
+    console.log("Incoming Twilio Webhook Body:", req.body);
 
-    const { Body, From, NumMedia, MediaUrl0 } = req.body as TwilioWebhookBody;
-    const userId = From;
-    const incomingMsg = Body ? Body.trim() : "";
-    const numMedia = parseInt(NumMedia || "0", 10);
-    const mediaUrl = numMedia > 0 ? MediaUrl0 : null;
+    if (!req.body || typeof req.body !== "object" || !("From" in req.body) || typeof req.body.From !== "string") {
+      console.warn("⚠️ [VALIDACIÓN] Cuerpo inválido o faltan campos obligatorios");
+      return res.status(400).send("<Response></Response>");
+    }
 
-    const chatService = req.scope.resolve("chat_history") as ChatHistoryService;
+    const { Body, From, NumMedia, MediaUrl0, ProfileName } = req.body as TwilioWebhookBody;
+    const userId = From;
+    const incomingMsg = Body ? Body.trim() : "";
+    const numMedia = parseInt(NumMedia || "0", 10);
+    const mediaUrl = numMedia > 0 ? MediaUrl0 : null;
 
-    const lastStatus = await chatService.getConversationStatus(userId);
-    const hasImage = numMedia > 0;
-    const isPersonalAssistanceRequest = incomingMsg.toUpperCase().includes("ASISTENCIA PERSONAL");
+    const chatService = req.scope.resolve("chat_history") as ChatHistoryService;
 
-    // Guardar el mensaje del usuario (con o sin imagen) al inicio
-    let messageToSave;
-    if (incomingMsg.length > 0 && hasImage) {
-      messageToSave = `${incomingMsg} [Imagen] - ${mediaUrl}`;
-    } else if (hasImage) {
-      messageToSave = `[Imagen] - ${mediaUrl}`;
-    } else if (incomingMsg.length > 0) {
-      messageToSave = incomingMsg;
-    }
-    
-    if (messageToSave) {
-      await chatService.saveMessage({
-        user_id: userId,
-        message: messageToSave,
-        role: "user",
-        status: lastStatus,
-      });
-    }
+    // ➡️ Extraer y loguear el nombre del remitente
+    const profileNameReceived = ProfileName || null;
+    console.log("➡️ [TWILIO] ProfileName recibido:", profileNameReceived);
 
-    // ➡️ Lógica unificada para entrar en modo AGENTE
-    if (hasImage || isPersonalAssistanceRequest) {
-      console.log(`💬 Mensaje de ${userId} contiene una imagen o solicitud de AGENTE. Cambiando a modo AGENTE.`);
-      
-      // La respuesta que se enviará al usuario
-      const confirmationMessage = "Gracias por tu mensaje. Un miembro de nuestro equipo de soporte se pondrá en contacto contigo en breve para ayudarte.";
-      
-      // Enviamos el mensaje de confirmación
-      await sendWhatsApp(userId, confirmationMessage);
-      
-      // Guardamos la respuesta del bot en la historia del chat
-      await chatService.saveMessage({
-        user_id: userId,
-        message: confirmationMessage,
-        role: "assistant",
-        status: "AGENTE", // El status del mensaje del bot es 'AGENTE'
-      });
+    // Fallback si no viene nombre
+    const profileName = profileNameReceived || userId.replace("whatsapp:", "");
+    console.log("➡️ [TWILIO] Nombre que se usará para la conversación:", profileName);
 
-      // Actualizamos el estado general de la conversación a 'AGENTE'
-      await chatService.updateConversationStatus(userId, "AGENTE");
-      
-      // El proceso termina aquí, el control pasa al agente humano
-      return res.status(200).send("<Response></Response>");
-    }
-    
-    // Si no es una imagen o una solicitud de asistencia, procesar con la IA
-    if (lastStatus === "IA" || !lastStatus) {
-      console.log(`💬 Mensaje de ${userId} en modo IA. Procesando con el asistente de OpenAI.`);
-      // En este caso, mediaUrl es null y processWhatsAppMessage se ejecuta normalmente
-      await processWhatsAppMessage(userId, incomingMsg, chatService, mediaUrl);
-    } else {
-       console.log(`💬 Mensaje de ${userId} en modo ${lastStatus}. No se procesa con IA.`);
-    }
+    const lastStatus = await chatService.getConversationStatus(userId);
+    const hasImage = numMedia > 0;
+    const isPersonalAssistanceRequest = incomingMsg.toUpperCase().includes("ASISTENCIA PERSONAL");
 
-    return res.status(200).send("<Response></Response>");
-    
-  } catch (err: any) {
-    console.error("❌ [ERROR] Ocurrió un error en el webhook:", err.message || err);
-    return res.status(500).send("<Response></Response>");
-  }
+    // Guardar el mensaje del usuario (con o sin imagen) al inicio
+    let messageToSave;
+    if (incomingMsg.length > 0 && hasImage) {
+      messageToSave = `${incomingMsg} [Imagen] - ${mediaUrl}`;
+    } else if (hasImage) {
+      messageToSave = `[Imagen] - ${mediaUrl}`;
+    } else if (incomingMsg.length > 0) {
+      messageToSave = incomingMsg;
+    }
+
+    if (messageToSave) {
+      await chatService.saveMessage({
+        user_id: userId,
+        message: messageToSave,
+        role: "user",
+        status: lastStatus,
+        profile_name: profileName, // Guardar nombre del perfil
+      });
+    }
+
+    // ➡️ Lógica unificada para entrar en modo AGENTE
+    if (hasImage || isPersonalAssistanceRequest) {
+      console.log(`💬 Mensaje de ${profileName} (${userId}) contiene una imagen o solicitud de AGENTE. Cambiando a modo AGENTE.`);
+
+      const confirmationMessage = "Gracias por tu mensaje. Un miembro de nuestro equipo de soporte se pondrá en contacto contigo en breve para ayudarte.";
+
+      await sendWhatsApp(userId, confirmationMessage);
+
+      await chatService.saveMessage({
+        user_id: userId,
+        message: confirmationMessage,
+        role: "assistant",
+        status: "AGENTE",
+        profile_name: "MyUrbanScoot Bot",
+      });
+
+      await chatService.updateConversationStatus(userId, "AGENTE");
+
+      return res.status(200).send("<Response></Response>");
+    }
+
+    // Procesar con IA si corresponde
+    if (lastStatus === "IA" || !lastStatus) {
+      console.log(`💬 Mensaje de ${profileName} (${userId}) en modo IA. Procesando con el asistente de OpenAI.`);
+      await processWhatsAppMessage(userId, incomingMsg, chatService, mediaUrl);
+    } else {
+      console.log(`💬 Mensaje de ${profileName} (${userId}) en modo ${lastStatus}. No se procesa con IA.`);
+    }
+
+    return res.status(200).send("<Response></Response>");
+    
+  } catch (err: any) {
+    console.error("❌ [ERROR] Ocurrió un error en el webhook:", err.message || err);
+    return res.status(500).send("<Response></Response>");
+  }
 };
