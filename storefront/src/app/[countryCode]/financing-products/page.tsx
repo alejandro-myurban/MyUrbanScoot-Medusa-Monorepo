@@ -450,48 +450,73 @@ export default function FinancingPage() {
       return
     }
 
-    // ✅ SEGUNDA VALIDACIÓN: Verificar documentos DNI antes del envío
+    // ✅ NUEVA VALIDACIÓN: Permitir envío si hay archivos, aunque falle el análisis
+    let hasDocumentIssues = false
+    let warningMessages = []
+
+    // Verificar DNI frontal: solo bloquear si NO hay archivo
+    if (!files.identity_front_file_id) {
+      toast.error("Debes subir el DNI frontal para continuar.")
+      setSubmitting(false)
+      return
+    }
+    
+    // Si hay archivo pero el análisis falló, solo advertir
     if (documentVerifications.front && !documentVerifications.front.isValid) {
-      toast.error(
-        "El DNI frontal no es válido. Por favor, sube una imagen de mejor calidad."
-      )
+      hasDocumentIssues = true
+      warningMessages.push("DNI frontal")
+    }
+
+    // Verificar DNI trasero: solo bloquear si NO hay archivo
+    if (!files.identity_back_file_id) {
+      toast.error("Debes subir el DNI trasero para continuar.")
       setSubmitting(false)
       return
     }
-
+    
+    // Si hay archivo pero el análisis falló, solo advertir
     if (documentVerifications.back && !documentVerifications.back.isValid) {
-      toast.error(
-        "El DNI trasero no es válido. Por favor, sube una imagen de mejor calidad."
-      )
-      setSubmitting(false)
-      return
+      hasDocumentIssues = true
+      warningMessages.push("DNI trasero")
     }
 
-    // Si los documentos tienen baja confianza, avisar al usuario
-    if (
-      documentVerifications.front &&
-      documentVerifications.front.confidence < 70
-    ) {
+    // Si hay documentos con baja confianza, añadir a warnings
+    if (documentVerifications.front && documentVerifications.front.confidence < 70) {
+      hasDocumentIssues = true
+      if (!warningMessages.includes("DNI frontal")) {
+        warningMessages.push("DNI frontal (baja calidad)")
+      }
+    }
+
+    if (documentVerifications.back && documentVerifications.back.confidence < 70) {
+      hasDocumentIssues = true
+      if (!warningMessages.includes("DNI trasero")) {
+        warningMessages.push("DNI trasero (baja calidad)")
+      }
+    }
+
+    // Si hay issues, mostrar advertencia pero permitir continuar
+    if (hasDocumentIssues && warningMessages.length > 0) {
+      const documentsText = warningMessages.length > 1 
+        ? `${warningMessages.slice(0, -1).join(", ")} y ${warningMessages.slice(-1)}`
+        : warningMessages[0]
+      
       const proceed = confirm(
-        "El documento frontal tiene baja calidad. ¿Deseas continuar de todas formas?"
+        `⚠️ Los documentos (${documentsText}) tienen problemas de análisis automático.\n\n` +
+        `✅ Se puede enviar la solicitud igualmente, aunque podrías ser contactado posteriormente para verificar los datos manualmente.\n\n` +
+        `¿Deseas continuar con el envío?`
       )
+      
       if (!proceed) {
         setSubmitting(false)
         return
       }
-    }
-
-    if (
-      documentVerifications.back &&
-      documentVerifications.back.confidence < 70
-    ) {
-      const proceed = confirm(
-        "El documento trasero tiene baja calidad. ¿Deseas continuar de todas formas?"
+      
+      // Mostrar toast informativo
+      toast.warning(
+        `Solicitud enviada con documentos pendientes de verificación manual: ${documentsText}`,
+        { duration: 5000 }
       )
-      if (!proceed) {
-        setSubmitting(false)
-        return
-      }
     }
 
     setSubmitting(true)
@@ -612,50 +637,7 @@ export default function FinancingPage() {
 
   // --- Validación de documentos requeridos ---
   const validateRequiredDocuments = () => {
-    // Siempre requeridos: DNI frontal y trasero
-    if (!files.identity_front_file_id || !files.identity_back_file_id) {
-      return false
-    }
-
-    // Siempre requerido: Justificante bancario (si hay contract_type seleccionado)
-    if (formData.contract_type && !files.bank_account_proof_file) {
-      return false
-    }
-
-    // Validación específica por tipo de contrato
-    switch (formData.contract_type) {
-      case "employee_temporary":
-      case "employee_permanent":
-        // Empleados: mínimo 1 nómina
-        if (!files.paysheet_file) {
-          return false
-        }
-        break
-
-      case "freelance":
-        // Autónomos: declaración de renta y cuota de autónomos
-        if (!files.freelance_rental_file || !files.freelance_quote_file) {
-          return false
-        }
-        break
-
-      case "pensioner":
-      case "unemployed":
-        // Pensionistas y desempleados: justificante de pensión/paro
-        if (!files.pensioner_proof_file) {
-          return false
-        }
-        break
-
-      default:
-        // Si no hay tipo de contrato seleccionado, no permitir envío
-        if (!formData.contract_type) {
-          return false
-        }
-        break
-    }
-
-    return true
+    return getMissingDocuments().length === 0
   }
 
   // --- Obtener documentos faltantes ---
@@ -691,8 +673,20 @@ export default function FinancingPage() {
   }
 
   const isPhoneValidZod = phoneSchema.safeParse(formData.phone_mumber).success
-  const isFormValid = validateRequiredDocuments() && !phoneValidation.exists && phoneValidation.exists !== null && isPhoneValidZod && !phoneValidationError
-  const missingDocuments = getMissingDocuments()
+  
+  // ⚠️ DEBUG TEMPORAL - para ver qué condición está fallando
+  const debugValidation = {
+    validateRequiredDocuments: validateRequiredDocuments(),
+    phoneValidationExists: phoneValidation.exists,
+    isPhoneValidZod: isPhoneValidZod,
+    phoneValidationError: phoneValidationError,
+    missingDocsCount: getMissingDocuments().length,
+    missingDocs: getMissingDocuments()
+  }
+  
+  console.log("🔍 DEBUG VALIDACIÓN:", debugValidation)
+  
+  const isFormValid = validateRequiredDocuments() && !phoneValidation.exists && isPhoneValidZod && !phoneValidationError
   const visibleQuestions = getVisibleQuestions()
 
   return (
@@ -1266,7 +1260,7 @@ export default function FinancingPage() {
                           Documentos requeridos pendientes
                         </h4>
                         <ul className="text-sm text-amber-700 space-y-1">
-                          {missingDocuments.map((doc, index) => (
+                          {getMissingDocuments().map((doc, index) => (
                             <li key={index}>• {doc}</li>
                           ))}
                         </ul>
@@ -1299,7 +1293,7 @@ export default function FinancingPage() {
                   ) : !isFormValid ? (
                     <>
                       <AlertCircle className="mr-3 h-6 w-6" />
-                      Faltan {missingDocuments.length} documento{missingDocuments.length === 1 ? '' : 's'}
+                      Faltan {getMissingDocuments().length} documento{getMissingDocuments().length === 1 ? '' : 's'}
                     </>
                   ) : (
                     <>

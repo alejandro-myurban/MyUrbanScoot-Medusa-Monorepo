@@ -1343,6 +1343,8 @@ ELEMENTOS CLAVE A BUSCAR:
     } catch (error: any) {
            //@ts-ignore
       this.logger_.warn("Advertencia limpiando recursos OpenAI:", error.message);
+
+      
     }
   }
 

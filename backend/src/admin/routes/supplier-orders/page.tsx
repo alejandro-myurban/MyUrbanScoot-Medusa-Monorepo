@@ -111,7 +111,7 @@ const SupplierOrdersPage = () => {
   } = useQuery<{ orders: SupplierOrder[] }>({
     queryKey: ["supplier-orders"],
     queryFn: async () => {
-      const response = await sdk.client.fetch("/admin/suppliers/orders", {
+      const response = await sdk.client.fetch("/admin/suppliers/orders?limit=1000", {
         method: "GET",
       });
       return response as { orders: SupplierOrder[] };
@@ -564,9 +564,9 @@ const SupplierOrdersPage = () => {
 
         <div className="px-6 py-8 max-w-2xl">
           <div className="space-y-6">
-            <div className="bg-gray-50 dark:bg-gray-600 p-4 rounded-lg">
+            <div className="bg-gray-50 dark:bg-gray-300 p-4 rounded-lg">
               <div className="space-y-2">
-                <Text className="font-medium">{showReceiveModal.product_title}</Text>
+                <Text className="font-medium dark:text-gray-600">{showReceiveModal.product_title}</Text>
                 {showReceiveModal.supplier_sku && (
                   <Text size="small" className="text-gray-600">Ref: {showReceiveModal.supplier_sku}</Text>
                 )}
