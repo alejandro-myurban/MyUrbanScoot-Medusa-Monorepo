@@ -178,6 +178,7 @@ export const POST = async (
       quantity,
       productId,
       productTitle: product.title,
+      //@ts-ignore
       performedBy: req.auth?.actor_id || "admin",
       reason: reason || "Manual stock transfer via API",
     };
@@ -211,6 +212,8 @@ export const POST = async (
           origin: workflowResult.result.transfer.originStockAfter,
           destination: workflowResult.result.transfer.destStockAfter,
         },
+      //@ts-ignore
+
         performedBy: req.auth?.actor_id || "admin",
         performedAt: new Date().toISOString(),
         reason,

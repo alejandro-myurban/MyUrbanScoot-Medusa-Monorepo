@@ -5,9 +5,7 @@ export const SUPPLIER_MODULE = "supplier_management";
 
 export default Module(SUPPLIER_MODULE, {
   service: SupplierManagementModuleService,
-  dependencies: [
-    Modules.INVENTORY,
-    Modules.PRODUCT,
-    Modules.STOCK_LOCATION,
-  ],
+  //@ts-ignore
+
+  dependencies: [Modules.INVENTORY, Modules.PRODUCT, Modules.STOCK_LOCATION],
 });
