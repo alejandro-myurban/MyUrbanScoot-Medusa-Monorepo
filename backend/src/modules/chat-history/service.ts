@@ -26,7 +26,7 @@ export default class ChatHistoryService extends MedusaService({
     options = {},
     @MedusaContext() context?: { manager: EntityManager }
   ) {
-    // console.log("📜 [SERVICE:list] Filtro recibido:", filter, "Opciones:", options)
+    console.log("📜 [SERVICE:list] Filtro recibido:", filter, "Opciones:", options)
 
     const records = await this.chatHistoryRepository_.find(
       { where: filter, ...options },
