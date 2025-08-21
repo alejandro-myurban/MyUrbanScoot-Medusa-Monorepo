@@ -144,7 +144,14 @@ export const FileInputEnhanced = ({
           bank_statement: '❌ No es un extracto bancario válido',
           payroll: '❌ No es una nómina válida'
         }
-        toast.error(messages[documentType] || '❌ Documento no válido', { id: verifyToast })
+        const warningMessages: Record<string, string> = {
+          dni_front: '⚠️ DNI frontal subido - Requiere verificación manual',
+          dni_back: '⚠️ DNI trasero subido - Requiere verificación manual', 
+          bank_certificate: '⚠️ Certificado bancario subido - Requiere verificación manual',
+          bank_statement: '⚠️ Extracto bancario subido - Requiere verificación manual',
+          payroll: '⚠️ Nómina subida - Requiere verificación manual'
+        }
+        toast.warning(warningMessages[documentType] || '⚠️ Documento subido - Requiere verificación manual', { id: verifyToast })
       } else {
         toast.warning('⚠️ Documento válido pero con algunas observaciones', { id: verifyToast })
       }
@@ -167,8 +174,20 @@ export const FileInputEnhanced = ({
   }
 
   const getVerificationStatus = () => {
+    // Si no hay resultado de verificación pero hay archivo, mostrar estado neutro
+    if (!verificationResult && file) {
+      return { 
+        color: 'border-blue-200 bg-blue-50', 
+        textColor: 'text-blue-800',
+        icon: CheckCircle2, 
+        iconColor: 'text-blue-600',
+        text: 'Archivo subido' 
+      }
+    }
+    
     if (!verificationResult) return null
     
+    // ✅ Verde: Verificado correctamente con alta confianza
     if (verificationResult.isValid && verificationResult.confidence > 70) {
       return { 
         color: 'border-green-200 bg-green-50', 
@@ -177,21 +196,27 @@ export const FileInputEnhanced = ({
         iconColor: 'text-green-600',
         text: 'Verificado' 
       }
-    } else if (verificationResult.confidence < 50) {
-      return { 
-        color: 'border-red-200 bg-red-50', 
-        textColor: 'text-red-800',
-        icon: AlertCircle, 
-        iconColor: 'text-red-600',
-        text: 'No válido' 
-      }
-    } else {
+    } 
+    // ⚠️ Amarillo: Archivo subido pero análisis falló o baja confianza
+    else if (!verificationResult.isValid || verificationResult.confidence < 70) {
       return { 
         color: 'border-yellow-200 bg-yellow-50', 
         textColor: 'text-yellow-800',
         icon: AlertCircle, 
         iconColor: 'text-yellow-600',
-        text: 'Con observaciones' 
+        text: verificationResult.isValid 
+          ? 'Verificación pendiente' 
+          : 'Revisión manual requerida'
+      }
+    } 
+    // 🔄 Azul: Estados intermedios
+    else {
+      return { 
+        color: 'border-blue-200 bg-blue-50', 
+        textColor: 'text-blue-800',
+        icon: AlertCircle, 
+        iconColor: 'text-blue-600',
+        text: 'En verificación' 
       }
     }
   }
@@ -236,6 +261,11 @@ export const FileInputEnhanced = ({
                       {status.text}
                     </span>
                   )}
+                  {/* {status && status.text === 'Revisión manual requerida' && (
+                    <span className="text-xs text-yellow-600 font-medium">
+                      ⚠️ Puedes enviar la solicitud, pero podríamos contactarte para verificar este documento
+                    </span>
+                  )} */}
                   {verificationResult && (
                     <span className="text-xs text-gray-500">
                       {verificationResult.confidence}% confianza
