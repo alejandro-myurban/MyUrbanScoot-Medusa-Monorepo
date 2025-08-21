@@ -139,6 +139,8 @@ const updateSupplierStockStep = createStep(
       } else if (action === "created") {
         // Eliminar el nivel creado
         await inventoryService.deleteInventoryLevels([
+      //@ts-ignore
+
           {
             inventory_item_id: inventoryItemId,
             location_id: locationId,
