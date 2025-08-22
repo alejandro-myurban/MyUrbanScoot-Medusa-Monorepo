@@ -88,12 +88,127 @@ class SupplierManagementModuleService extends MedusaService({
     return orders[0] || null;
   }
 
+  // =====================================================
+  // VALIDACIÓN DE TRANSICIONES DE ESTADO
+  // =====================================================
+
+  // Validación de transiciones de estado permitidas
+  private validateStatusTransition(currentStatus: string, newStatus: string): boolean {
+    const allowedTransitions: Record<string, string[]> = {
+      draft: ['pending', 'cancelled'],
+      pending: ['confirmed', 'cancelled'],
+      confirmed: ['shipped', 'cancelled'],
+      shipped: ['partially_received', 'incident', 'cancelled'],
+      partially_received: ['received', 'incident'],
+      received: [], // Estado final, no se puede cambiar
+      incident: ['received', 'cancelled'], // Solo se puede resolver o cancelar
+      cancelled: [] // Estado final, no se puede cambiar
+    };
+
+    return allowedTransitions[currentStatus]?.includes(newStatus) || false;
+  }
+
+  // Obtener estados válidos siguientes
+  getValidNextStatuses(currentStatus: string): string[] {
+    const allowedTransitions: Record<string, string[]> = {
+      draft: ['pending', 'cancelled'],
+      pending: ['confirmed', 'cancelled'],
+      confirmed: ['shipped', 'cancelled'],
+      shipped: ['partially_received', 'incident', 'cancelled'],
+      partially_received: ['received', 'incident'],
+      received: [], 
+      incident: ['received', 'cancelled'],
+      cancelled: []
+    };
+
+    return allowedTransitions[currentStatus] || [];
+  }
+
+  // Obtener una línea específica por ID
+  async getSupplierOrderLineById(lineId: string): Promise<SupplierOrderLine | null> {
+    const lines = await this.listSupplierOrderLines({ id: lineId });
+    return lines[0] || null;
+  }
+
+  // =====================================================
+  // GESTIÓN DE INCIDENCIAS
+  // =====================================================
+
+  // Actualizar incidencia de una línea específica
+  async updateOrderLineIncident(
+    lineId: string, 
+    hasIncident: boolean, 
+    incidentNotes?: string
+  ): Promise<SupplierOrderLine> {
+    console.log(`🚨 Actualizando incidencia para línea ${lineId}: ${hasIncident}`);
+    
+    const updateData: any = {
+      id: lineId,
+      line_status: hasIncident ? 'incident' : 'pending',
+      reception_notes: incidentNotes || null
+    };
+
+    const updatedLine = await this.updateSupplierOrderLines(updateData);
+    console.log(`✅ Línea actualizada: status=${updatedLine.line_status}`);
+
+    // Verificar si el pedido completo debe cambiar a 'incident'
+    const line = await this.getSupplierOrderLineById(lineId);
+    if (line?.supplier_order_id) {
+      await this.checkAndUpdateOrderIncidentStatus(line.supplier_order_id);
+    }
+
+    return updatedLine;
+  }
+
+  // Verificar si el pedido debe cambiar a estado 'incident'
+  private async checkAndUpdateOrderIncidentStatus(orderId: string): Promise<void> {
+    const lines = await this.listSupplierOrderLines({
+      supplier_order_id: orderId
+    });
+
+    const hasIncidentLines = lines.some(line => line.line_status === 'incident');
+    const order = await this.getSupplierOrderById(orderId);
+    
+    if (!order) return;
+
+    // Si hay líneas con incidencia y el pedido no está en incident
+    if (hasIncidentLines && order.status !== 'incident') {
+      console.log(`🚨 Cambiando pedido ${orderId} a estado 'incident' debido a líneas con incidencias`);
+      await this.updateSupplierOrderStatus(orderId, 'incident');
+    }
+    // Si no hay líneas con incidencia y el pedido está en incident, podría volver a su estado anterior
+    else if (!hasIncidentLines && order.status === 'incident') {
+      console.log(`✅ Pedido ${orderId} resuelto, todas las incidencias han sido solucionadas`);
+      // Aquí podrías implementar lógica para volver al estado anterior si es necesario
+    }
+  }
+
   async updateSupplierOrderStatus(
     id: string,
     status: string,
     userId?: string
   ): Promise<SupplierOrder> {
     console.log(`🔄 Actualizando estado del pedido ${id} a ${status}`);
+    
+    // Obtener estado actual del pedido
+    const currentOrder = await this.getSupplierOrderById(id);
+    if (!currentOrder) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Supplier order with id ${id} not found`
+      );
+    }
+
+    // Validar transición de estado
+    if (!this.validateStatusTransition(currentOrder.status, status)) {
+      const validStatuses = this.getValidNextStatuses(currentOrder.status);
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Invalid status transition from ${currentOrder.status} to ${status}. Valid transitions: ${validStatuses.join(', ')}`
+      );
+    }
+
+    console.log(`✅ Transición válida: ${currentOrder.status} → ${status}`);
 
     const updateData: any = {
       id, // ¡CRÍTICO! Incluir el ID como hace financing_data

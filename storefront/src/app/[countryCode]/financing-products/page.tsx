@@ -77,6 +77,156 @@ const phoneSchema = z.string()
     message: "Número de teléfono no válido (no puede ser secuencial o repetitivo)"
   })
 
+// Esquema comprehensivo de validación del formulario
+const formSchema = z.object({
+  // Datos personales
+  email: z.string()
+    .min(1, "El email es requerido")
+    .email("Formato de email inválido")
+    .max(100, "Email demasiado largo")
+    .refine((email) => {
+      // Validaciones adicionales para emails más robustas
+      const domain = email.split('@')[1]
+      if (!domain) return false
+      
+      // No permitir dominios obviamente falsos
+      const invalidDomains = ['test.com', '123.com', 'fake.com', 'example.com']
+      return !invalidDomains.includes(domain.toLowerCase())
+    }, {
+      message: "Dirección de email no válida"
+    }),
+  
+  phone_mumber: phoneSchema, // Mantener el schema existente
+  
+  // Dirección
+  address: z.string()
+    .min(1, "La dirección es requerida")
+    .min(5, "La dirección debe tener al menos 5 caracteres")
+    .max(200, "Dirección demasiado larga")
+    .refine((address) => {
+      // Debe contener al menos un número y una palabra
+      return /\d/.test(address) && /[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(address)
+    }, {
+      message: "La dirección debe incluir número y nombre de calle"
+    }),
+  
+  postal_code: z.string()
+    .min(1, "El código postal es requerido")
+    .regex(/^\d{5}$/, "El código postal debe tener exactamente 5 dígitos")
+    .refine((code) => {
+      // Validar que sea un código postal español válido (01000-52999)
+      const num = parseInt(code)
+      return num >= 1000 && num <= 52999
+    }, {
+      message: "Código postal español no válido"
+    }),
+  
+  city: z.string()
+    .min(1, "La ciudad es requerida")
+    .min(2, "La ciudad debe tener al menos 2 caracteres")
+    .max(50, "Ciudad demasiado larga")
+    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\-\.]+$/, "La ciudad solo puede contener letras, espacios, guiones y puntos"),
+  
+  province: z.string()
+    .min(1, "La provincia es requerida")
+    .min(2, "La provincia debe tener al menos 2 caracteres")
+    .max(50, "Provincia demasiado larga")
+    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\-\.]+$/, "La provincia solo puede contener letras, espacios, guiones y puntos"),
+  
+  // Información laboral y financiera
+  income: z.string()
+    .min(1, "Los ingresos son requeridos")
+    .regex(/^\d+$/, "Los ingresos deben ser un número")
+    .refine((income) => {
+      const num = parseInt(income)
+      return num >= 400 && num <= 50000
+    }, {
+      message: "Los ingresos deben estar entre 400€ y 50.000€"
+    }),
+  
+  contract_type: z.enum(["employee_permanent", "employee_temporary", "freelance", "pensioner", "unemployed"], {
+    errorMap: () => ({ message: "Selecciona un tipo de contrato válido" })
+  }),
+  
+  // Estado civil
+  civil_status: z.enum(["single", "married", "divorced", "widowed"], {
+    errorMap: () => ({ message: "Selecciona un estado civil válido" })
+  }),
+  
+  // Tipo de vivienda
+  housing_type: z.enum(["rent", "owned", "owned_free", "family", "other"], {
+    errorMap: () => ({ message: "Selecciona un tipo de vivienda válido" })
+  }),
+  
+  // Plazos de financiación
+  financing_installment_count: z.enum(["12", "24", "36", "48", "60"], {
+    errorMap: () => ({ message: "Selecciona un plazo de financiación válido" })
+  }),
+  
+  // Campos opcionales
+  company_position: z.string().optional(),
+  company_start_date: z.string().optional(),
+  freelance_start_date: z.string().optional(),
+  housing_type_details: z.string().optional(),
+  marital_status_details: z.string().optional(),
+  doubts: z.string().optional(),
+  
+  // Campos ocultos/internos - sin validación estricta
+  identity: z.string().optional(),
+  paysheet_file_id: z.string().nullable().optional(),
+  freelance_rental_file_id: z.string().nullable().optional(),
+  freelance_quote_file_id: z.string().nullable().optional(),
+  pensioner_proof_file_id: z.string().nullable().optional(),
+  bank_account_proof_file_id: z.string().nullable().optional(),
+})
+
+// Validaciones condicionales basadas en contract_type
+.refine((data) => {
+  if ((data.contract_type === "employee_permanent" || data.contract_type === "employee_temporary") && !data.company_position) {
+    return false
+  }
+  return true
+}, {
+  message: "El cargo en la empresa es requerido para empleados",
+  path: ["company_position"]
+})
+.refine((data) => {
+  if ((data.contract_type === "employee_permanent" || data.contract_type === "employee_temporary") && !data.company_start_date) {
+    return false
+  }
+  return true
+}, {
+  message: "La fecha de inicio en la empresa es requerida para empleados",
+  path: ["company_start_date"]
+})
+.refine((data) => {
+  if (data.contract_type === "freelance" && !data.freelance_start_date) {
+    return false
+  }
+  return true
+}, {
+  message: "La fecha de alta como autónomo es requerida",
+  path: ["freelance_start_date"]
+})
+.refine((data) => {
+  if (data.civil_status === "married" && !data.marital_status_details) {
+    return false
+  }
+  return true
+}, {
+  message: "Especifica el régimen matrimonial",
+  path: ["marital_status_details"]
+})
+.refine((data) => {
+  if (data.housing_type === "other" && !data.housing_type_details) {
+    return false
+  }
+  return true
+}, {
+  message: "Especifica el tipo de vivienda",
+  path: ["housing_type_details"]
+})
+
 // --- Tipos de datos ---
 interface FinancingFormData {
   email: string
@@ -160,6 +310,7 @@ export default function FinancingPage() {
   })
 
   const [phoneValidationError, setPhoneValidationError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   
   // console.log("🔍 Estado actual phoneValidation:", phoneValidation)
   const [documentVerifications, setDocumentVerifications] = useState<{
@@ -179,6 +330,53 @@ export default function FinancingPage() {
       ...prev,
       [type]: result,
     }))
+  }
+
+  // --- Función para validar un campo individual ---
+  const validateField = (fieldName: string, value: string, currentFormData?: Partial<FinancingFormData>) => {
+    // Usar datos actuales del formulario o datos pasados para validaciones condicionales
+    const dataToValidate = currentFormData || formData
+    
+    // Crear un objeto solo con el campo que queremos validar para Zod
+    const fieldData = { [fieldName]: value }
+    
+    try {
+      // Obtener el schema del campo específico
+      const fieldSchema = formSchema.shape[fieldName as keyof typeof formSchema.shape]
+      if (fieldSchema) {
+        fieldSchema.parse(value)
+        
+        // Si es válido, verificar validaciones condicionales
+        if (fieldName === "company_position" && (dataToValidate.contract_type === "employee_permanent" || dataToValidate.contract_type === "employee_temporary") && !value) {
+          throw new Error("El cargo en la empresa es requerido para empleados")
+        }
+        if (fieldName === "company_start_date" && (dataToValidate.contract_type === "employee_permanent" || dataToValidate.contract_type === "employee_temporary") && !value) {
+          throw new Error("La fecha de inicio en la empresa es requerida para empleados")
+        }
+        if (fieldName === "freelance_start_date" && dataToValidate.contract_type === "freelance" && !value) {
+          throw new Error("La fecha de alta como autónomo es requerida")
+        }
+        if (fieldName === "marital_status_details" && dataToValidate.civil_status === "married" && !value) {
+          throw new Error("Especifica el régimen matrimonial")
+        }
+        if (fieldName === "housing_type_details" && dataToValidate.housing_type === "other" && !value) {
+          throw new Error("Especifica el tipo de vivienda")
+        }
+        
+        // Si llegamos aquí, la validación fue exitosa
+        setFieldErrors(prev => {
+          const newErrors = { ...prev }
+          delete newErrors[fieldName]
+          return newErrors
+        })
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || "Campo inválido"
+      setFieldErrors(prev => ({
+        ...prev,
+        [fieldName]: errorMessage
+      }))
+    }
   }
 
   // --- Función para validar formato Zod ---
@@ -280,7 +478,8 @@ export default function FinancingPage() {
     >
   ) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    const newFormData = { ...formData, [name]: value }
+    setFormData(newFormData)
 
     // Si es el campo del teléfono, validar después de un delay
     if (name === "phone_mumber") {
@@ -330,6 +529,11 @@ export default function FinancingPage() {
           phoneTimeoutRef.current = null
         }, 2000)
       }
+    } else {
+      // Para otros campos, validar con timeout para no sobrecargar
+      setTimeout(() => {
+        validateField(name, value, newFormData)
+      }, 800)
     }
   }
 
@@ -361,6 +565,17 @@ export default function FinancingPage() {
         console.log("📞 Validando duplicados por onBlur")
         setTimeout(() => checkPhoneExists(value), 100) // Pequeño delay para que se vea el loading
       }
+    }
+  }
+
+  // --- Manejo del onBlur para otros campos ---
+  const handleFieldBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    console.log(`🔍 onBlur detectado para ${name}:`, value)
+    
+    // Validar inmediatamente cuando se quita el foco
+    if (name !== "phone_mumber") {
+      validateField(name, value, formData)
     }
   }
 
@@ -430,11 +645,40 @@ export default function FinancingPage() {
       return
     }
 
-    // ✅ VALIDACIÓN ZOD DE TELÉFONO: Verificar formato
-    const phoneZodValidation = phoneSchema.safeParse(formData.phone_mumber)
-    if (!phoneZodValidation.success) {
-      const firstError = phoneZodValidation.error.errors[0]?.message
-      toast.error(`Error en el teléfono: ${firstError}`)
+    // ✅ VALIDACIÓN COMPREHENSIVA CON ZOD: Verificar todos los campos del formulario
+    const formValidation = formSchema.safeParse(formData)
+    if (!formValidation.success) {
+      const errors = formValidation.error.errors
+      const firstError = errors[0]
+      console.log("❌ Errores de validación:", errors)
+      
+      // Mostrar el primer error encontrado
+      if (firstError.path.length > 0) {
+        const fieldName = firstError.path[0]
+        const fieldLabels: Record<string, string> = {
+          email: "Email",
+          phone_mumber: "Teléfono",
+          address: "Dirección",
+          postal_code: "Código postal",
+          city: "Ciudad", 
+          province: "Provincia",
+          income: "Ingresos",
+          contract_type: "Tipo de contrato",
+          civil_status: "Estado civil",
+          housing_type: "Tipo de vivienda",
+          financing_installment_count: "Plazos de financiación",
+          company_position: "Cargo en la empresa",
+          company_start_date: "Fecha de inicio en la empresa",
+          freelance_start_date: "Fecha de alta como autónomo",
+          marital_status_details: "Detalles del estado civil",
+          housing_type_details: "Detalles del tipo de vivienda"
+        }
+        
+        const fieldLabel = fieldLabels[fieldName as string] || fieldName
+        toast.error(`${fieldLabel}: ${firstError.message}`)
+      } else {
+        toast.error(`Error de validación: ${firstError.message}`)
+      }
       return
     }
 
@@ -673,6 +917,7 @@ export default function FinancingPage() {
   }
 
   const isPhoneValidZod = phoneSchema.safeParse(formData.phone_mumber).success
+  const hasFieldErrors = Object.keys(fieldErrors).length > 0
   
   // ⚠️ DEBUG TEMPORAL - para ver qué condición está fallando
   const debugValidation = {
@@ -680,13 +925,15 @@ export default function FinancingPage() {
     phoneValidationExists: phoneValidation.exists,
     isPhoneValidZod: isPhoneValidZod,
     phoneValidationError: phoneValidationError,
+    hasFieldErrors: hasFieldErrors,
+    fieldErrors: fieldErrors,
     missingDocsCount: getMissingDocuments().length,
     missingDocs: getMissingDocuments()
   }
   
   console.log("🔍 DEBUG VALIDACIÓN:", debugValidation)
   
-  const isFormValid = validateRequiredDocuments() && !phoneValidation.exists && isPhoneValidZod && !phoneValidationError
+  const isFormValid = validateRequiredDocuments() && !phoneValidation.exists && isPhoneValidZod && !phoneValidationError && !hasFieldErrors
   const visibleQuestions = getVisibleQuestions()
 
   return (
@@ -728,15 +975,24 @@ export default function FinancingPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormInput
-                      label="Correo Electrónico"
-                      name="email"
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="tu@email.com"
-                    />
+                    <div>
+                      <FormInput
+                        label="Correo Electrónico"
+                        name="email"
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        onBlur={handleFieldBlur}
+                        placeholder="tu@email.com"
+                      />
+                      {fieldErrors.email && (
+                        <div className="mt-1 flex items-center text-red-600 text-sm">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {fieldErrors.email}
+                        </div>
+                      )}
+                    </div>
 
                     <div>
                       <FormInput
@@ -864,36 +1120,70 @@ export default function FinancingPage() {
                         required
                         value={formData.address}
                         onChange={handleInputChange}
+                        onBlur={handleFieldBlur}
                         placeholder="Calle, número, piso, puerta..."
                       />
+                      {fieldErrors.address && (
+                        <div className="mt-1 flex items-center text-red-600 text-sm">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {fieldErrors.address}
+                        </div>
+                      )}
                     </div>
 
-                    <FormInput
-                      label="Código Postal"
-                      name="postal_code"
-                      required
-                      value={formData.postal_code}
-                      onChange={handleInputChange}
-                      placeholder="28001"
-                    />
+                    <div>
+                      <FormInput
+                        label="Código Postal"
+                        name="postal_code"
+                        required
+                        value={formData.postal_code}
+                        onChange={handleInputChange}
+                        onBlur={handleFieldBlur}
+                        placeholder="28001"
+                      />
+                      {fieldErrors.postal_code && (
+                        <div className="mt-1 flex items-center text-red-600 text-sm">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {fieldErrors.postal_code}
+                        </div>
+                      )}
+                    </div>
 
-                    <FormInput
-                      label="Ciudad"
-                      name="city"
-                      required
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      placeholder="Madrid"
-                    />
+                    <div>
+                      <FormInput
+                        label="Ciudad"
+                        name="city"
+                        required
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        onBlur={handleFieldBlur}
+                        placeholder="Madrid"
+                      />
+                      {fieldErrors.city && (
+                        <div className="mt-1 flex items-center text-red-600 text-sm">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {fieldErrors.city}
+                        </div>
+                      )}
+                    </div>
 
-                    <FormInput
-                      label="Provincia"
-                      name="province"
-                      required
-                      value={formData.province}
-                      onChange={handleInputChange}
-                      placeholder="Madrid"
-                    />
+                    <div>
+                      <FormInput
+                        label="Provincia"
+                        name="province"
+                        required
+                        value={formData.province}
+                        onChange={handleInputChange}
+                        onBlur={handleFieldBlur}
+                        placeholder="Madrid"
+                      />
+                      {fieldErrors.province && (
+                        <div className="mt-1 flex items-center text-red-600 text-sm">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {fieldErrors.province}
+                        </div>
+                      )}
+                    </div>
 
                     <FormSelect
                       label="Tipo de Vivienda"
@@ -935,15 +1225,24 @@ export default function FinancingPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormInput
-                      label="Ingresos Mensuales (€)"
-                      name="income"
-                      type="number"
-                      required
-                      value={formData.income}
-                      onChange={handleInputChange}
-                      placeholder="1800"
-                    />
+                    <div>
+                      <FormInput
+                        label="Ingresos Mensuales (€)"
+                        name="income"
+                        type="number"
+                        required
+                        value={formData.income}
+                        onChange={handleInputChange}
+                        onBlur={handleFieldBlur}
+                        placeholder="1800"
+                      />
+                      {fieldErrors.income && (
+                        <div className="mt-1 flex items-center text-red-600 text-sm">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {fieldErrors.income}
+                        </div>
+                      )}
+                    </div>
 
                     <FormSelect
                       label="Tipo de Contrato"
@@ -980,23 +1279,41 @@ export default function FinancingPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormInput
-                      label="Cargo en la empresa"
-                      name="company_position"
-                      required
-                      value={formData.company_position}
-                      onChange={handleInputChange}
-                      placeholder="Desarrollador, Administrativo, etc."
-                    />
+                    <div>
+                      <FormInput
+                        label="Cargo en la empresa"
+                        name="company_position"
+                        required
+                        value={formData.company_position}
+                        onChange={handleInputChange}
+                        onBlur={handleFieldBlur}
+                        placeholder="Desarrollador, Administrativo, etc."
+                      />
+                      {fieldErrors.company_position && (
+                        <div className="mt-1 flex items-center text-red-600 text-sm">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {fieldErrors.company_position}
+                        </div>
+                      )}
+                    </div>
 
-                    <FormInput
-                      label="Fecha de inicio en la empresa"
-                      name="company_start_date"
-                      type="date"
-                      required
-                      value={formData.company_start_date}
-                      onChange={handleInputChange}
-                    />
+                    <div>
+                      <FormInput
+                        label="Fecha de inicio en la empresa"
+                        name="company_start_date"
+                        type="date"
+                        required
+                        value={formData.company_start_date}
+                        onChange={handleInputChange}
+                        onBlur={handleFieldBlur}
+                      />
+                      {fieldErrors.company_start_date && (
+                        <div className="mt-1 flex items-center text-red-600 text-sm">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {fieldErrors.company_start_date}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1070,7 +1387,14 @@ export default function FinancingPage() {
                       required
                       value={formData.freelance_start_date}
                       onChange={handleInputChange}
+                      onBlur={handleFieldBlur}
                     />
+                    {fieldErrors.freelance_start_date && (
+                      <div className="mt-1 flex items-center text-red-600 text-sm">
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        {fieldErrors.freelance_start_date}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
