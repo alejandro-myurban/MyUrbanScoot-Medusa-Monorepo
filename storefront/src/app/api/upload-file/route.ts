@@ -1,6 +1,32 @@
 // app/api/upload-file/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
+// Función para normalizar nombres de archivo
+const normalizeFileName = (originalName: string) => {
+  // Extraer extensión
+  const extension = originalName.split('.').pop()?.toLowerCase() || 'pdf'
+  const nameWithoutExtension = originalName.replace(/\.[^/.]+$/, "")
+  
+  return nameWithoutExtension
+    // Convertir a minúsculas
+    .toLowerCase()
+    // Quitar acentos (á→a, ñ→n, ü→u, etc.)
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    // Reemplazar espacios y símbolos por guiones
+    .replace(/[\s_\.]+/g, "-")
+    // Quitar caracteres peligrosos/nocivos
+    .replace(/[^a-z0-9\-]/g, "")
+    // Limpiar múltiples guiones
+    .replace(/\-+/g, "-")
+    // Quitar guiones al inicio/final
+    .replace(/^-+|-+$/g, "")
+    // Acortar a máximo 50 caracteres
+    .substring(0, 50)
+    // Quitar guión final si quedó cortado
+    .replace(/-+$/, "")
+    + `.${extension}`
+}
+
 export async function POST(request: NextRequest) {
   console.log('🚀 API Route: Iniciando upload...')
   
@@ -44,11 +70,18 @@ export async function POST(request: NextRequest) {
 
     // Log del archivo
     const file = files[0]
+    const normalizedFileName = normalizeFileName(file.name)
+    
     console.log('📄 Archivo:', {
-      name: file.name,
+      originalName: file.name,
+      normalizedName: normalizedFileName,
       size: file.size,
       type: file.type
     })
+
+    // Crear nuevo FormData con el nombre normalizado
+    const normalizedFormData = new FormData()
+    normalizedFormData.append('files', file, normalizedFileName)
 
     // Hacer la petición a Medusa
     console.log('🔄 Enviando a Medusa...')
@@ -57,7 +90,7 @@ export async function POST(request: NextRequest) {
     // fetch automáticamente configurará multipart/form-data con boundary
     const medusaResponse = await fetch('https://backend-production-9e9f.up.railway.app/store/upload-image', {
       method: 'POST',
-      body: formData, // FormData se envía tal como está
+      body: normalizedFormData, // FormData con nombre normalizado
       headers: {
         'x-publishable-api-key': 'pk_14db1a49297371bf3f8d345db0cf016616d4244f1d593db1050907c88333cd21',
         // NO incluir 'Content-Type' - fetch lo configurará automáticamente

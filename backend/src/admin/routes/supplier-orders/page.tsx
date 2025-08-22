@@ -16,7 +16,8 @@ import {
   XCircle,
   ArrowUpRight,
   Calendar,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 import { sdk } from "../../lib/sdk";
 
@@ -85,6 +86,17 @@ const SupplierOrdersPage = () => {
   const [receiveNotes, setReceiveNotes] = useState<string>("");
   const itemsPerPage = 15;
   const queryClient = useQueryClient();
+
+  // Query para obtener estados válidos de un pedido
+  const { data: validStatuses } = useQuery({
+    queryKey: ['valid-statuses', selectedOrder?.id],
+    queryFn: async () => {
+      if (!selectedOrder?.id) return null;
+      const response = await sdk.client.fetch(`/admin/suppliers/orders/${selectedOrder.id}/valid-statuses`);
+      return response;
+    },
+    enabled: !!selectedOrder?.id
+  });
 
   // Formulario de creación de pedido
   const [orderFormData, setOrderFormData] = useState({
@@ -265,6 +277,26 @@ const SupplierOrdersPage = () => {
     }
   });
 
+  // Mutation para actualizar incidencias de línea
+  const updateLineIncidentMutation = useMutation({
+    mutationFn: async ({ lineId, hasIncident, notes }: { lineId: string, hasIncident: boolean, notes?: string }) => {
+      console.log(`🚨 Frontend: Actualizando incidencia de línea ${lineId}: ${hasIncident}`);
+      const response = await sdk.client.fetch(`/admin/suppliers/orders/lines/${lineId}/incident`, {
+        method: "PATCH",
+        body: { hasIncident, incidentNotes: notes },
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["supplier-order-lines"] });
+      queryClient.invalidateQueries({ queryKey: ["supplier-orders"] });
+    },
+    onError: (error: any) => {
+      console.error(`❌ Error al actualizar incidencia:`, error);
+      alert("Error al actualizar incidencia: " + error.message);
+    }
+  });
+
   // Mutation para agregar línea al pedido
   const addLineMutation = useMutation({
     mutationFn: async ({ orderId, lineData }: { orderId: string, lineData: any }) => {
@@ -410,6 +442,38 @@ const SupplierOrdersPage = () => {
     });
   };
 
+  // Función para obtener estados válidos de transición
+  const getValidStatusOptions = (currentStatus: string, validNextStatuses?: string[]) => {
+    const statusLabels: Record<string, string> = {
+      draft: 'Borrador',
+      pending: 'Pendiente', 
+      confirmed: 'Confirmado',
+      shipped: 'Enviado',
+      partially_received: 'Parcialmente recibido',
+      received: 'Recibido',
+      incident: 'Con incidencia',
+      cancelled: 'Cancelado'
+    };
+
+    const options = [{
+      value: currentStatus,
+      label: `${statusLabels[currentStatus]} (actual)`,
+      disabled: true
+    }];
+
+    if (validNextStatuses && validNextStatuses.length > 0) {
+      validNextStatuses.forEach(status => {
+        options.push({
+          value: status,
+          label: statusLabels[status] || status,
+          disabled: false
+        });
+      });
+    }
+
+    return options;
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("es-ES", {
       year: "numeric",
@@ -443,6 +507,7 @@ const SupplierOrdersPage = () => {
       shipped: "Enviado",
       partially_received: "Parcialmente recibido",
       received: "Recibido",
+      incident: "Con Incidencia",
       cancelled: "Cancelado",
     };
     return labels[status as keyof typeof labels] || status;
@@ -456,6 +521,7 @@ const SupplierOrdersPage = () => {
       shipped: "bg-purple-100 text-purple-800 border-purple-200",
       partially_received: "bg-orange-100 text-orange-800 border-orange-200",
       received: "bg-green-100 text-green-800 border-green-200",
+      incident: "bg-red-100 text-red-800 border-red-200",
       cancelled: "bg-red-100 text-red-800 border-red-200",
     };
     return colors[status as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200";
@@ -469,6 +535,7 @@ const SupplierOrdersPage = () => {
       shipped: <Truck className="w-4 h-4" />,
       partially_received: <Package className="w-4 h-4" />,
       received: <CheckCircle className="w-4 h-4" />,
+      incident: <AlertTriangle className="w-4 h-4" />,
       cancelled: <XCircle className="w-4 h-4" />,
     };
     return icons[status as keyof typeof icons] || <Clock className="w-4 h-4" />;
@@ -479,6 +546,8 @@ const SupplierOrdersPage = () => {
       pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
       partial: "bg-orange-100 text-orange-800 border-orange-200",
       received: "bg-green-100 text-green-800 border-green-200",
+      incident: "bg-red-100 text-red-800 border-red-200",
+      cancelled: "bg-gray-100 text-gray-800 border-gray-200",
     };
     return colors[status as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200";
   };
@@ -647,19 +716,28 @@ const SupplierOrdersPage = () => {
               {getStatusIcon(selectedOrder.status)}
               {getStatusLabel(selectedOrder.status)}
             </Badge>
-            {selectedOrder.status !== "cancelled" && selectedOrder.status !== "received" && (
+            {validStatuses && validStatuses.validNextStatuses && validStatuses.validNextStatuses.length > 0 && (
               <select
-                value={selectedOrder.status}
-                onChange={(e) => updateStatusMutation.mutate({ orderId: selectedOrder.id, status: e.target.value })}
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) {
+                    updateStatusMutation.mutate({ orderId: selectedOrder.id, status: e.target.value });
+                  }
+                }}
                 className="px-2 py-1 text-sm border border-gray-300 rounded"
                 disabled={updateStatusMutation.isPending}
               >
-                <option value="draft">Borrador</option>
-                <option value="pending">Pendiente</option>
-                <option value="confirmed">Confirmar</option>
-                <option value="shipped">Enviado</option>
-                <option value="received">Recibido</option>
-                <option value="cancelled">Cancelar</option>
+                <option value="">Cambiar estado...</option>
+                {getValidStatusOptions(selectedOrder.status, validStatuses.validNextStatuses).map((option) => (
+                  <option 
+                    key={option.value} 
+                    value={option.disabled ? "" : option.value}
+                    disabled={option.disabled}
+                    style={{ color: option.disabled ? '#999' : 'inherit' }}
+                  >
+                    {option.label}
+                  </option>
+                ))}
               </select>
             )}
           </div>
@@ -840,10 +918,43 @@ const SupplierOrdersPage = () => {
                         <Text className="font-medium">{formatCurrency(line.total_price, selectedOrder.currency_code)}</Text>
                       </Table.Cell>
                       <Table.Cell>
-                        <Badge className={getLineStatusColor(line.line_status)} size="small">
-                          {line.line_status === "pending" ? "Pendiente" : 
-                           line.line_status === "partial" ? "Parcial" : "Completo"}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getLineStatusColor(line.line_status)} size="small">
+                            {line.line_status === "incident" && <AlertTriangle className="w-3 h-3 mr-1" />}
+                            {line.line_status === "pending" ? "Pendiente" : 
+                             line.line_status === "partial" ? "Parcial" :
+                             line.line_status === "incident" ? "Incidencia" :
+                             line.line_status === "cancelled" ? "Cancelado" : "Completo"}
+                          </Badge>
+                          
+                          {/* Checkbox para marcar incidencia */}
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={line.line_status === "incident"}
+                              onChange={(e) => {
+                                const notes = e.target.checked ? prompt("Notas de la incidencia (opcional):") || "" : "";
+                                updateLineIncidentMutation.mutate({
+                                  lineId: line.id,
+                                  hasIncident: e.target.checked,
+                                  notes
+                                });
+                              }}
+                              className="w-3 h-3"
+                              title="Marcar como incidencia"
+                              disabled={updateLineIncidentMutation.isPending}
+                            />
+                            <span className="text-xs text-gray-500">Inc.</span>
+                          </div>
+                        </div>
+                        
+                        {line.line_status === "incident" && line.reception_notes && (
+                          <div className="mt-1">
+                            <Text size="small" className="text-red-600">
+                              ⚠️ {line.reception_notes}
+                            </Text>
+                          </div>
+                        )}
                       </Table.Cell>
                       <Table.Cell>
                         {line.quantity_pending > 0 && selectedOrder.status !== "cancelled" && (
@@ -1200,6 +1311,7 @@ const SupplierOrdersPage = () => {
             <option value="shipped">🚚 Enviados</option>
             <option value="partially_received">📦 Parcialmente recibidos</option>
             <option value="received">✅ Recibidos</option>
+            <option value="incident">🚨 Con Incidencias</option>
             <option value="cancelled">❌ Cancelados</option>
           </select>
           <select

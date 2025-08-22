@@ -7,8 +7,6 @@ import { StoreProductCategory, StoreRegion } from "@medusajs/types"
 import CategoryTemplate from "@modules/categories/templates"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 
-// ISR: Revalida cada 8 horas (las categorías cambian ocasionalmente)
-export const revalidate = 28800
 
 type Props = {
   params: { category: string[]; countryCode: string }
@@ -33,18 +31,19 @@ export async function generateStaticParams() {
       return []
     }
 
-    // Limita a las categorías principales (primeras 10)
-    const topCategories = product_categories.slice(0, 10)
+    // Genera todas las categorías para evitar carga bajo demanda
+    // Si hay demasiadas categorías, considera filtrar por las más importantes
+    const allCategories = product_categories
     
-    // Genera combinaciones solo para categorías principales y países principales
+    // Genera combinaciones para todas las categorías y países principales
     const staticParams = mainCountries.map((countryCode: string) =>
-      topCategories.map((category: any) => ({
+      allCategories.map((category: any) => ({
         countryCode,
         category: [category.handle],
       }))
     ).flat()
 
-    console.log(`Generando ${staticParams.length} páginas de categorías estáticas en build time`)
+    console.log(`Generando ${staticParams.length} páginas de categorías estáticas en build time (SSG completo)`)
     return staticParams
 
   } catch (error) {
