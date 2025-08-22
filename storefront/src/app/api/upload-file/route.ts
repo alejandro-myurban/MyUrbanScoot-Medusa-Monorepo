@@ -7,7 +7,8 @@ const normalizeFileName = (originalName: string) => {
   const extension = originalName.split('.').pop()?.toLowerCase() || 'pdf'
   const nameWithoutExtension = originalName.replace(/\.[^/.]+$/, "")
   
-  return nameWithoutExtension
+  // Normalizar el nombre (sin extensión)
+  let normalizedName = nameWithoutExtension
     // Convertir a minúsculas
     .toLowerCase()
     // Quitar acentos (á→a, ñ→n, ü→u, etc.)
@@ -20,11 +21,23 @@ const normalizeFileName = (originalName: string) => {
     .replace(/\-+/g, "-")
     // Quitar guiones al inicio/final
     .replace(/^-+|-+$/g, "")
-    // Acortar a máximo 50 caracteres
-    .substring(0, 50)
-    // Quitar guión final si quedó cortado
-    .replace(/-+$/, "")
-    + `.${extension}`
+
+  // Acortar a máximo 12 caracteres (sin contar la extensión)
+  if (normalizedName.length > 12) {
+    // Tomar los primeros 8 caracteres + timestamp corto para evitar duplicados
+    const timestamp = Date.now().toString().slice(-4) // últimos 4 dígitos
+    normalizedName = normalizedName.substring(0, 8) + timestamp
+  }
+  
+  // Si aún es muy corto, añadir algo descriptivo
+  if (normalizedName.length < 3) {
+    normalizedName = "doc" + Date.now().toString().slice(-4)
+  }
+  
+  // Quitar guión final si quedó
+  normalizedName = normalizedName.replace(/-+$/, "")
+  
+  return `${normalizedName}.${extension}`
 }
 
 export async function POST(request: NextRequest) {
@@ -75,9 +88,19 @@ export async function POST(request: NextRequest) {
     console.log('📄 Archivo:', {
       originalName: file.name,
       normalizedName: normalizedFileName,
+      originalLength: file.name.length,
+      normalizedLength: normalizedFileName.length,
       size: file.size,
       type: file.type
     })
+    
+    // Verificar que el nombre normalizado no exceda el límite
+    const nameWithoutExt = normalizedFileName.split('.')[0]
+    if (nameWithoutExt.length > 12) {
+      console.warn('⚠️ ADVERTENCIA: Nombre normalizado excede 12 caracteres:', nameWithoutExt)
+    } else {
+      console.log('✅ Nombre normalizado dentro del límite:', nameWithoutExt.length, 'caracteres')
+    }
 
     // Crear nuevo FormData con el nombre normalizado
     const normalizedFormData = new FormData()
