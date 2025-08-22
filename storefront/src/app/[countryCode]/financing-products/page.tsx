@@ -258,6 +258,7 @@ export default function FinancingPage() {
   const router = useRouter()
   const phoneTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const zodValidationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const fieldValidationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const [formData, setFormData] = useState<FinancingFormData>({
     email: "",
@@ -312,6 +313,36 @@ export default function FinancingPage() {
   const [phoneValidationError, setPhoneValidationError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   
+  // Helper para asegurar que los errores sean strings válidos
+  const getFieldError = (fieldName: string): string | null => {
+    const error = fieldErrors[fieldName]
+    if (!error) return null
+    
+    // Si es un objeto, convertir a string amigable
+    if (typeof error === 'object') {
+      const friendlyMessages: Record<string, string> = {
+        email: "Por favor, introduce un email válido",
+        postal_code: "El código postal debe tener 5 dígitos",
+        phone_mumber: "Por favor, introduce un teléfono válido",
+        address: "La dirección debe incluir número y nombre de calle",
+        city: "Por favor, introduce una ciudad válida",
+        province: "Por favor, introduce una provincia válida",
+        income: "Los ingresos deben ser un número entre 400€ y 50.000€",
+        company_position: "Este campo es obligatorio para empleados",
+        company_start_date: "Este campo es obligatorio para empleados",
+        freelance_start_date: "Este campo es obligatorio para autónomos"
+      }
+      return friendlyMessages[fieldName] || "Por favor, revisa este campo"
+    }
+    
+    // Si es una string válida, devolverla
+    if (typeof error === 'string' && error.trim().length > 0) {
+      return error
+    }
+    
+    return null
+  }
+  
   // console.log("🔍 Estado actual phoneValidation:", phoneValidation)
   const [documentVerifications, setDocumentVerifications] = useState<{
     front?: any
@@ -337,45 +368,151 @@ export default function FinancingPage() {
     // Usar datos actuales del formulario o datos pasados para validaciones condicionales
     const dataToValidate = currentFormData || formData
     
-    // Crear un objeto solo con el campo que queremos validar para Zod
-    const fieldData = { [fieldName]: value }
-    
     try {
-      // Obtener el schema del campo específico
-      const fieldSchema = formSchema.shape[fieldName as keyof typeof formSchema.shape]
-      if (fieldSchema) {
-        fieldSchema.parse(value)
-        
-        // Si es válido, verificar validaciones condicionales
-        if (fieldName === "company_position" && (dataToValidate.contract_type === "employee_permanent" || dataToValidate.contract_type === "employee_temporary") && !value) {
+      // Validaciones específicas para cada campo
+      if (fieldName === "email") {
+        const emailSchema = z.string().min(1, "El email es requerido").email("Formato de email inválido")
+        emailSchema.parse(value)
+      }
+      else if (fieldName === "postal_code") {
+        const postalSchema = z.string()
+          .min(1, "El código postal es requerido")
+          .regex(/^\d{5}$/, "El código postal debe tener exactamente 5 dígitos")
+          .refine((code) => {
+            const num = parseInt(code)
+            return num >= 1000 && num <= 52999
+          }, { message: "Código postal español no válido" })
+        postalSchema.parse(value)
+      }
+      else if (fieldName === "phone_mumber") {
+        phoneSchema.parse(value)
+      }
+      else if (fieldName === "address") {
+        const addressSchema = z.string()
+          .min(1, "La dirección es requerida")
+          .min(5, "La dirección debe tener al menos 5 caracteres")
+          .refine((address) => /\d/.test(address) && /[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(address), {
+            message: "La dirección debe incluir número y nombre de calle"
+          })
+        addressSchema.parse(value)
+      }
+      else if (fieldName === "city") {
+        const citySchema = z.string()
+          .min(1, "La ciudad es requerida")
+          .min(2, "La ciudad debe tener al menos 2 caracteres")
+          .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\-\.]+$/, "La ciudad solo puede contener letras, espacios, guiones y puntos")
+        citySchema.parse(value)
+      }
+      else if (fieldName === "province") {
+        const provinceSchema = z.string()
+          .min(1, "La provincia es requerida")
+          .min(2, "La provincia debe tener al menos 2 caracteres")
+          .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\-\.]+$/, "La provincia solo puede contener letras, espacios, guiones y puntos")
+        provinceSchema.parse(value)
+      }
+      else if (fieldName === "income") {
+        const incomeSchema = z.string()
+          .min(1, "Los ingresos son requeridos")
+          .regex(/^\d+$/, "Los ingresos deben ser un número")
+          .refine((income) => {
+            const num = parseInt(income)
+            return num >= 400 && num <= 50000
+          }, { message: "Los ingresos deben estar entre 400€ y 50.000€" })
+        incomeSchema.parse(value)
+      }
+      else if (fieldName === "company_position") {
+        if ((dataToValidate.contract_type === "employee_permanent" || dataToValidate.contract_type === "employee_temporary") && !value) {
           throw new Error("El cargo en la empresa es requerido para empleados")
         }
-        if (fieldName === "company_start_date" && (dataToValidate.contract_type === "employee_permanent" || dataToValidate.contract_type === "employee_temporary") && !value) {
+      }
+      else if (fieldName === "company_start_date") {
+        if ((dataToValidate.contract_type === "employee_permanent" || dataToValidate.contract_type === "employee_temporary") && !value) {
           throw new Error("La fecha de inicio en la empresa es requerida para empleados")
         }
-        if (fieldName === "freelance_start_date" && dataToValidate.contract_type === "freelance" && !value) {
+      }
+      else if (fieldName === "freelance_start_date") {
+        if (dataToValidate.contract_type === "freelance" && !value) {
           throw new Error("La fecha de alta como autónomo es requerida")
         }
-        if (fieldName === "marital_status_details" && dataToValidate.civil_status === "married" && !value) {
+      }
+      else if (fieldName === "marital_status_details") {
+        if (dataToValidate.civil_status === "married" && !value) {
           throw new Error("Especifica el régimen matrimonial")
         }
-        if (fieldName === "housing_type_details" && dataToValidate.housing_type === "other" && !value) {
+      }
+      else if (fieldName === "housing_type_details") {
+        if (dataToValidate.housing_type === "other" && !value) {
           throw new Error("Especifica el tipo de vivienda")
         }
-        
-        // Si llegamos aquí, la validación fue exitosa
-        setFieldErrors(prev => {
-          const newErrors = { ...prev }
-          delete newErrors[fieldName]
-          return newErrors
-        })
       }
+      
+      // Si llegamos aquí, la validación fue exitosa
+      setFieldErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[fieldName]
+        return newErrors
+      })
+      
     } catch (error: any) {
-      const errorMessage = error.message || "Campo inválido"
-      setFieldErrors(prev => ({
-        ...prev,
-        [fieldName]: errorMessage
-      }))
+      // DEBUG: Mostrar el error completo para entender su estructura
+      console.log("🐛 ERROR COMPLETO:", error)
+      console.log("🐛 ERROR TYPE:", typeof error)
+      console.log("🐛 ERROR MESSAGE:", error?.message)
+      console.log("🐛 ERROR ISSUES:", error?.issues)
+      
+      // Extraer mensaje limpio del error de Zod
+      let errorMessage = ""
+      
+      // Si es un error de Zod con issues
+      if (error?.issues && Array.isArray(error.issues) && error.issues.length > 0) {
+        errorMessage = error.issues[0].message
+      } 
+      // Si es un error simple con mensaje
+      else if (error?.message && typeof error.message === 'string') {
+        errorMessage = error.message
+      }
+      // Si no hay mensaje válido, usar mensajes amigables
+      else {
+        const friendlyMessages: Record<string, string> = {
+          email: "Por favor, introduce un email válido",
+          postal_code: "El código postal debe tener 5 dígitos",
+          phone_mumber: "Por favor, introduce un teléfono válido",
+          address: "La dirección debe incluir número y nombre de calle",
+          city: "Por favor, introduce una ciudad válida",
+          province: "Por favor, introduce una provincia válida",
+          income: "Los ingresos deben ser un número entre 400€ y 50.000€",
+          company_position: "Este campo es obligatorio para empleados",
+          company_start_date: "Este campo es obligatorio para empleados",
+          freelance_start_date: "Este campo es obligatorio para autónomos",
+          marital_status_details: "Este campo es obligatorio si estás casado/a",
+          housing_type_details: "Especifica tu tipo de vivienda"
+        }
+        errorMessage = friendlyMessages[fieldName] || "Por favor, revisa este campo"
+      }
+      
+      // Asegurar que el mensaje es una string limpia
+      if (typeof errorMessage === 'string' && errorMessage.trim().length > 0) {
+        setFieldErrors(prev => ({
+          ...prev,
+          [fieldName]: errorMessage
+        }))
+      } else {
+        // Si aún no es válido, usar mensaje por defecto
+        const friendlyMessages: Record<string, string> = {
+          email: "Por favor, introduce un email válido",
+          postal_code: "El código postal debe tener 5 dígitos",
+          phone_mumber: "Por favor, introduce un teléfono válido",
+          address: "La dirección debe incluir número y nombre de calle",
+          city: "Por favor, introduce una ciudad válida",
+          province: "Por favor, introduce una provincia válida",
+          income: "Los ingresos deben ser un número entre 400€ y 50.000€"
+        }
+        
+        setFieldErrors(prev => ({
+          ...prev,
+          [fieldName]: friendlyMessages[fieldName] || "Por favor, revisa este campo"
+        }))
+      }
     }
   }
 
@@ -530,10 +667,26 @@ export default function FinancingPage() {
         }, 2000)
       }
     } else {
-      // Para otros campos, validar con timeout para no sobrecargar
-      setTimeout(() => {
-        validateField(name, value, newFormData)
-      }, 800)
+      // Para otros campos, cancelar timeout anterior y configurar nuevo
+      if (fieldValidationTimeoutRef.current) {
+        clearTimeout(fieldValidationTimeoutRef.current)
+        fieldValidationTimeoutRef.current = null
+      }
+      
+      // Solo validar si el campo no está vacío o es un campo requerido
+      if (value && value.trim().length > 0) {
+        fieldValidationTimeoutRef.current = setTimeout(() => {
+          validateField(name, value, newFormData)
+          fieldValidationTimeoutRef.current = null
+        }, 1500)
+      } else {
+        // Si está vacío, limpiar errores inmediatamente
+        setFieldErrors(prev => {
+          const newErrors = { ...prev }
+          delete newErrors[name]
+          return newErrors
+        })
+      }
     }
   }
 
@@ -986,10 +1139,10 @@ export default function FinancingPage() {
                         onBlur={handleFieldBlur}
                         placeholder="tu@email.com"
                       />
-                      {fieldErrors.email && (
+                      {getFieldError('email') && (
                         <div className="mt-1 flex items-center text-red-600 text-sm">
                           <AlertCircle className="h-4 w-4 mr-2" />
-                          {fieldErrors.email}
+                          {getFieldError('email')}
                         </div>
                       )}
                     </div>
@@ -1123,10 +1276,10 @@ export default function FinancingPage() {
                         onBlur={handleFieldBlur}
                         placeholder="Calle, número, piso, puerta..."
                       />
-                      {fieldErrors.address && (
+                      {getFieldError('address') && (
                         <div className="mt-1 flex items-center text-red-600 text-sm">
                           <AlertCircle className="h-4 w-4 mr-2" />
-                          {fieldErrors.address}
+                          {getFieldError('address')}
                         </div>
                       )}
                     </div>
@@ -1141,10 +1294,10 @@ export default function FinancingPage() {
                         onBlur={handleFieldBlur}
                         placeholder="28001"
                       />
-                      {fieldErrors.postal_code && (
+                      {getFieldError('postal_code') && (
                         <div className="mt-1 flex items-center text-red-600 text-sm">
                           <AlertCircle className="h-4 w-4 mr-2" />
-                          {fieldErrors.postal_code}
+                          {getFieldError('postal_code')}
                         </div>
                       )}
                     </div>
@@ -1159,10 +1312,10 @@ export default function FinancingPage() {
                         onBlur={handleFieldBlur}
                         placeholder="Madrid"
                       />
-                      {fieldErrors.city && (
+                      {getFieldError('city') && (
                         <div className="mt-1 flex items-center text-red-600 text-sm">
                           <AlertCircle className="h-4 w-4 mr-2" />
-                          {fieldErrors.city}
+                          {getFieldError('city')}
                         </div>
                       )}
                     </div>
@@ -1177,10 +1330,10 @@ export default function FinancingPage() {
                         onBlur={handleFieldBlur}
                         placeholder="Madrid"
                       />
-                      {fieldErrors.province && (
+                      {getFieldError('province') && (
                         <div className="mt-1 flex items-center text-red-600 text-sm">
                           <AlertCircle className="h-4 w-4 mr-2" />
-                          {fieldErrors.province}
+                          {getFieldError('province')}
                         </div>
                       )}
                     </div>
@@ -1236,10 +1389,10 @@ export default function FinancingPage() {
                         onBlur={handleFieldBlur}
                         placeholder="1800"
                       />
-                      {fieldErrors.income && (
+                      {getFieldError('income') && (
                         <div className="mt-1 flex items-center text-red-600 text-sm">
                           <AlertCircle className="h-4 w-4 mr-2" />
-                          {fieldErrors.income}
+                          {getFieldError('income')}
                         </div>
                       )}
                     </div>
@@ -1289,10 +1442,10 @@ export default function FinancingPage() {
                         onBlur={handleFieldBlur}
                         placeholder="Desarrollador, Administrativo, etc."
                       />
-                      {fieldErrors.company_position && (
+                      {getFieldError('company_position') && (
                         <div className="mt-1 flex items-center text-red-600 text-sm">
                           <AlertCircle className="h-4 w-4 mr-2" />
-                          {fieldErrors.company_position}
+                          {getFieldError('company_position')}
                         </div>
                       )}
                     </div>
@@ -1307,10 +1460,10 @@ export default function FinancingPage() {
                         onChange={handleInputChange}
                         onBlur={handleFieldBlur}
                       />
-                      {fieldErrors.company_start_date && (
+                      {getFieldError('company_start_date') && (
                         <div className="mt-1 flex items-center text-red-600 text-sm">
                           <AlertCircle className="h-4 w-4 mr-2" />
-                          {fieldErrors.company_start_date}
+                          {getFieldError('company_start_date')}
                         </div>
                       )}
                     </div>
@@ -1389,10 +1542,10 @@ export default function FinancingPage() {
                       onChange={handleInputChange}
                       onBlur={handleFieldBlur}
                     />
-                    {fieldErrors.freelance_start_date && (
+                    {getFieldError('freelance_start_date') && (
                       <div className="mt-1 flex items-center text-red-600 text-sm">
                         <AlertCircle className="h-4 w-4 mr-2" />
-                        {fieldErrors.freelance_start_date}
+                        {getFieldError('freelance_start_date')}
                       </div>
                     )}
                   </div>
