@@ -134,9 +134,9 @@ const ChatHistoryDashboard = () => {
     return filteredHistory.slice(start, end);
   }, [filteredHistory, page, itemsPerPage]);
 
-  const handleRowClick = (userId: string) => {
-    navigate(`/chat-history/${encodeURIComponent(userId)}`);
-  };
+    const handleRowClick = (userId: string) => {
+    navigate(`/chat-history/${encodeURIComponent(userId)}`);
+    };
 
   if (isLoading) {
     return (
@@ -205,16 +205,16 @@ const ChatHistoryDashboard = () => {
         </div>
       </div>
 
-      <ChatTable
-        paginatedChats={paginatedChats}
-        grouped={grouped}
-        handleRowClick={handleRowClick}
-        page={page}
-        totalPages={totalPages}
-        setPage={setPage}
-        onAssignDepartment={handleAssignDepartment}
-        onRemoveDepartment={handleRemoveDepartment}
-      />
+    <ChatTable
+    paginatedChats={paginatedChats}
+    grouped={grouped}
+    handleRowClick={handleRowClick}
+    page={page}
+    totalPages={totalPages}
+    setPage={setPage}
+    onAssignDepartment={handleAssignDepartment}
+    onRemoveDepartment={handleRemoveDepartment}
+    />
     </Container>
   );
 };

@@ -1,16 +1,14 @@
 // src/app/admin/chat-history/[user_id]/page.tsx
-
 import { Container, Heading, Text, Badge, Button } from "@medusajs/ui";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { ChevronLeft, AlertTriangle, Trash } from "lucide-react";
+import { ChevronLeft, AlertTriangle, Trash, Send, X, CheckCircle } from "lucide-react";
 import { sdk } from "../../../lib/sdk";
 import { cleanUserId, groupChatsByUser } from "../utils/chat-helpers";
 import { ChatBubble } from "./components/chatBubble";
 import { ChatControls } from "./components/chatControls";
 
-// Definimos el tipo de mensaje para asegurar la consistencia de los datos
 type ChatMessage = {
   id: string;
   user_id: string;
@@ -23,7 +21,7 @@ type ChatMessage = {
 
 const ChatDetailsPage = () => {
   const pathname = window.location.pathname;
-  const parts = pathname.split('/');
+  const parts = pathname.split("/");
   const encodedUserId = parts[parts.length - 1];
   
   const userid = encodedUserId ? decodeURIComponent(encodedUserId) : undefined;
@@ -33,6 +31,22 @@ const ChatDetailsPage = () => {
   const [agentMessage, setAgentMessage] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  // ✅ 1. Usar useQuery para obtener el usuario admin logueado
+  const { data: adminUserData } = useQuery({
+    queryKey: ["admin-user-me"],
+    queryFn: () => sdk.admin.user.me(),
+  });
+
+  // ✅ 2. Extraer el nombre completo del usuario logueado
+  const loggedInAgentName = useMemo(() => {
+    const user = adminUserData?.user;
+    if (!user) return "Agente";
+    const fullName = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
+    return fullName || user.email;
+  }, [adminUserData]);
 
   const { data, isLoading, error } = useQuery<ChatMessage[]>({
     queryKey: ["chat-history", userid],
@@ -117,6 +131,32 @@ const ChatDetailsPage = () => {
     },
   });
 
+  const sendTemplateMutation = useMutation({
+    mutationFn: async (data: { userId: string, templateId: string }) => {
+      return sdk.client.fetch(`/admin/send-template/${data.userId}`, {
+        method: "POST",
+        body: data,
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["chat-history", userid] });
+      setIsNotificationOpen(true);
+      setTimeout(() => {
+        setIsNotificationOpen(false);
+      }, 3000);
+    },
+    onError: (err) => {
+      console.error("Error al enviar el template:", err);
+      alert("Error al enviar el template. Inténtalo de nuevo.");
+    },
+  });
+
+  const handleSendTemplate = async (userId: string, templateId: string) => {
+    sendTemplateMutation.mutate({ userId, templateId });
+  };
+  
+
   const deleteConversationMutation = useMutation({
     mutationFn: (userId: string) => {
       return sdk.client.fetch(`/admin/delete-conversation/${encodeURIComponent(userId)}`, {
@@ -189,8 +229,8 @@ const ChatDetailsPage = () => {
 
       const dataToSend = {
         userId: userid,
-        message: agentMessage.trim() || undefined,
-        fileUrl: fileUrl || undefined,
+        message: agentMessage.trim(),
+        fileUrl: fileUrl,
       };
 
       sendMessageMutation.mutate(dataToSend);
@@ -235,9 +275,6 @@ const ChatDetailsPage = () => {
 
   return (
     <Container className="flex flex-col h-full">
-      {/* Ajuste: Envolviendo los elementos de la derecha en un div con `flex-shrink-0` 
-        y `items-center` para que no se compriman y mantengan su espacio.
-      */}
       <div className="flex items-center justify-between gap-4 mb-4 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-4">
           <Button
@@ -289,7 +326,11 @@ const ChatDetailsPage = () => {
             (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           )
           .map((msg) => (
-            <ChatBubble key={msg.id} {...msg} />
+            <ChatBubble 
+              key={msg.id} 
+              {...msg} 
+              agent_name={loggedInAgentName} // ✅ Pasa el nombre del agente como una prop
+            />
           ))}
         <div ref={chatEndRef} />
       </div>
@@ -306,11 +347,25 @@ const ChatDetailsPage = () => {
             setSelectedFile={setSelectedFile}
             handleSendMessage={handleSendMessage}
             sendMessageMutation={sendMessageMutation}
+            userId={userid!}
+            sendWhatsAppTemplate={handleSendTemplate}
           />
         </>
       ) : (
         <div className="p-3 mt-4 bg-gray-100 rounded-lg text-center text-gray-500 dark:bg-gray-800 dark:text-gray-400">
           En modo IA, no se pueden enviar mensajes manuales.
+        </div>
+      )}
+
+      {isNotificationOpen && (
+        <div className="fixed bottom-4 right-4 z-50 transition-all duration-500 ease-in-out transform translate-y-0 opacity-100">
+          <div className="flex items-center gap-3 rounded-lg bg-green-500 text-white p-4 shadow-xl">
+            <CheckCircle className="w-5 h-5 flex-shrink-0" />
+            <Text className="!text-white font-semibold">¡Template enviado con éxito!</Text>
+            <button onClick={() => setIsNotificationOpen(false)} className="text-white hover:text-gray-200">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
     </Container>
