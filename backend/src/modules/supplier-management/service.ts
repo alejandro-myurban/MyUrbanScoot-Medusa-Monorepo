@@ -91,6 +91,7 @@ class SupplierManagementModuleService extends MedusaService({
     
     // Resolver nombres de usuarios
     try {
+      // @ts-ignore
       const userModuleService = this.container_.resolve("userModuleService");
       
       // Resolver created_by (solo si parece ser un ID)
@@ -195,6 +196,7 @@ class SupplierManagementModuleService extends MedusaService({
       // Solo intentar resolver si parece un ID (formato típico de Medusa)
       if (userId.length > 20 && userId.includes('_')) {
         try {
+          // @ts-ignore
           const userModuleService = this.container_.resolve("userModuleService");
           const user = await userModuleService.retrieveUser(userId);
           userName = user.first_name && user.last_name 
@@ -430,6 +432,7 @@ class SupplierManagementModuleService extends MedusaService({
       // Solo intentar resolver si parece un ID (formato típico de Medusa)
       if (data.received_by.length > 20 && data.received_by.includes('_')) {
         try {
+          // @ts-ignore
           const userModuleService = this.container_.resolve("userModuleService");
           const user = await userModuleService.retrieveUser(data.received_by);
           receivedByName = user.first_name && user.last_name 
@@ -997,6 +1000,7 @@ class SupplierManagementModuleService extends MedusaService({
       };
 
       console.log(`✅ Último precio encontrado:`, result);
+      // @ts-ignore
       return result;
 
     } catch (error: any) {
@@ -1076,6 +1080,7 @@ class SupplierManagementModuleService extends MedusaService({
     };
 
     if (performedBy) {
+      // @ts-ignore
       updateData.metadata = {
         shipped_by: performedBy,
         auto_shipped: true

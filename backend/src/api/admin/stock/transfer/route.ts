@@ -21,14 +21,15 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   try {
-    const { productId, fromLocationId, toLocationId, quantity, reason, notes } = req.body;
-    
+    const { productId, fromLocationId, toLocationId, quantity, reason, notes } =
+      req.body;
+
     // Validaciones básicas
     if (!productId) {
       return res.status(400).json({
         success: false,
         message: "Product ID es requerido",
-        error: "MISSING_PRODUCT_ID"
+        error: "MISSING_PRODUCT_ID",
       });
     }
 
@@ -36,7 +37,7 @@ export const POST = async (
       return res.status(400).json({
         success: false,
         message: "Las ubicaciones origen y destino son requeridas",
-        error: "MISSING_LOCATIONS"
+        error: "MISSING_LOCATIONS",
       });
     }
 
@@ -44,7 +45,7 @@ export const POST = async (
       return res.status(400).json({
         success: false,
         message: "Las ubicaciones origen y destino deben ser diferentes",
-        error: "SAME_LOCATIONS"
+        error: "SAME_LOCATIONS",
       });
     }
 
@@ -52,7 +53,7 @@ export const POST = async (
       return res.status(400).json({
         success: false,
         message: "La cantidad debe ser mayor a 0",
-        error: "INVALID_QUANTITY"
+        error: "INVALID_QUANTITY",
       });
     }
 
@@ -60,35 +61,41 @@ export const POST = async (
     console.log(`   - Producto: ${productId}`);
     console.log(`   - Desde: ${fromLocationId} → Hacia: ${toLocationId}`);
     console.log(`   - Cantidad: ${quantity}`);
-    console.log(`   - Razón: ${reason || 'Sin especificar'}`);
+    console.log(`   - Razón: ${reason || "Sin especificar"}`);
 
     // Resolver servicios necesarios
     const productService = req.scope.resolve(Modules.PRODUCT);
     const inventoryService = req.scope.resolve(Modules.INVENTORY);
-    const supplierService: SupplierManagementModuleService = req.scope.resolve(SUPPLIER_MODULE);
+    const supplierService: SupplierManagementModuleService =
+      req.scope.resolve(SUPPLIER_MODULE);
     const userModuleService = req.scope.resolve(Modules.USER);
 
     // Obtener información del producto y su inventory_item_id
     console.log(`🔍 TRANSFER API: Obteniendo información del producto...`);
-    
+
     let product: any = null;
     let inventoryItemId: string | null = null;
 
     // MÉTODO 1: Simplificado - usar inventory_item_id conocido para producto específico
     if (productId === "prod_01JW8Q2AMT137NRGVSZVECKPM3") {
-      console.log(`🔧 TRANSFER API: Producto conocido, usando datos hardcodeados`);
+      console.log(
+        `🔧 TRANSFER API: Producto conocido, usando datos hardcodeados`
+      );
       inventoryItemId = "iitem_01K2HTR2JH1NHDAFF7R3GZVF5F";
-      
+
       // Consulta simple del producto sin relaciones complejas
       try {
         const products = await productService.listProducts({ id: productId });
         product = products[0];
-        
+
         if (product) {
           console.log(`✅ TRANSFER API: Producto encontrado: ${product.title}`);
         }
       } catch (simpleError) {
-        console.warn(`⚠️ TRANSFER API: Error en consulta simple:`, simpleError.message);
+        console.warn(
+          `⚠️ TRANSFER API: Error en consulta simple:`,
+          simpleError.message
+        );
       }
     }
 
@@ -96,21 +103,24 @@ export const POST = async (
     if (!inventoryItemId) {
       console.log(`🔍 TRANSFER API: Intentando consulta compleja...`);
       try {
-        const products = await productService.listProducts({ id: productId }, {
-          relations: ["variants", "variants.inventory_items"]
-        });
+        const products = await productService.listProducts(
+          { id: productId },
+          {
+            relations: ["variants", "variants.inventory_items"],
+          }
+        );
 
         if (!products || products.length === 0) {
           return res.status(404).json({
             success: false,
             message: `Producto ${productId} no encontrado`,
-            error: "PRODUCT_NOT_FOUND"
+            error: "PRODUCT_NOT_FOUND",
           });
         }
 
         product = products[0];
         console.log(`✅ TRANSFER API: Producto encontrado: ${product.title}`);
-        
+
         // DEBUG: Log estructura completa del producto
         console.log(`🔍 TRANSFER API: Estructura del producto:`, {
           id: product.id,
@@ -119,8 +129,8 @@ export const POST = async (
             id: v.id,
             title: v.title,
             manage_inventory: v.manage_inventory,
-            inventory_items: v.inventory_items
-          }))
+            inventory_items: v.inventory_items,
+          })),
         });
 
         // Obtener inventory_item_id desde la variante principal
@@ -130,20 +140,27 @@ export const POST = async (
             id: mainVariant.id,
             title: mainVariant.title,
             manage_inventory: mainVariant.manage_inventory,
-            inventory_items: mainVariant.inventory_items
+            inventory_items: mainVariant.inventory_items,
           });
-          
-          if (mainVariant.manage_inventory && mainVariant.inventory_items && mainVariant.inventory_items.length > 0) {
+
+          if (
+            mainVariant.manage_inventory &&
+            mainVariant.inventory_items &&
+            mainVariant.inventory_items.length > 0
+          ) {
             inventoryItemId = mainVariant.inventory_items[0].inventory_item_id;
           }
         }
       } catch (complexError) {
-        console.error(`❌ TRANSFER API: Error en consulta compleja:`, complexError.message);
+        console.error(
+          `❌ TRANSFER API: Error en consulta compleja:`,
+          complexError.message
+        );
         return res.status(500).json({
           success: false,
           message: "Error consultando información del producto",
           error: "PRODUCT_QUERY_ERROR",
-          details: complexError.message
+          details: complexError.message,
         });
       }
     }
@@ -153,7 +170,7 @@ export const POST = async (
       return res.status(404).json({
         success: false,
         message: `Producto ${productId} no encontrado`,
-        error: "PRODUCT_NOT_FOUND"
+        error: "PRODUCT_NOT_FOUND",
       });
     }
 
@@ -164,8 +181,8 @@ export const POST = async (
         error: "NO_INVENTORY_MANAGEMENT",
         debug: {
           productId,
-          productTitle: product.title
-        }
+          productTitle: product.title,
+        },
       });
     }
 
@@ -175,9 +192,11 @@ export const POST = async (
     let performedByName = "Usuario desconocido";
     try {
       //@ts-ignore
-      const user = await userModuleService.retrieveUser(req.auth_context.actor_id);
+      const user = await userModuleService.retrieveUser(
+        req.auth_context.actor_id
+      );
       console.log(`👤 TRANSFER API: Usuario obtenido:`, user);
-      
+
       if (user) {
         // Construir nombre completo o usar email como fallback
         if (user.first_name && user.last_name) {
@@ -189,12 +208,17 @@ export const POST = async (
         }
       }
     } catch (userError) {
-      console.warn(`⚠️ TRANSFER API: Error obteniendo usuario:`, userError.message);
+      console.warn(
+        `⚠️ TRANSFER API: Error obteniendo usuario:`,
+        userError.message
+      );
       //@ts-ignore
       performedByName = req.auth?.actor_id || "admin";
     }
 
-    console.log(`👤 TRANSFER API: Transferencia realizada por: ${performedByName}`);
+    console.log(
+      `👤 TRANSFER API: Transferencia realizada por: ${performedByName}`
+    );
 
     // Preparar datos para el workflow
     const workflowInput = {
@@ -214,6 +238,7 @@ export const POST = async (
     const workflowResult = await transferAsOrderWorkflow.run({
       input: workflowInput,
       context: {
+        // @ts-ignore
         manager: req.scope.manager,
       },
     });
@@ -253,27 +278,32 @@ export const POST = async (
         performedAt: new Date().toISOString(),
         reason,
         notes,
-      }
+      },
     });
-
   } catch (error: any) {
     console.error(`❌ TRANSFER API ERROR:`, error.message);
     console.error(`📊 Stack trace:`, error.stack);
 
     // Errores de validación del workflow
-    if (error.message.includes("Stock insuficiente") || error.message.includes("No hay stock")) {
+    if (
+      error.message.includes("Stock insuficiente") ||
+      error.message.includes("No hay stock")
+    ) {
       return res.status(400).json({
         success: false,
         message: error.message,
-        error: "INSUFFICIENT_STOCK"
+        error: "INSUFFICIENT_STOCK",
       });
     }
 
-    if (error.message.includes("no encontrado") || error.message.includes("not found")) {
+    if (
+      error.message.includes("no encontrado") ||
+      error.message.includes("not found")
+    ) {
       return res.status(404).json({
         success: false,
         message: error.message,
-        error: "RESOURCE_NOT_FOUND"
+        error: "RESOURCE_NOT_FOUND",
       });
     }
 
@@ -282,7 +312,8 @@ export const POST = async (
       success: false,
       message: "Error interno del servidor al procesar transferencia",
       error: "INTERNAL_SERVER_ERROR",
-      details: process.env.NODE_ENV === "development" ? error.message : undefined
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };

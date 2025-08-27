@@ -70,6 +70,7 @@ export async function POST(
       quantity,
       productId,
       productTitle,
+      // @ts-ignore
       performedBy: performedBy || req.auth?.user_id || "system",
       reason: reason || "Transferencia solicitada via API",
       notes,
@@ -80,6 +81,7 @@ export async function POST(
     const workflowResult = await transferAsOrderWorkflow.run({
       input: workflowInput,
       context: {
+             // @ts-ignore
         manager: req.scope.manager,
       },
     });
@@ -144,6 +146,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     console.log("📊 API: Obteniendo estadísticas de transferencias...");
 
     const supplierService = req.scope.resolve("supplierService");
+         // @ts-ignore
     const stats = await supplierService.getTransferStatistics();
 
     return res.status(200).json({

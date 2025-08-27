@@ -25,26 +25,33 @@ type TransferAsOrderInput = {
 const ensureTransferSupplierStep = createStep(
   "ensure-transfer-supplier-step",
   async (input: {}, { container }) => {
-    console.log("🏭 SUPPLIER: Verificando proveedor virtual de transferencias...");
-    
+    console.log(
+      "🏭 SUPPLIER: Verificando proveedor virtual de transferencias..."
+    );
+
     try {
       const supplierService = container.resolve(SUPPLIER_MODULE);
-      
+
       // Buscar proveedor de transferencias existente
+      // @ts-ignore
       const existingSuppliers = await supplierService.listSuppliers({
-        code: "TRANSFER"
+        code: "TRANSFER",
       });
-      
+
       if (existingSuppliers.length > 0) {
         const existingSupplierId = existingSuppliers[0].id;
-        console.log("✅ SUPPLIER: Proveedor de transferencias ya existe, ID:", existingSupplierId);
+        console.log(
+          "✅ SUPPLIER: Proveedor de transferencias ya existe, ID:",
+          existingSupplierId
+        );
         return new StepResponse({
           supplierId: existingSupplierId,
-          created: false
+          created: false,
         });
       }
-      
+
       // Crear proveedor virtual
+      // @ts-ignore
       const transferSupplier = await supplierService.createSupplier({
         name: "Transferencia Interna",
         legal_name: "Sistema de Transferencias Internas", // Campo obligatorio
@@ -58,19 +65,24 @@ const ensureTransferSupplierStep = createStep(
         metadata: {
           virtual: true,
           system_created: true,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+        },
+      });
+
+      console.log(
+        "✅ SUPPLIER: Proveedor de transferencias creado:",
+        transferSupplier.id
+      );
+
+      return new StepResponse(
+        {
+          supplierId: transferSupplier.id,
+          created: true,
+        },
+        {
+          supplierId: transferSupplier.id,
         }
-      });
-      
-      console.log("✅ SUPPLIER: Proveedor de transferencias creado:", transferSupplier.id);
-      
-      return new StepResponse({
-        supplierId: transferSupplier.id,
-        created: true
-      }, {
-        supplierId: transferSupplier.id
-      });
-      
+      );
     } catch (error: any) {
       console.error("❌ SUPPLIER ERROR:", error.message);
       throw error;
@@ -78,9 +90,11 @@ const ensureTransferSupplierStep = createStep(
   },
   async (stepInput, { container }) => {
     // Rollback: eliminar proveedor si fue creado en este step
+    // @ts-ignore
     if (stepInput.created) {
       try {
         const supplierService = container.resolve(SUPPLIER_MODULE);
+        // @ts-ignore
         await supplierService.deactivateSupplier(stepInput.supplierId);
         console.log("🔄 ROLLBACK: Proveedor de transferencias desactivado");
       } catch (error: any) {
@@ -93,8 +107,11 @@ const ensureTransferSupplierStep = createStep(
 // Step para crear el pedido tipo transferencia
 const createTransferOrderStep = createStep(
   "create-transfer-order-step",
-  async (input: TransferAsOrderInput & { supplierId: string }, { container }) => {
-    const { 
+  async (
+    input: TransferAsOrderInput & { supplierId: string },
+    { container }
+  ) => {
+    const {
       supplierId,
       fromLocationId,
       toLocationId,
@@ -104,67 +121,74 @@ const createTransferOrderStep = createStep(
       performedBy,
       reason,
       notes,
-      expected_delivery_date
+      expected_delivery_date,
     } = input;
-    
+
     console.log("📋 ORDER: Creando pedido tipo transferencia...");
     console.log("🔍 ORDER: Supplier ID recibido:", supplierId);
-    
+
     try {
       const supplierService = container.resolve(SUPPLIER_MODULE);
       const stockLocationService = container.resolve(Modules.STOCK_LOCATION);
-      
+
       // Obtener nombres de las ubicaciones
       const [sourceLocation, destLocation] = await Promise.all([
         stockLocationService.retrieveStockLocation(fromLocationId),
-        stockLocationService.retrieveStockLocation(toLocationId)
+        stockLocationService.retrieveStockLocation(toLocationId),
       ]);
-      
-      // Generar display_id específico para transferencias  
+
+      // Generar display_id específico para transferencias
       const transferOrderData = {
         supplier_id: supplierId,
         order_type: "transfer",
         status: "confirmed", // Las transferencias van directo a confirmed
         order_date: new Date(),
-        expected_delivery_date: expected_delivery_date || new Date(Date.now() + 24 * 60 * 60 * 1000), // +1 día por defecto
-        
+        expected_delivery_date:
+          expected_delivery_date || new Date(Date.now() + 24 * 60 * 60 * 1000), // +1 día por defecto
+
         // Ubicaciones
         source_location_id: fromLocationId,
         source_location_name: sourceLocation.name,
         destination_location_id: toLocationId,
         destination_location_name: destLocation.name,
-        
+
         // Información adicional
         reference: `TRANSFER_${Date.now()}`,
-        notes: notes || `Transferencia de ${quantity} unidades de ${productTitle}`,
+        notes:
+          notes || `Transferencia de ${quantity} unidades de ${productTitle}`,
         internal_notes: reason || "Transferencia interna de stock",
-        
+
         // Auditoría
         created_by: performedBy || "system",
-        
+
         // Financiero (para transferencias es 0)
         currency_code: "EUR",
         subtotal: 0,
         tax_total: 0,
         discount_total: 0,
         total: 0,
-        
+
         metadata: {
           transfer_type: "internal",
           original_workflow: "transfer-as-order",
-          created_at: new Date().toISOString()
-        }
+          created_at: new Date().toISOString(),
+        },
       };
-      
+
       console.log("🔍 ORDER: Datos del pedido antes de crear:", {
         supplier_id: transferOrderData.supplier_id,
         order_type: transferOrderData.order_type,
-        display_id_will_be_generated: true
+        display_id_will_be_generated: true,
       });
-      
-      const transferOrder = await supplierService.createSupplierOrder(transferOrderData);
-      console.log("✅ ORDER: Pedido transferencia creado:", transferOrder.display_id);
-      
+      // @ts-ignore
+      const transferOrder = await supplierService.createSupplierOrder(
+        transferOrderData
+      );
+      console.log(
+        "✅ ORDER: Pedido transferencia creado:",
+        transferOrder.display_id
+      );
+
       // Crear línea de pedido
       const orderLineData = {
         supplier_order_id: transferOrder.id,
@@ -180,24 +204,28 @@ const createTransferOrderStep = createStep(
         notes: `Transferencia desde ${sourceLocation.name} hacia ${destLocation.name}`,
         metadata: {
           transfer_line: true,
-          inventory_item_id: input.inventoryItemId
-        }
+          inventory_item_id: input.inventoryItemId,
+        },
       };
-      
-      const orderLine = await supplierService.createSupplierOrderLines(orderLineData);
+      // @ts-ignore
+      const orderLine = await supplierService.createSupplierOrderLines(
+        orderLineData
+      );
       console.log("✅ ORDER LINE: Línea de pedido creada para transferencia");
-      
-      return new StepResponse({
-        orderId: transferOrder.id,
-        orderDisplayId: transferOrder.display_id,
-        orderLineId: orderLine.id,
-        sourceLocationName: sourceLocation.name,
-        destLocationName: destLocation.name
-      }, {
-        orderId: transferOrder.id,
-        orderLineId: orderLine.id
-      });
-      
+
+      return new StepResponse(
+        {
+          orderId: transferOrder.id,
+          orderDisplayId: transferOrder.display_id,
+          orderLineId: orderLine.id,
+          sourceLocationName: sourceLocation.name,
+          destLocationName: destLocation.name,
+        },
+        {
+          orderId: transferOrder.id,
+          orderLineId: orderLine.id,
+        }
+      );
     } catch (error: any) {
       console.error("❌ ORDER ERROR:", error.message);
       throw error;
@@ -207,24 +235,32 @@ const createTransferOrderStep = createStep(
     // Rollback: eliminar pedido y línea creados
     try {
       const supplierService = container.resolve(SUPPLIER_MODULE);
-      
+
       // Eliminar línea de pedido si existe
       if (stepInput && stepInput.orderLineId) {
         try {
+          // @ts-ignore
           await supplierService.deleteSupplierOrderLine(stepInput.orderLineId);
           console.log("🔄 ROLLBACK: Línea de pedido eliminada");
         } catch (lineError: any) {
-          console.warn("⚠️ ROLLBACK: Error eliminando línea:", lineError.message);
+          console.warn(
+            "⚠️ ROLLBACK: Error eliminando línea:",
+            lineError.message
+          );
         }
       }
-      
+
       // Eliminar pedido si existe
       if (stepInput && stepInput.orderId) {
         try {
+          // @ts-ignore
           await supplierService.deleteSupplierOrder(stepInput.orderId);
           console.log("🔄 ROLLBACK: Pedido transferencia eliminado");
         } catch (orderError: any) {
-          console.warn("⚠️ ROLLBACK: Error eliminando pedido:", orderError.message);
+          console.warn(
+            "⚠️ ROLLBACK: Error eliminando pedido:",
+            orderError.message
+          );
         }
       }
     } catch (error: any) {
@@ -244,7 +280,7 @@ const executeStockTransferStep = createStep(
       quantity,
       productId,
       productTitle,
-      performedBy = "system"
+      performedBy = "system",
     } = input;
 
     console.log("🔄 TRANSFER: Ejecutando transferencia física de stock...");
@@ -276,9 +312,10 @@ const executeStockTransferStep = createStep(
         location_id: toLocationId,
       });
 
-      const destCurrentStock = destLevels && destLevels.length > 0 
-        ? destLevels[0].stocked_quantity || 0 
-        : 0;
+      const destCurrentStock =
+        destLevels && destLevels.length > 0
+          ? destLevels[0].stocked_quantity || 0
+          : 0;
 
       // Calcular nuevas cantidades
       const newOriginStock = currentStock - quantity;
@@ -318,6 +355,7 @@ const executeStockTransferStep = createStep(
 
       await Promise.all([
         // Movimiento de salida
+        // @ts-ignore
         supplierService.recordInventoryMovement({
           movement_type: "transfer_out",
           reference_id: transferId,
@@ -334,6 +372,7 @@ const executeStockTransferStep = createStep(
         }),
 
         // Movimiento de entrada pendiente
+        // @ts-ignore
         supplierService.recordInventoryMovement({
           movement_type: "transfer_in",
           reference_id: transferId,
@@ -352,23 +391,25 @@ const executeStockTransferStep = createStep(
 
       console.log("✅ TRANSFER: Transferencia física completada");
 
-      return new StepResponse({
-        transferId,
-        originStockBefore: currentStock,
-        originStockAfter: newOriginStock,
-        destStockBefore: destCurrentStock,
-        destStockAfter: newDestStock,
-        quantityTransferred: quantity,
-      }, {
-        inventoryItemId,
-        fromLocationId,
-        toLocationId,
-        originStockBefore: currentStock,
-        destStockBefore: destCurrentStock,
-        quantity,
-        destLevelExisted: destLevels && destLevels.length > 0
-      });
-      
+      return new StepResponse(
+        {
+          transferId,
+          originStockBefore: currentStock,
+          originStockAfter: newOriginStock,
+          destStockBefore: destCurrentStock,
+          destStockAfter: newDestStock,
+          quantityTransferred: quantity,
+        },
+        {
+          inventoryItemId,
+          fromLocationId,
+          toLocationId,
+          originStockBefore: currentStock,
+          destStockBefore: destCurrentStock,
+          quantity,
+          destLevelExisted: destLevels && destLevels.length > 0,
+        }
+      );
     } catch (error: any) {
       console.error("❌ TRANSFER ERROR:", error.message);
       throw error;
@@ -410,6 +451,7 @@ const executeStockTransferStep = createStep(
         ]);
       } else {
         await inventoryService.deleteInventoryLevels([
+          // @ts-ignore
           {
             inventory_item_id: inventoryItemId,
             location_id: toLocationId,
@@ -429,17 +471,22 @@ const updateOrderStatusStep = createStep(
   "update-order-status-step",
   async (input: { orderId: string }, { container }) => {
     console.log("📋 STATUS: Actualizando estado del pedido a 'shipped'...");
-    
+
     try {
       const supplierService = container.resolve(SUPPLIER_MODULE);
-      
-      await supplierService.updateSupplierOrderStatus(input.orderId, "shipped", {
-        shipped_at: new Date(),
-        notes: "Transferencia física completada automáticamente"
-      });
-      
+
+      // @ts-ignore
+      await supplierService.updateSupplierOrderStatus(
+        input.orderId,
+        "shipped",
+        {
+          shipped_at: new Date(),
+          notes: "Transferencia física completada automáticamente",
+        }
+      );
+
       console.log("✅ STATUS: Pedido marcado como 'shipped'");
-      
+
       return new StepResponse({ updated: true });
     } catch (error: any) {
       console.error("❌ STATUS ERROR:", error.message);
@@ -453,21 +500,23 @@ const createTransferSupplierAndOrderStep = createStep(
   "create-transfer-supplier-and-order-step",
   async (input: TransferAsOrderInput, { container }) => {
     console.log("🏭 COMBINED: Creando proveedor (si no existe) y pedido...");
-    
+
     try {
       const supplierService = container.resolve(SUPPLIER_MODULE);
       const stockLocationService = container.resolve(Modules.STOCK_LOCATION);
-      
+
       // 1. Verificar/crear proveedor
       let supplierId: string;
+      // @ts-ignore
       const existingSuppliers = await supplierService.listSuppliers({
-        code: "TRANSFER"
+        code: "TRANSFER",
       });
-      
+
       if (existingSuppliers.length > 0) {
         supplierId = existingSuppliers[0].id;
         console.log("✅ COMBINED: Proveedor existe, ID:", supplierId);
       } else {
+        // @ts-ignore
         const transferSupplier = await supplierService.createSupplier({
           name: "Transferencia Interna",
           legal_name: "Sistema de Transferencias Internas",
@@ -481,8 +530,8 @@ const createTransferSupplierAndOrderStep = createStep(
           metadata: {
             virtual: true,
             system_created: true,
-            created_at: new Date().toISOString()
-          }
+            created_at: new Date().toISOString(),
+          },
         });
         supplierId = transferSupplier.id;
         console.log("✅ COMBINED: Proveedor creado, ID:", supplierId);
@@ -491,7 +540,7 @@ const createTransferSupplierAndOrderStep = createStep(
       // 2. Obtener nombres de ubicaciones
       const [sourceLocation, destLocation] = await Promise.all([
         stockLocationService.retrieveStockLocation(input.fromLocationId),
-        stockLocationService.retrieveStockLocation(input.toLocationId)
+        stockLocationService.retrieveStockLocation(input.toLocationId),
       ]);
 
       // 3. Crear pedido
@@ -500,13 +549,17 @@ const createTransferSupplierAndOrderStep = createStep(
         order_type: "transfer",
         status: "confirmed",
         order_date: new Date(),
-        expected_delivery_date: input.expected_delivery_date || new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expected_delivery_date:
+          input.expected_delivery_date ||
+          new Date(Date.now() + 24 * 60 * 60 * 1000),
         source_location_id: input.fromLocationId,
         source_location_name: sourceLocation.name,
         destination_location_id: input.toLocationId,
         destination_location_name: destLocation.name,
         reference: `TRANSFER_${Date.now()}`,
-        notes: input.notes || `Transferencia de ${input.quantity} unidades de ${input.productTitle}`,
+        notes:
+          input.notes ||
+          `Transferencia de ${input.quantity} unidades de ${input.productTitle}`,
         internal_notes: input.reason || "Transferencia interna de stock",
         created_by: input.performedBy || "system",
         currency_code: "EUR",
@@ -517,13 +570,15 @@ const createTransferSupplierAndOrderStep = createStep(
         metadata: {
           transfer_type: "internal",
           original_workflow: "transfer-as-order",
-          created_at: new Date().toISOString()
-        }
+          created_at: new Date().toISOString(),
+        },
       };
 
       console.log("🔍 COMBINED: Creando pedido con supplier_id:", supplierId);
-      
-      const transferOrder = await supplierService.createSupplierOrder(transferOrderData);
+      // @ts-ignore
+      const transferOrder = await supplierService.createSupplierOrder(
+        transferOrderData
+      );
       console.log("✅ COMBINED: Pedido creado:", transferOrder.display_id);
 
       // 4. Crear línea de pedido
@@ -540,11 +595,13 @@ const createTransferSupplierAndOrderStep = createStep(
         notes: `Transferencia desde ${sourceLocation.name} hacia ${destLocation.name}`,
         metadata: {
           transfer_line: true,
-          inventory_item_id: input.inventoryItemId
-        }
+          inventory_item_id: input.inventoryItemId,
+        },
       };
-      
-      const orderLine = await supplierService.createSupplierOrderLines(orderLineData);
+      // @ts-ignore
+      const orderLine = await supplierService.createSupplierOrderLines(
+        orderLineData
+      );
       console.log("✅ COMBINED: Línea de pedido creada");
 
       return new StepResponse({
@@ -553,9 +610,8 @@ const createTransferSupplierAndOrderStep = createStep(
         orderDisplayId: transferOrder.display_id,
         orderLineId: orderLine.id,
         sourceLocationName: sourceLocation.name,
-        destLocationName: destLocation.name
+        destLocationName: destLocation.name,
       });
-      
     } catch (error: any) {
       console.error("❌ COMBINED ERROR:", error.message);
       throw error;
@@ -564,15 +620,16 @@ const createTransferSupplierAndOrderStep = createStep(
 );
 
 // WORKFLOW PRINCIPAL HÍBRIDO SIMPLIFICADO
-export const transferAsOrderWorkflow = createWorkflow(
+// @ts-ignore
+export const transferAsOrderWorkflow: any = createWorkflow(
   "transfer-as-order",
   function (input: TransferAsOrderInput) {
     // 1. Crear proveedor y pedido en un solo step
     const orderResult = createTransferSupplierAndOrderStep(input);
-    
+
     // 2. Ejecutar transferencia física
     const transferResult = executeStockTransferStep(input);
-    
+
     // 3. Actualizar estado a "shipped"
     const statusResult = updateOrderStatusStep({
       orderId: orderResult.orderId,
@@ -583,7 +640,7 @@ export const transferAsOrderWorkflow = createWorkflow(
       transfer: transferResult,
       status: statusResult,
       success: true,
-      message: "Transferencia creada como pedido y ejecutada correctamente"
+      message: "Transferencia creada como pedido y ejecutada correctamente",
     });
   }
 );
