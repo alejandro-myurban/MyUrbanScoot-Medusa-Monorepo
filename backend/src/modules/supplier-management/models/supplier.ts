@@ -5,6 +5,7 @@ const Supplier = model.define("supplier", {
   id: model.id().primaryKey(),
   name: model.text(),                    // Nombre comercial
   legal_name: model.text(),              // Razón social
+  code: model.text().unique().nullable(), // Código interno del proveedor (TRANSFER, SUP001, etc)
   tax_id: model.text().unique(),         // NIF/CIF/SIF
   email: model.text().nullable(),
   phone: model.text().nullable(),
@@ -19,6 +20,7 @@ const Supplier = model.define("supplier", {
   country_code: model.text().nullable(),
   
   // Información comercial
+  supplier_type: model.text().default("standard"), // "standard" | "internal_transfer"
   payment_terms: model.text().nullable(),  // Ejemplo: "30 días", "Al contado"
   currency_code: model.text().default("EUR"),
   discount_percentage: model.number().nullable(), // Descuento general

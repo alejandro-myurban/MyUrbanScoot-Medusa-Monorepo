@@ -278,6 +278,15 @@
           "nullable": false,
           "mappedType": "text"
         },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
         "tax_id": {
           "name": "tax_id",
           "type": "text",
@@ -366,6 +375,16 @@
           "autoincrement": false,
           "primary": false,
           "nullable": true,
+          "mappedType": "text"
+        },
+        "supplier_type": {
+          "name": "supplier_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "'standard'",
           "mappedType": "text"
         },
         "payment_terms": {
@@ -460,6 +479,15 @@
       "name": "supplier",
       "schema": "public",
       "indexes": [
+        {
+          "keyName": "IDX_supplier_code_unique",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_supplier_code_unique\" ON \"supplier\" (code) WHERE deleted_at IS NULL"
+        },
         {
           "keyName": "IDX_supplier_tax_id_unique",
           "columnNames": [],
@@ -803,6 +831,16 @@
           "nullable": false,
           "mappedType": "text"
         },
+        "order_type": {
+          "name": "order_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "'supplier'",
+          "mappedType": "text"
+        },
         "status": {
           "name": "status",
           "type": "text",
@@ -924,6 +962,24 @@
         },
         "destination_location_name": {
           "name": "destination_location_name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "source_location_id": {
+          "name": "source_location_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "source_location_name": {
+          "name": "source_location_name",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -1132,6 +1188,15 @@
           "nullable": true,
           "mappedType": "text"
         },
+        "product_thumbnail": {
+          "name": "product_thumbnail",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
         "supplier_sku": {
           "name": "supplier_sku",
           "type": "text",
@@ -1186,6 +1251,26 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "mappedType": "integer"
+        },
+        "tax_rate": {
+          "name": "tax_rate",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "0",
+          "mappedType": "integer"
+        },
+        "discount_rate": {
+          "name": "discount_rate",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "0",
           "mappedType": "integer"
         },
         "total_price": {

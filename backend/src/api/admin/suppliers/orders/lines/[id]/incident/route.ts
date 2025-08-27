@@ -12,7 +12,7 @@ export const PATCH = async (
   try {
     const { id } = req.params; // ID de la línea
     //@ts-ignore
-    const { hasIncident, incidentNotes } = req.body;
+    const { hasIncident, incidentNotes, userId } = req.body;
     const supplierService: SupplierManagementModuleService = req.scope.resolve(SUPPLIER_MODULE);
     
     console.log(`🚨 Actualizando incidencia de línea ${id}: hasIncident=${hasIncident}`);
@@ -26,7 +26,10 @@ export const PATCH = async (
     const updatedLine = await supplierService.updateOrderLineIncident(
       id, 
       hasIncident, 
-      incidentNotes
+      incidentNotes,
+      // Usar el nombre del usuario del frontend, o ID como fallback
+      //@ts-ignore
+      userId || req.auth?.actor_id || req.auth?.user?.id
     );
     
     res.status(200).json({

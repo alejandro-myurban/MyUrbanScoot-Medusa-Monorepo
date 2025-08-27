@@ -69,7 +69,7 @@ class SupplierManagementModuleService extends MedusaService({
   async createSupplierOrder(data: any): Promise<SupplierOrder> {
     // Generar display_id si no se proporciona
     if (!data.display_id) {
-      data.display_id = await this.generateOrderDisplayId();
+      data.display_id = await this.generateOrderDisplayId(data.order_type || "supplier");
     }
 
     // Establecer order_date si no se proporciona
@@ -85,7 +85,53 @@ class SupplierManagementModuleService extends MedusaService({
       { id },
       { relations: ["supplier"] }
     );
-    return orders[0] || null;
+    const order = orders[0];
+    
+    if (!order) return null;
+    
+    // Resolver nombres de usuarios
+    try {
+      const userModuleService = this.container_.resolve("userModuleService");
+      
+      // Resolver created_by (solo si parece ser un ID)
+      if (order.created_by) {
+        // Si parece un ID (formato típico de Medusa), intentar resolver
+        if (order.created_by.length > 20 && order.created_by.includes('_')) {
+          try {
+            const creator = await userModuleService.retrieveUser(order.created_by);
+            order.created_by = `${creator.first_name} ${creator.last_name}`.trim() || creator.email;
+          } catch (error) {
+            console.warn(`No se pudo resolver created_by ${order.created_by}:`, error.message);
+          }
+        }
+        // Si no parece un ID, asumir que ya es un nombre y dejarlo como está
+      }
+      
+      // Resolver received_by
+      if (order.received_by) {
+        console.log(`🔍 DEBUG getSupplierOrderById - Resolviendo received_by:`, order.received_by);
+        try {
+          const receiver = await userModuleService.retrieveUser(order.received_by);
+          console.log(`🔍 DEBUG getSupplierOrderById - Usuario encontrado:`, {
+            id: receiver.id,
+            first_name: receiver.first_name,
+            last_name: receiver.last_name,
+            email: receiver.email
+          });
+          const resolvedName = `${receiver.first_name} ${receiver.last_name}`.trim() || receiver.email;
+          console.log(`🔍 DEBUG getSupplierOrderById - Nombre resuelto:`, resolvedName);
+          order.received_by = resolvedName;
+        } catch (error) {
+          console.warn(`❌ No se pudo resolver received_by ${order.received_by}:`, error.message);
+        }
+      } else {
+        console.log(`🔍 DEBUG getSupplierOrderById - No hay received_by en el pedido`);
+      }
+    } catch (error) {
+      console.warn("No se pudo resolver usuarios:", error.message);
+    }
+    
+    return order;
   }
 
   // =====================================================
@@ -138,15 +184,44 @@ class SupplierManagementModuleService extends MedusaService({
   async updateOrderLineIncident(
     lineId: string, 
     hasIncident: boolean, 
-    incidentNotes?: string
+    incidentNotes?: string,
+    userId?: string
   ): Promise<SupplierOrderLine> {
     console.log(`🚨 Actualizando incidencia para línea ${lineId}: ${hasIncident}`);
+    
+    // Obtener nombre del usuario si se proporciona
+    let userName = userId;
+    if (userId) {
+      // Solo intentar resolver si parece un ID (formato típico de Medusa)
+      if (userId.length > 20 && userId.includes('_')) {
+        try {
+          const userModuleService = this.container_.resolve("userModuleService");
+          const user = await userModuleService.retrieveUser(userId);
+          userName = user.first_name && user.last_name 
+            ? `${user.first_name} ${user.last_name}`
+            : user.email || userId;
+          console.log(`👤 Usuario ID resuelto para incidencia: ${userName}`);
+        } catch (error) {
+          console.warn(`⚠️ No se pudo obtener información del usuario ${userId}:`, error);
+          userName = userId;
+        }
+      } else {
+        // Si no parece un ID, asumir que ya es un nombre
+        console.log(`👤 Usuario recibido directamente para incidencia: ${userName}`);
+      }
+    }
     
     const updateData: any = {
       id: lineId,
       line_status: hasIncident ? 'incident' : 'pending',
       reception_notes: incidentNotes || null
     };
+    
+    // Solo actualizar campos de recepción si se está marcando una incidencia
+    if (hasIncident) {
+      updateData.received_at = new Date();
+      updateData.received_by = userName;
+    }
 
     const updatedLine = await this.updateSupplierOrderLines(updateData);
     console.log(`✅ Línea actualizada: status=${updatedLine.line_status}`);
@@ -225,7 +300,12 @@ class SupplierManagementModuleService extends MedusaService({
         break;
       case "received":
         updateData.received_at = new Date();
-        if (userId) updateData.received_by = userId;
+        if (userId) {
+          updateData.received_by = userId;
+          console.log(`🔍 DEBUG updateSupplierOrderStatus - Guardando received_by:`, userId);
+        } else {
+          console.log(`⚠️ WARNING updateSupplierOrderStatus - No userId provided for received status`);
+        }
         break;
     }
 
@@ -285,6 +365,14 @@ class SupplierManagementModuleService extends MedusaService({
       `🔍 DEBUG addOrderLine - product_id es vacío?:`,
       !lineData.product_id || lineData.product_id.trim() === ""
     );
+    console.log(
+      `🔍 DEBUG addOrderLine - product_thumbnail:`,
+      lineData.product_thumbnail
+    );
+    console.log(
+      `🔍 DEBUG addOrderLine - product_thumbnail type:`,
+      typeof lineData.product_thumbnail
+    );
 
     const lineWithOrder = {
       ...lineData,
@@ -296,6 +384,10 @@ class SupplierManagementModuleService extends MedusaService({
       `🔍 DEBUG addOrderLine - Datos para guardar:`,
       JSON.stringify(lineWithOrder, null, 2)
     );
+    console.log(
+      `🔍 DEBUG addOrderLine - product_thumbnail en lineWithOrder:`,
+      lineWithOrder.product_thumbnail
+    );
 
     const line = await this.createSupplierOrderLines(lineWithOrder);
 
@@ -306,6 +398,10 @@ class SupplierManagementModuleService extends MedusaService({
     console.log(
       `🔍 DEBUG addOrderLine - product_id en línea creada:`,
       line.product_id
+    );
+    console.log(
+      `🔍 DEBUG addOrderLine - product_thumbnail en línea creada:`,
+      line.product_thumbnail
     );
 
     // Recalcular totales del pedido
@@ -328,6 +424,29 @@ class SupplierManagementModuleService extends MedusaService({
       );
     }
 
+    // Obtener nombre del usuario si se proporciona received_by
+    let receivedByName = data.received_by;
+    if (data.received_by) {
+      // Solo intentar resolver si parece un ID (formato típico de Medusa)
+      if (data.received_by.length > 20 && data.received_by.includes('_')) {
+        try {
+          const userModuleService = this.container_.resolve("userModuleService");
+          const user = await userModuleService.retrieveUser(data.received_by);
+          receivedByName = user.first_name && user.last_name 
+            ? `${user.first_name} ${user.last_name}`
+            : user.email || data.received_by;
+          console.log(`👤 Usuario ID resuelto: ${receivedByName}`);
+        } catch (error) {
+          console.warn(`⚠️ No se pudo obtener información del usuario ${data.received_by}:`, error);
+          // Mantener el ID original si no se puede resolver
+          receivedByName = data.received_by;
+        }
+      } else {
+        // Si no parece un ID, asumir que ya es un nombre
+        console.log(`👤 Usuario recibido directamente: ${receivedByName}`);
+      }
+    }
+
     const newQuantityReceived = line.quantity_received + data.quantity_received;
     const newQuantityPending = line.quantity_ordered - newQuantityReceived;
 
@@ -347,7 +466,7 @@ class SupplierManagementModuleService extends MedusaService({
       quantity_pending: Math.max(0, newQuantityPending),
       line_status: lineStatus,
       received_at: new Date(),
-      received_by: data.received_by,
+      received_by: receivedByName,
       reception_notes: data.reception_notes,
     });
 
@@ -365,7 +484,7 @@ class SupplierManagementModuleService extends MedusaService({
         quantity: data.quantity_received,
         unit_cost: line.unit_price,
         total_cost: line.unit_price * data.quantity_received,
-        performed_by: data.received_by,
+        performed_by: receivedByName,
         performed_at: new Date(),
       });
       console.log(`✅ Movimiento de inventario registrado correctamente`);
@@ -376,7 +495,7 @@ class SupplierManagementModuleService extends MedusaService({
     }
 
     // Actualizar estado del pedido automáticamente
-    await this.updateOrderStatusBasedOnLines(line.supplier_order_id);
+    await this.updateOrderStatusBasedOnLines(line.supplier_order_id, data.received_by);
 
     return updatedLine;
   }
@@ -729,13 +848,17 @@ class SupplierManagementModuleService extends MedusaService({
   }
 
 
-  private async updateOrderStatusBasedOnLines(orderId: string): Promise<void> {
+  private async updateOrderStatusBasedOnLines(orderId: string, userId?: string): Promise<void> {
     // Obtener todas las líneas del pedido
     const lines = await this.listSupplierOrderLines({
       supplier_order_id: orderId,
     });
 
     if (lines.length === 0) return;
+    
+    // Obtener estado actual del pedido
+    const currentOrder = await this.getSupplierOrderById(orderId);
+    if (!currentOrder || currentOrder.status === "cancelled") return;
 
     // Calcular estado basado en las líneas
     const totalQuantityOrdered = lines.reduce(
@@ -749,31 +872,60 @@ class SupplierManagementModuleService extends MedusaService({
 
     let newStatus = "";
     if (totalQuantityReceived === 0) {
-      // No se ha recibido nada todavía, mantener estado actual o cambiar a shipped si viene de confirmed
-      return; // No cambiar el estado automáticamente
-    } else if (totalQuantityReceived >= totalQuantityOrdered) {
-      // Todo recibido
-      newStatus = "received";
-    } else {
-      // Parcialmente recibido
+      // No se ha recibido nada todavía, mantener estado actual
+      return; 
+    }
+    
+    // Determinar el estado objetivo basado en la cantidad recibida
+    const targetStatus = totalQuantityReceived >= totalQuantityOrdered ? "received" : "partially_received";
+    
+    // Manejar transiciones especiales desde estados tempranos
+    if (currentOrder.status === "draft" && totalQuantityReceived > 0) {
+      // Desde draft, avanzar progresivamente: draft → pending → confirmed → shipped → partially_received/received
+      newStatus = "pending";
+    } else if (currentOrder.status === "pending" && totalQuantityReceived > 0) {
+      newStatus = "confirmed";
+    } else if (currentOrder.status === "confirmed" && totalQuantityReceived > 0) {
+      newStatus = "shipped";
+    } else if (currentOrder.status === "shipped") {
+      // Desde shipped, primero ir a partially_received
       newStatus = "partially_received";
+    } else if (currentOrder.status === "partially_received") {
+      // Desde partially_received podemos ir a received si todo está recibido
+      newStatus = targetStatus;
+    } else {
+      // Para otros estados, usar el estado objetivo si es una transición válida
+      newStatus = targetStatus;
     }
 
-    // Actualizar el estado del pedido si es diferente
-    const currentOrder = await this.getSupplierOrderById(orderId);
-    if (
-      currentOrder &&
-      currentOrder.status !== newStatus &&
-      currentOrder.status !== "cancelled"
-    ) {
-      await this.updateSupplierOrderStatus(orderId, newStatus);
+    // Actualizar el estado del pedido si es diferente y es una transición válida
+    if (currentOrder.status !== newStatus && this.validateStatusTransition(currentOrder.status, newStatus)) {
+      console.log(`🔄 Actualizando estado: ${currentOrder.status} → ${newStatus}`);
+      await this.updateSupplierOrderStatus(orderId, newStatus, userId);
+      
+      // Si hemos hecho una transición desde estados tempranos y aún no hemos llegado al objetivo final,
+      // hacer transiciones adicionales progresivamente
+      const updatedOrder = await this.getSupplierOrderById(orderId);
+      if (updatedOrder && updatedOrder.status !== targetStatus) {
+        // Llamar recursivamente para continuar las transiciones
+        console.log(`🔄 Continuando transiciones hacia ${targetStatus}`);
+        setTimeout(() => this.updateOrderStatusBasedOnLines(orderId, userId), 100);
+        setTimeout(async () => {
+          await this.updateSupplierOrderStatus(orderId, "received", userId);
+        }, 100);
+      }
     }
   }
 
-  private async generateOrderDisplayId(): Promise<string> {
-    const orders = await this.listSupplierOrders_({}, {});
+  private async generateOrderDisplayId(orderType: string = "supplier"): Promise<string> {
+    // Obtener conteo específico por tipo de pedido
+    const orders = await this.listSupplierOrders({ order_type: orderType });
     const count = orders.length;
-    return `PO-${String(count + 1).padStart(6, "0")}`;
+    
+    // Generar prefijo según tipo
+    const prefix = orderType === "transfer" ? "TO" : "PO"; // Transfer Order o Purchase Order
+    
+    return `${prefix}-${String(count + 1).padStart(6, "0")}`;
   }
 
   private async recalculateOrderTotals(orderId: string): Promise<void> {
@@ -794,6 +946,187 @@ class SupplierManagementModuleService extends MedusaService({
       tax_total: taxTotal,
       total,
     });
+  }
+
+  // Obtener último precio pagado por un producto a un proveedor específico
+  async getLastPriceForProduct(supplierId: string, productId: string): Promise<{
+    last_price?: number;
+    tax_rate?: number;
+    discount_rate?: number;
+    last_order_date?: string;
+    last_order_display_id?: string;
+  } | null> {
+    console.log(`🔍 Buscando último precio para producto ${productId} del proveedor ${supplierId}`);
+    
+    try {
+      // Buscar las líneas de pedidos más recientes para este producto y proveedor
+      const lines = await this.listSupplierOrderLines({
+        product_id: productId,
+      }, {
+        skip: 0,
+        take: 50,
+        relations: ["supplier_order"],
+        //@ts-ignore
+        orderBy: { created_at: "desc" }
+      });
+
+      console.log(`📦 Encontradas ${lines.length} líneas para el producto ${productId}`);
+      
+      // Filtrar por proveedor y buscar la más reciente de pedidos confirmados/completados
+      const relevantLine = lines.find(line => {
+        //@ts-ignore
+        const order = line.supplier_order;
+        return order && 
+               order.supplier_id === supplierId && 
+               ["confirmed", "shipped", "partially_received", "received"].includes(order.status);
+      });
+
+      if (!relevantLine) {
+        console.log(`❌ No se encontró historial de precios para producto ${productId} del proveedor ${supplierId}`);
+        return null;
+      }
+
+      //@ts-ignore
+      const order = relevantLine.supplier_order;
+      const result = {
+        last_price: relevantLine.unit_price,
+        tax_rate: relevantLine.tax_rate || 0,
+        discount_rate: relevantLine.discount_rate || 0,
+        last_order_date: order.order_date,
+        last_order_display_id: order.display_id,
+      };
+
+      console.log(`✅ Último precio encontrado:`, result);
+      return result;
+
+    } catch (error: any) {
+      console.error(`❌ Error obteniendo último precio:`, error.message);
+      return null;
+    }
+  }
+
+  // =====================================================
+  // MÉTODOS ESPECÍFICOS PARA TRANSFERENCIAS
+  // =====================================================
+
+  // Crear pedido tipo transferencia
+  async createTransferOrder(data: {
+    fromLocationId: string;
+    fromLocationName: string;
+    toLocationId: string;
+    toLocationName: string;
+    supplierId: string;
+    notes?: string;
+    performedBy?: string;
+    expectedDeliveryDate?: Date;
+  }): Promise<SupplierOrder> {
+    const transferOrderData = {
+      supplier_id: data.supplierId,
+      order_type: "transfer",
+      status: "confirmed", // Las transferencias van directo a confirmed
+      order_date: new Date(),
+      expected_delivery_date: data.expectedDeliveryDate || new Date(Date.now() + 24 * 60 * 60 * 1000),
+      
+      // Ubicaciones
+      source_location_id: data.fromLocationId,
+      source_location_name: data.fromLocationName,
+      destination_location_id: data.toLocationId,
+      destination_location_name: data.toLocationName,
+      
+      // Información adicional
+      reference: `TRANSFER_${Date.now()}`,
+      notes: data.notes || "Transferencia interna de stock",
+      internal_notes: "Pedido generado automáticamente por transferencia",
+      
+      // Auditoría
+      created_by: data.performedBy || "system",
+      
+      // Financiero (para transferencias es 0)
+      currency_code: "EUR",
+      subtotal: 0,
+      tax_total: 0,
+      discount_total: 0,
+      total: 0,
+      
+      metadata: {
+        transfer_type: "internal",
+        auto_generated: true,
+        created_at: new Date().toISOString()
+      }
+    };
+
+    return await this.createSupplierOrder(transferOrderData);
+  }
+
+  // Obtener pedidos de transferencia
+  async getTransferOrders(filters: any = {}): Promise<SupplierOrder[]> {
+    return await this.listSupplierOrders(
+      { ...filters, order_type: "transfer" },
+      { relations: ["supplier", "order_lines"] }
+    );
+  }
+
+  // Marcar transferencia como enviada (shipped)
+  async markTransferAsShipped(orderId: string, performedBy?: string): Promise<SupplierOrder> {
+    const updateData = {
+      id: orderId,
+      status: "shipped",
+      shipped_at: new Date(),
+      notes: "Transferencia física completada automáticamente"
+    };
+
+    if (performedBy) {
+      updateData.metadata = {
+        shipped_by: performedBy,
+        auto_shipped: true
+      };
+    }
+
+    //@ts-ignore
+    return await this.updateSupplierOrder(updateData);
+  }
+
+  // Obtener estadísticas de transferencias
+  async getTransferStatistics(): Promise<{
+    total: number;
+    pending: number;
+    shipped: number;
+    received: number;
+    withIncidents: number;
+  }> {
+    const transfers = await this.getTransferOrders();
+    
+    return {
+      total: transfers.length,
+      pending: transfers.filter(t => t.status === "confirmed").length,
+      shipped: transfers.filter(t => t.status === "shipped").length,
+      received: transfers.filter(t => t.status === "received").length,
+      withIncidents: transfers.filter(t => t.status === "incident").length,
+    };
+  }
+
+  // Validar si un pedido es transferencia
+  isTransferOrder(order: SupplierOrder): boolean {
+    return order.order_type === "transfer";
+  }
+
+  // Obtener información de ubicaciones para transferencias
+  getTransferLocationInfo(order: SupplierOrder): {
+    from: { id: string; name: string } | null;
+    to: { id: string; name: string } | null;
+  } {
+    if (!this.isTransferOrder(order)) {
+      return { from: null, to: null };
+    }
+
+    return {
+      from: order.source_location_id 
+        ? { id: order.source_location_id, name: order.source_location_name || "Ubicación origen" }
+        : null,
+      to: order.destination_location_id
+        ? { id: order.destination_location_id, name: order.destination_location_name || "Ubicación destino" }
+        : null
+    };
   }
 }
 

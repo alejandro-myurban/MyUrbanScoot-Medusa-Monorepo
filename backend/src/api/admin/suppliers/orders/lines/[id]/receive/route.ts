@@ -12,7 +12,7 @@ export const POST = async (
   try {
     const { id: line_id } = req.params;
     //@ts-ignore
-    const { quantity_received, reception_notes } = req.body;
+    const { quantity_received, reception_notes, received_by } = req.body;
     const supplierService: SupplierManagementModuleService =
       req.scope.resolve(SUPPLIER_MODULE);
 
@@ -24,8 +24,9 @@ export const POST = async (
 
     const receivedData = {
       quantity_received: Number(quantity_received),
+      // Usar el nombre del usuario del frontend, o ID como fallback
       //@ts-ignore
-      received_by: req.auth?.actor_id || req.auth?.user?.id,
+      received_by: received_by || req.auth?.actor_id || req.auth?.user?.id,
       reception_notes: reception_notes || null,
     };
 

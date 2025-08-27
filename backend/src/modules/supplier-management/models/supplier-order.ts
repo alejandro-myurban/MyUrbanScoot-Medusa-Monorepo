@@ -6,8 +6,11 @@ const SupplierOrder = model.define("supplier_order", {
   id: model.id().primaryKey(),
   
   // Información básica del pedido
-  display_id: model.text().unique(),     // Número de pedido visible (PO-001, etc)
+  display_id: model.text().unique(),     // Número de pedido visible (PO-001, TO-001, etc)
   supplier: model.belongsTo(() => Supplier, { mappedBy: "supplier_orders" }),
+  
+  // Tipo de pedido - NUEVO CAMPO
+  order_type: model.text().default("supplier"), // "supplier" | "transfer"
   
   // Estado del pedido - cambiar a text como financing_data
   status: model.text().default("draft"),
@@ -29,6 +32,10 @@ const SupplierOrder = model.define("supplier_order", {
   // Ubicación de destino (almacén)
   destination_location_id: model.text().nullable(), // ID del stock_location de MedusaJS
   destination_location_name: model.text().nullable(), // Nombre para referencia
+  
+  // NUEVO CAMPO - Ubicación de origen (para transferencias)
+  source_location_id: model.text().nullable(), // ID del stock_location origen
+  source_location_name: model.text().nullable(), // Nombre para referencia
   
   // Información adicional
   reference: model.text().nullable(),       // Referencia del proveedor
