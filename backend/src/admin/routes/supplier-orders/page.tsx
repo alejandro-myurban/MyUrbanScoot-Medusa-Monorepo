@@ -1201,6 +1201,7 @@ const SupplierOrdersPage = () => {
                 disabled={updateStatusMutation.isPending}
               >
                 <option value="">Cambiar estado...</option>
+              
                 {getValidStatusOptions(selectedOrder.status, validStatuses.validNextStatuses).map((option) => (
                   <option 
                     key={option.value} 
