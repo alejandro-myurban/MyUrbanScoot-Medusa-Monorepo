@@ -2,7 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http";
-import { stockTransferWorkflow } from "../../../../workflows/stock-transfer-workflow";
+import { transferAsOrderWorkflow } from "../../../../workflows/transfer-as-order-workflow";
 import { SUPPLIER_MODULE } from "../../../../modules/supplier-management";
 import SupplierManagementModuleService from "../../../../modules/supplier-management/service";
 import { Modules } from "@medusajs/framework/utils";
@@ -66,6 +66,7 @@ export const POST = async (
     const productService = req.scope.resolve(Modules.PRODUCT);
     const inventoryService = req.scope.resolve(Modules.INVENTORY);
     const supplierService: SupplierManagementModuleService = req.scope.resolve(SUPPLIER_MODULE);
+    const userModuleService = req.scope.resolve(Modules.USER);
 
     // Obtener información del producto y su inventory_item_id
     console.log(`🔍 TRANSFER API: Obteniendo información del producto...`);
@@ -170,6 +171,31 @@ export const POST = async (
 
     console.log(`📦 TRANSFER API: Inventory Item ID: ${inventoryItemId}`);
 
+    // Obtener información del usuario actual
+    let performedByName = "Usuario desconocido";
+    try {
+      //@ts-ignore
+      const user = await userModuleService.retrieveUser(req.auth_context.actor_id);
+      console.log(`👤 TRANSFER API: Usuario obtenido:`, user);
+      
+      if (user) {
+        // Construir nombre completo o usar email como fallback
+        if (user.first_name && user.last_name) {
+          performedByName = `${user.first_name} ${user.last_name}`;
+        } else if (user.first_name) {
+          performedByName = user.first_name;
+        } else if (user.email) {
+          performedByName = user.email;
+        }
+      }
+    } catch (userError) {
+      console.warn(`⚠️ TRANSFER API: Error obteniendo usuario:`, userError.message);
+      //@ts-ignore
+      performedByName = req.auth?.actor_id || "admin";
+    }
+
+    console.log(`👤 TRANSFER API: Transferencia realizada por: ${performedByName}`);
+
     // Preparar datos para el workflow
     const workflowInput = {
       inventoryItemId,
@@ -178,26 +204,29 @@ export const POST = async (
       quantity,
       productId,
       productTitle: product.title,
-      //@ts-ignore
-      performedBy: req.auth?.actor_id || "admin",
+      performedBy: performedByName,
       reason: reason || "Manual stock transfer via API",
     };
 
     console.log(`⚡ TRANSFER API: Ejecutando workflow de transferencia...`);
 
-    // Ejecutar workflow de transferencia
-    const workflowResult = await stockTransferWorkflow(req.scope).run({
+    // Ejecutar workflow híbrido de transferencia como pedido
+    const workflowResult = await transferAsOrderWorkflow.run({
       input: workflowInput,
+      context: {
+        manager: req.scope.manager,
+      },
     });
 
     console.log(`✅ TRANSFER API: Workflow completado exitosamente`);
     console.log(`📊 TRANSFER API: Resultado:`, workflowResult.result);
 
-    // Respuesta exitosa
+    // Respuesta exitosa con información del pedido creado
     res.status(200).json({
       success: true,
-      message: "Transferencia de stock completada exitosamente",
+      message: "Transferencia completada y pedido creado exitosamente",
       data: {
+        // Información de la transferencia
         transferId: workflowResult.result.transfer.transferId,
         productId,
         productTitle: product.title,
@@ -212,9 +241,15 @@ export const POST = async (
           origin: workflowResult.result.transfer.originStockAfter,
           destination: workflowResult.result.transfer.destStockAfter,
         },
-      //@ts-ignore
-
-        performedBy: req.auth?.actor_id || "admin",
+        // NUEVA: Información del pedido creado
+        order: {
+          id: workflowResult.result.order.orderId,
+          displayId: workflowResult.result.order.orderDisplayId,
+          sourceLocation: workflowResult.result.order.sourceLocationName,
+          destinationLocation: workflowResult.result.order.destLocationName,
+          status: "shipped", // Las transferencias van automáticamente a shipped
+        },
+        performedBy: performedByName,
         performedAt: new Date().toISOString(),
         reason,
         notes,

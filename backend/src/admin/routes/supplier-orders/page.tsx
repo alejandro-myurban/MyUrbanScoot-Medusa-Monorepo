@@ -17,7 +17,8 @@ import {
   ArrowUpRight,
   Calendar,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  AlertCircle
 } from "lucide-react";
 import { sdk } from "../../lib/sdk";
 
@@ -36,11 +37,14 @@ type SupplierOrderLine = {
   product_id: string;
   product_variant_id?: string;
   product_title: string;
+  product_thumbnail?: string;
   supplier_sku?: string;
   quantity_ordered: number;
   quantity_received: number;
   quantity_pending: number;
   unit_price: number;
+  tax_rate: number;
+  discount_rate: number;
   total_price: number;
   line_status: string;
   received_at?: string;
@@ -53,6 +57,7 @@ type SupplierOrder = {
   display_id: string;
   supplier_id: string;
   supplier: Supplier;
+  order_type: "supplier" | "transfer"; // NUEVO CAMPO
   status: string;
   order_date: string;
   expected_delivery_date?: string;
@@ -65,6 +70,9 @@ type SupplierOrder = {
   total: number;
   currency_code: string;
   destination_location_id?: string;
+  destination_location_name?: string;
+  source_location_id?: string; // NUEVO CAMPO
+  source_location_name?: string; // NUEVO CAMPO
   reference?: string;
   created_by?: string;
   received_by?: string;
@@ -84,6 +92,13 @@ const SupplierOrdersPage = () => {
   const [showReceiveModal, setShowReceiveModal] = useState<SupplierOrderLine | null>(null);
   const [receiveQuantity, setReceiveQuantity] = useState<number>(0);
   const [receiveNotes, setReceiveNotes] = useState<string>("");
+  
+  const [showCompleteReceiveModal, setShowCompleteReceiveModal] = useState<SupplierOrderLine | null>(null);
+  const [completeReceiveNotes, setCompleteReceiveNotes] = useState<string>("");
+  
+  const [showIncidentModal, setShowIncidentModal] = useState<SupplierOrderLine | null>(null);
+  const [incidentNotes, setIncidentNotes] = useState<string>("");
+  
   const itemsPerPage = 15;
   const queryClient = useQueryClient();
 
@@ -109,10 +124,12 @@ const SupplierOrdersPage = () => {
   });
 
   const [orderLines, setOrderLines] = useState<Partial<SupplierOrderLine>[]>([]);
+  const [globalTaxRate, setGlobalTaxRate] = useState(21); // IVA global por defecto 21%
   
   // Estados para búsqueda de productos
   const [productSearchTerms, setProductSearchTerms] = useState<{[key: number]: string}>({});
   const [showProductDropdowns, setShowProductDropdowns] = useState<{[key: number]: boolean}>({});
+  const [autocompletedPrices, setAutocompletedPrices] = useState<{[key: number]: { display_id: string, date: string }}>({});
 
   // Query para obtener pedidos
   const {
@@ -214,6 +231,7 @@ const SupplierOrdersPage = () => {
             const lineData = {
               product_id: line.product_id, // ✅ CRÍTICO: Incluir product_id para productos de Medusa
               product_title: line.product_title,
+              product_thumbnail: line.product_thumbnail,
               supplier_sku: line.supplier_sku,
               quantity_ordered: line.quantity_ordered,
               unit_price: line.unit_price || 0,
@@ -223,6 +241,8 @@ const SupplierOrdersPage = () => {
             console.log(`🔍 DEBUG Frontend - Enviando línea:`, JSON.stringify(lineData, null, 2));
             console.log(`🔍 DEBUG Frontend - product_id específico:`, line.product_id);
             console.log(`🔍 DEBUG Frontend - product_id es vacío?:`, !line.product_id || line.product_id.trim() === '');
+            console.log(`🔍 DEBUG Frontend - product_thumbnail en estado:`, line.product_thumbnail);
+            console.log(`🔍 DEBUG Frontend - product_thumbnail en lineData:`, lineData.product_thumbnail);
             //@ts-ignore
             await sdk.client.fetch(`/admin/suppliers/orders/${orderResponse.order.id}/lines`, {
               method: "POST",
@@ -279,17 +299,20 @@ const SupplierOrdersPage = () => {
 
   // Mutation para actualizar incidencias de línea
   const updateLineIncidentMutation = useMutation({
-    mutationFn: async ({ lineId, hasIncident, notes }: { lineId: string, hasIncident: boolean, notes?: string }) => {
+    mutationFn: async ({ lineId, hasIncident, notes, userId }: { lineId: string, hasIncident: boolean, notes?: string, userId?: string }) => {
       console.log(`🚨 Frontend: Actualizando incidencia de línea ${lineId}: ${hasIncident}`);
       const response = await sdk.client.fetch(`/admin/suppliers/orders/lines/${lineId}/incident`, {
         method: "PATCH",
-        body: { hasIncident, incidentNotes: notes },
+        body: { hasIncident, incidentNotes: notes, userId },
       });
       return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["supplier-order-lines"] });
       queryClient.invalidateQueries({ queryKey: ["supplier-orders"] });
+      
+      setShowIncidentModal(null);
+      setIncidentNotes("");
     },
     onError: (error: any) => {
       console.error(`❌ Error al actualizar incidencia:`, error);
@@ -334,6 +357,9 @@ const SupplierOrdersPage = () => {
       setShowReceiveModal(null);
       setReceiveQuantity(0);
       setReceiveNotes("");
+      
+      setShowCompleteReceiveModal(null);
+      setCompleteReceiveNotes("");
     },
     onError: (error: any) => {
       alert("Error al recepcionar: " + error.message);
@@ -350,6 +376,10 @@ const SupplierOrdersPage = () => {
       created_by: "",
     });
     setOrderLines([]);
+    setGlobalTaxRate(21); // Reset IVA global a 21%
+    setProductSearchTerms({});
+    setShowProductDropdowns({});
+    setAutocompletedPrices({});
   };
 
   const addOrderLine = () => {
@@ -359,17 +389,94 @@ const SupplierOrdersPage = () => {
       supplier_sku: "",
       quantity_ordered: 1,
       unit_price: 0,
+      tax_rate: globalTaxRate, // Usar IVA global seleccionado
+      discount_rate: 0, // Sin descuento por defecto
     }]);
   };
 
   const removeOrderLine = (index: number) => {
     setOrderLines(orderLines.filter((_, i) => i !== index));
+    
+    // Limpiar estados relacionados con esta línea
+    const newProductSearchTerms = { ...productSearchTerms };
+    const newShowDropdowns = { ...showProductDropdowns };
+    const newAutocompletedPrices = { ...autocompletedPrices };
+    
+    delete newProductSearchTerms[index];
+    delete newShowDropdowns[index];
+    delete newAutocompletedPrices[index];
+    
+    // Reindexar los índices superiores
+    for (let i = index + 1; i < orderLines.length; i++) {
+      if (newProductSearchTerms[i]) {
+        newProductSearchTerms[i - 1] = newProductSearchTerms[i];
+        delete newProductSearchTerms[i];
+      }
+      if (newShowDropdowns[i]) {
+        newShowDropdowns[i - 1] = newShowDropdowns[i];
+        delete newShowDropdowns[i];
+      }
+      if (newAutocompletedPrices[i]) {
+        newAutocompletedPrices[i - 1] = newAutocompletedPrices[i];
+        delete newAutocompletedPrices[i];
+      }
+    }
+    
+    setProductSearchTerms(newProductSearchTerms);
+    setShowProductDropdowns(newShowDropdowns);
+    setAutocompletedPrices(newAutocompletedPrices);
   };
 
   const updateOrderLine = (index: number, field: string, value: any) => {
     const newLines = [...orderLines];
     newLines[index] = { ...newLines[index], [field]: value };
     setOrderLines(newLines);
+  };
+
+  // Función para aplicar IVA global a todas las líneas existentes
+  const applyGlobalTaxToAllLines = () => {
+    const newLines = orderLines.map(line => ({
+      ...line,
+      tax_rate: globalTaxRate
+    }));
+    setOrderLines(newLines);
+  };
+
+  // Función helper para calcular total con descuento e IVA
+  const calculateLineTotal = (line: Partial<SupplierOrderLine>) => {
+    const quantity = line.quantity_ordered || 0;
+    const unitPrice = line.unit_price || 0;
+    const discountRate = line.discount_rate || 0;
+    const taxRate = line.tax_rate || 0;
+
+    const subtotal = quantity * unitPrice;
+    const discountAmount = subtotal * (discountRate / 100);
+    const discountedPrice = subtotal - discountAmount;
+    const taxAmount = discountedPrice * (taxRate / 100);
+    const total = discountedPrice + taxAmount;
+
+    return total;
+  };
+
+  // Función para calcular totales del pedido
+  const calculateOrderTotals = () => {
+    const subtotal = orderLines.reduce((sum, line) => sum + ((line.quantity_ordered || 0) * (line.unit_price || 0)), 0);
+    const totalDiscounts = orderLines.reduce((sum, line) => {
+      const lineSubtotal = (line.quantity_ordered || 0) * (line.unit_price || 0);
+      const discountAmount = lineSubtotal * ((line.discount_rate || 0) / 100);
+      return sum + discountAmount;
+    }, 0);
+    const subtotalAfterDiscounts = subtotal - totalDiscounts;
+    const totalTax = orderLines.reduce((sum, line) => {
+      const lineSubtotal = (line.quantity_ordered || 0) * (line.unit_price || 0);
+      const discountAmount = lineSubtotal * ((line.discount_rate || 0) / 100);
+      const discountedPrice = lineSubtotal - discountAmount;
+      const taxAmount = discountedPrice * ((line.tax_rate || 0) / 100);
+      return sum + taxAmount;
+    }, 0);
+    const total = subtotalAfterDiscounts + totalTax;
+
+    return { subtotal, totalDiscounts, subtotalAfterDiscounts, totalTax, total };
   };
 
   // Funciones helper para búsqueda de productos (similar a product-suppliers)
@@ -383,19 +490,64 @@ const SupplierOrdersPage = () => {
     setShowProductDropdowns({ ...showProductDropdowns, [index]: searchTerm.length > 0 });
   };
 
-  const selectProduct = (index: number, product: any) => {
+  const selectProduct = async (index: number, product: any) => {
     console.log(`🔍 DEBUG selectProduct - Seleccionando:`, { id: product.id, title: product.title });
     console.log(`🔍 DEBUG selectProduct - Producto completo:`, JSON.stringify(product, null, 2));
+    console.log(`🔍 DEBUG selectProduct - product.thumbnail específico:`, product.thumbnail);
+    console.log(`🔍 DEBUG selectProduct - thumbnail type:`, typeof product.thumbnail);
     
     // Actualizar múltiples campos en una sola operación para evitar problemas de concurrencia
     const newLines = [...orderLines];
     newLines[index] = { 
       ...newLines[index], 
       product_id: product.id,
-      product_title: product.title 
+      product_title: product.title,
+      product_thumbnail: product.thumbnail
     };
-    setOrderLines(newLines);
     
+    console.log(`🔍 DEBUG selectProduct - Línea actualizada:`, newLines[index]);
+    console.log(`🔍 DEBUG selectProduct - product_thumbnail asignado:`, newLines[index].product_thumbnail);
+    
+    // Intentar obtener último precio si hay un proveedor seleccionado
+    if (orderFormData.supplier_id) {
+      try {
+        console.log(`💰 Buscando último precio para producto ${product.id} del proveedor ${orderFormData.supplier_id}`);
+        const response = await fetch(`/admin/suppliers/${orderFormData.supplier_id}/products/${product.id}/last-price`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            console.log(`✅ Precio anterior encontrado:`, data.data);
+            
+            // Autocompletar con los valores anteriores
+            newLines[index] = {
+              ...newLines[index],
+              unit_price: data.data.last_price,
+              tax_rate: data.data.tax_rate || globalTaxRate,
+              discount_rate: data.data.discount_rate || 0,
+            };
+            
+            // Guardar información de autocompletado para mostrar al usuario
+            setAutocompletedPrices({
+              ...autocompletedPrices,
+              [index]: {
+                display_id: data.data.last_order_display_id,
+                date: new Date(data.data.last_order_date).toLocaleDateString()
+              }
+            });
+            
+            console.log(`💡 Precios autocompletados desde último pedido ${data.data.last_order_display_id}`);
+          }
+        } else {
+          console.log(`ℹ️ No se encontró historial de precios para este producto`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error obteniendo último precio:`, error);
+        // Continuar sin autocompletar si hay error
+      }
+    }
+    
+    setOrderLines(newLines);
     setProductSearchTerms({ ...productSearchTerms, [index]: product.title });
     setShowProductDropdowns({ ...showProductDropdowns, [index]: false });
     
@@ -425,10 +577,22 @@ const SupplierOrdersPage = () => {
   };
 
   const handleReceiveItems = (line: SupplierOrderLine) => {
+    const pendingQty = line.quantity_pending || (line.quantity_ordered - line.quantity_received);
     setShowReceiveModal(line);
-    setReceiveQuantity(line.quantity_pending);
+    setReceiveQuantity(pendingQty);
     setReceiveNotes("");
   };
+
+  const handleCompleteReceive = (line: SupplierOrderLine) => {
+    setShowCompleteReceiveModal(line);
+    setCompleteReceiveNotes("");
+  };
+
+  const handleIncidentModal = (line: SupplierOrderLine) => {
+    setShowIncidentModal(line);
+    setIncidentNotes("");
+  };
+
 
   const submitReceive = () => {
     if (!showReceiveModal || receiveQuantity <= 0) return;
@@ -438,7 +602,37 @@ const SupplierOrdersPage = () => {
       data: {
         quantity_received: receiveQuantity,
         reception_notes: receiveNotes,
+        received_by: getCurrentUserName(),
       }
+    });
+  };
+
+  const submitCompleteReceive = () => {
+    if (!showCompleteReceiveModal) return;
+    
+    const pendingQty = showCompleteReceiveModal.quantity_pending || 
+                      (showCompleteReceiveModal.quantity_ordered - showCompleteReceiveModal.quantity_received);
+    
+    receiveLineMutation.mutate({
+      lineId: showCompleteReceiveModal.id,
+      data: {
+        quantity_received: pendingQty,
+        reception_notes: completeReceiveNotes || "Recepción completa",
+        received_by: getCurrentUserName(),
+      },
+    });
+  };
+
+  const submitIncident = () => {
+    if (!showIncidentModal) return;
+    
+    const isIncident = showIncidentModal.line_status === "incident";
+    
+    updateLineIncidentMutation.mutate({
+      lineId: showIncidentModal.id,
+      hasIncident: !isIncident,
+      notes: !isIncident ? incidentNotes : "",
+      userId: getCurrentUserName()
     });
   };
 
@@ -541,6 +735,30 @@ const SupplierOrdersPage = () => {
     return icons[status as keyof typeof icons] || <Clock className="w-4 h-4" />;
   };
 
+  // Funciones helper para transferencias
+  const isTransferOrder = (order: SupplierOrder): boolean => {
+    return order.order_type === "transfer";
+  };
+
+  const getOrderTypeIcon = (order: SupplierOrder) => {
+    return isTransferOrder(order) ? 
+      <ArrowUpRight className="w-4 h-4 text-blue-600" title="Transferencia Interna" /> :
+      <Package className="w-4 h-4 text-gray-600" title="Pedido a Proveedor" />;
+  };
+
+  const getOrderTypeLabel = (order: SupplierOrder): string => {
+    return isTransferOrder(order) ? "Transferencia" : "Proveedor";
+  };
+
+  const getLocationDisplay = (order: SupplierOrder): string => {
+    if (isTransferOrder(order)) {
+      const from = order.source_location_name || "Origen";
+      const to = order.destination_location_name || "Destino";
+      return `${from} → ${to}`;
+    }
+    return order.destination_location_name || "Almacén principal";
+  };
+
   const getLineStatusColor = (status: string) => {
     const colors = {
       pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -618,6 +836,15 @@ const SupplierOrdersPage = () => {
     }
   }, [currentUserData, orderFormData.created_by]);
 
+  // Helper para obtener el nombre del usuario actual
+  const getCurrentUserName = (): string => {
+    if (!currentUserData?.user) return "Usuario no identificado";
+    const user = currentUserData.user;
+    return user.first_name && user.last_name 
+      ? `${user.first_name} ${user.last_name}`
+      : user.email;
+  };
+
   // Modal de recepción
   if (showReceiveModal) {
     return (
@@ -625,9 +852,9 @@ const SupplierOrdersPage = () => {
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
             <Button variant="secondary" size="small" onClick={() => setShowReceiveModal(null)}>
-              ← Cerrar
+              ← Volver
             </Button>
-            <Heading level="h2">Recepcionar Mercancía</Heading>
+            <Heading level="h2">📦 Recepción Parcial</Heading>
           </div>
         </div>
 
@@ -635,7 +862,10 @@ const SupplierOrdersPage = () => {
           <div className="space-y-6">
             <div className="bg-gray-50 dark:bg-gray-300 p-4 rounded-lg">
               <div className="space-y-2">
-                <Text className="font-medium dark:text-gray-600">{showReceiveModal.product_title}</Text>
+                <div className="flex items-center gap-3">
+                  <img className="w-20 h-20 rounded-xl" src={showReceiveModal.product_thumbnail} />
+                  <Text className="font-medium dark:text-gray-600">{showReceiveModal.product_title}</Text>
+                </div>
                 {showReceiveModal.supplier_sku && (
                   <Text size="small" className="text-gray-600">Ref: {showReceiveModal.supplier_sku}</Text>
                 )}
@@ -650,7 +880,7 @@ const SupplierOrdersPage = () => {
                   </div>
                   <div>
                     <Text size="small" className="text-gray-600">Pendiente</Text>
-                    <Text className="font-medium text-orange-600">{showReceiveModal.quantity_pending}</Text>
+                    <Text className="font-medium text-orange-600">{showReceiveModal.quantity_pending || (showReceiveModal.quantity_ordered - showReceiveModal.quantity_received)}</Text>
                   </div>
                 </div>
               </div>
@@ -661,38 +891,281 @@ const SupplierOrdersPage = () => {
               <input
                 type="number"
                 min="1"
-                max={showReceiveModal.quantity_pending}
+                max={showReceiveModal.quantity_pending || (showReceiveModal.quantity_ordered - showReceiveModal.quantity_received)}
                 value={receiveQuantity}
                 onChange={(e) => setReceiveQuantity(parseInt(e.target.value) || 0)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 required
               />
               <Text size="small" className="text-gray-500 mt-1">
-                Máximo: {showReceiveModal.quantity_pending} unidades
+                Máximo: {showReceiveModal.quantity_pending || (showReceiveModal.quantity_ordered - showReceiveModal.quantity_received)} unidades
               </Text>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Notas de recepción</label>
-              <textarea
-                value={receiveNotes}
-                onChange={(e) => setReceiveNotes(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Estado de la mercancía, incidencias..."
-              />
+            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                <div className="flex-1">
+                  <label className="block text-sm font-bold text-yellow-800 mb-2">
+                    📝 Notas de recepción parcial
+                  </label>
+                  <Text size="small" className="text-yellow-700 mb-3">
+                    Describe el estado de la mercancía, motivo de la recepción parcial, incidencias encontradas, etc.
+                  </Text>
+                  <textarea
+                    value={receiveNotes}
+                    onChange={(e) => setReceiveNotes(e.target.value)}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                    placeholder="Ejemplo: 'Recibidas 5 de 10 unidades. Resto pendiente por disponibilidad del proveedor. Estado: perfecto.'"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-4 pt-4 border-t">
               <Button
                 onClick={submitReceive}
-                disabled={receiveLineMutation.isPending || receiveQuantity <= 0 || receiveQuantity > showReceiveModal.quantity_pending}
+                disabled={receiveLineMutation.isPending || receiveQuantity <= 0 || receiveQuantity > (showReceiveModal.quantity_pending || (showReceiveModal.quantity_ordered - showReceiveModal.quantity_received))}
+                className="bg-green-600 hover:bg-green-700"
               >
-                {receiveLineMutation.isPending ? "Recepcionando..." : "Recepcionar"}
+                {receiveLineMutation.isPending ? (
+                  <>
+                    <Package className="w-4 h-4 mr-2 animate-pulse" />
+                    Recepcionando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Confirmar Recepción
+                  </>
+                )}
               </Button>
               <Button variant="secondary" onClick={() => setShowReceiveModal(null)}>
                 Cancelar
               </Button>
+              
+              {(() => {
+                const maxQty = showReceiveModal.quantity_pending || (showReceiveModal.quantity_ordered - showReceiveModal.quantity_received);
+                return (receiveQuantity <= 0 || receiveQuantity > maxQty) && (
+                  <Text size="small" className="text-red-600 ml-2">
+                    Cantidad debe ser entre 1 y {maxQty}
+                  </Text>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      </Container>
+    );
+  }
+
+  // Modal de recepción completa
+  if (showCompleteReceiveModal) {
+    const pendingQty = showCompleteReceiveModal.quantity_pending || (showCompleteReceiveModal.quantity_ordered - showCompleteReceiveModal.quantity_received);
+    
+    return (
+      <Container className="divide-y p-0">
+              <div className="flex items-center justify-between px-6 py-4">
+                <div className="flex items-center gap-4">
+                  <Button variant="secondary" size="small" onClick={() => setShowCompleteReceiveModal(null)}>
+                    ← Volver
+                  </Button>
+                  <Heading level="h2">Recepción Completa</Heading>
+                </div>
+              </div>
+
+              <div className="px-6 py-6">
+                <div className="space-y-6">
+                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-6 h-6 text-green-600 mt-1" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-green-800 mb-2">Recepción Completa de Mercancía</h3>
+                        <Text className="text-green-700 mb-4">
+                          Vas a recepcionar <strong>TODAS las unidades pendientes</strong> de este producto. 
+                          Esta acción marcará la línea como completamente recibida.
+                        </Text>
+                        
+                        <div className="bg-white border border-green-200 p-4 rounded-lg">
+                          <div className="flex items-center gap-3 mb-3">
+                            <img className="w-20 h-20 rounded-xl" src={showCompleteReceiveModal.product_thumbnail} />
+                            <Text className="font-medium">{showCompleteReceiveModal.product_title}</Text>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <Text size="small" className="text-gray-600">Pedido</Text>
+                              <Text className="font-medium">{showCompleteReceiveModal.quantity_ordered}</Text>
+                            </div>
+                            <div>
+                              <Text size="small" className="text-gray-600">Recibido</Text>
+                              <Text className="font-medium">{showCompleteReceiveModal.quantity_received}</Text>
+                            </div>
+                            <div>
+                              <Text size="small" className="text-gray-600">A Recepcionar</Text>
+                              <Text className="font-bold text-green-600 text-lg">{pendingQty}</Text>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Notas de recepción (opcional)</label>
+                    <textarea
+                      value={completeReceiveNotes}
+                      onChange={(e) => setCompleteReceiveNotes(e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      placeholder="Ejemplo: 'Mercancía recibida en perfecto estado. Entrega completa sin incidencias.'"
+                    />
+                    <Text size="small" className="text-gray-500 mt-1">
+                      Si no se especifican notas, se guardará como "Recepción completa"
+                    </Text>
+                  </div>
+
+                  <div className="flex items-center gap-4 pt-4 border-t">
+                    <Button
+                      onClick={submitCompleteReceive}
+                      disabled={receiveLineMutation.isPending}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {receiveLineMutation.isPending ? (
+                        <>
+                          <Package className="w-4 h-4 mr-2 animate-pulse" />
+                          Recepcionando...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Confirmar Recepción Completa ({pendingQty} unidades)
+                        </>
+                      )}
+                    </Button>
+                    <Button variant="secondary" onClick={() => setShowCompleteReceiveModal(null)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+      </Container>
+    );
+  }
+
+  // Modal de incidencia
+  if (showIncidentModal) {
+    const isCurrentlyIncident = showIncidentModal.line_status === "incident";
+    
+    return (
+      <Container className="divide-y p-0">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-4">
+            <Button variant="secondary" size="small" onClick={() => setShowIncidentModal(null)}>
+              ← Volver
+            </Button>
+            <Heading level="h2">
+              {isCurrentlyIncident ? "Quitar Incidencia" : "Marcar Incidencia"}
+            </Heading>
+          </div>
+        </div>
+
+        <div className="px-6 py-6">
+          <div className="space-y-6">
+            <div className={`${isCurrentlyIncident ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'} border p-4 rounded-lg`}>
+              <div className="flex items-start gap-3">
+                <AlertCircle className={`w-6 h-6 ${isCurrentlyIncident ? 'text-blue-600' : 'text-red-600'} mt-1`} />
+                <div className="flex-1">
+                  <h3 className={`font-semibold ${isCurrentlyIncident ? 'text-blue-800' : 'text-red-800'} mb-2`}>
+                    {isCurrentlyIncident ? "Resolver Incidencia" : "Reportar Incidencia"}
+                  </h3>
+                  <Text className={`${isCurrentlyIncident ? 'text-blue-700' : 'text-red-700'} mb-4`}>
+                    {isCurrentlyIncident 
+                      ? "Esta línea está marcada como incidencia. ¿Deseas quitarle el estado de incidencia?"
+                      : "Vas a marcar esta línea como incidencia. Describe el problema encontrado."
+                    }
+                  </Text>
+                  
+                  <div className={`bg-white ${isCurrentlyIncident ? 'border-blue-200' : 'border-red-200'} border p-4 rounded-lg`}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <img className="w-20 h-20 rounded-xl" src={showIncidentModal.product_thumbnail} />
+                      <Text className="font-medium">{showIncidentModal.product_title}</Text>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Text size="small" className="text-gray-600">Pedido</Text>
+                        <Text className="font-medium">{showIncidentModal.quantity_ordered}</Text>
+                      </div>
+                      <div>
+                        <Text size="small" className="text-gray-600">Recibido</Text>
+                        <Text className="font-medium">{showIncidentModal.quantity_received}</Text>
+                      </div>
+                      <div>
+                        <Text size="small" className="text-gray-600">Estado</Text>
+                        <Badge className={`${isCurrentlyIncident ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`} size="small">
+                          {isCurrentlyIncident ? "Con Incidencia" : showIncidentModal.line_status}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    {/* Mostrar notas existentes si hay incidencia */}
+                    {isCurrentlyIncident && showIncidentModal.reception_notes && (
+                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                        <Text size="small" className="text-red-600 font-medium">Notas de la incidencia actual:</Text>
+                        <Text size="small" className="text-red-700 mt-1">"{showIncidentModal.reception_notes}"</Text>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Campo de notas solo si NO es incidencia actualmente */}
+            {!isCurrentlyIncident && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Notas de la incidencia *</label>
+                <textarea
+                  value={incidentNotes}
+                  onChange={(e) => setIncidentNotes(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                  placeholder="Describe el problema: mercancía dañada, cantidad incorrecta, producto equivocado, etc."
+                  required
+                />
+                <Text size="small" className="text-red-600 mt-1">
+                  Las notas son obligatorias para reportar una incidencia
+                </Text>
+              </div>
+            )}
+
+            <div className="flex items-center gap-4 pt-4 border-t">
+              <Button
+                onClick={submitIncident}
+                disabled={updateLineIncidentMutation.isPending || (!isCurrentlyIncident && !incidentNotes.trim())}
+                className={`${isCurrentlyIncident ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'}`}
+              >
+                {updateLineIncidentMutation.isPending ? (
+                  <>
+                    <AlertCircle className="w-4 h-4 mr-2 animate-pulse" />
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    {isCurrentlyIncident ? "Quitar Incidencia" : "Marcar como Incidencia"}
+                  </>
+                )}
+              </Button>
+              <Button variant="secondary" onClick={() => setShowIncidentModal(null)}>
+                Cancelar
+              </Button>
+              
+              {/* Mensaje de validación */}
+              {!isCurrentlyIncident && !incidentNotes.trim() && (
+                <Text size="small" className="text-red-600 ml-2">
+                  Las notas son requeridas
+                </Text>
+              )}
             </div>
           </div>
         </div>
@@ -772,6 +1245,12 @@ const SupplierOrdersPage = () => {
                   <Text size="small" className="text-gray-600">Realizado por</Text>
                   <Text className="font-medium">{selectedOrder.created_by || "No especificado"}</Text>
                 </div>
+                {selectedOrder.received_by && (
+                  <div>
+                    <Text size="small" className="text-gray-600">Recepcionado por</Text>
+                    <Text className="font-medium">{selectedOrder.received_by}</Text>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -864,7 +1343,7 @@ const SupplierOrdersPage = () => {
 
           {/* Líneas del Pedido */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <Heading level="h3" className="text-lg">Líneas del Pedido</Heading>
               {selectedOrder.status === "draft" && (
                 <Button variant="secondary" size="small" onClick={addOrderLine}>
@@ -872,7 +1351,7 @@ const SupplierOrdersPage = () => {
                   Agregar Línea
                 </Button>
               )}
-            </div>
+            </div> */}
             
             {isLoadingLines ? (
               <Text>Cargando líneas...</Text>
@@ -892,10 +1371,20 @@ const SupplierOrdersPage = () => {
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                  {lines.map((line) => (
+                  {lines.map((line) => {
+                    console.log(`🔍 DEBUG Line ${line.id}:`, {
+                      product_title: line.product_title,
+                      product_thumbnail: line.product_thumbnail,
+                      thumbnail_type: typeof line.product_thumbnail,
+                      thumbnail_length: line.product_thumbnail?.length
+                    });
+                    return (
                     <Table.Row key={line.id}>
                       <Table.Cell>
-                        <Text className="font-medium">{line.product_title}</Text>
+                        <div className="flex items-center gap-3">
+                          <img className="w-20 h-20 rounded-xl" src={line.product_thumbnail} />
+                          <Text className="font-medium">{line.product_title}</Text>
+                        </div>
                       </Table.Cell>
                       <Table.Cell>
                         <Text size="small" className="text-gray-500">{line.supplier_sku || "-"}</Text>
@@ -907,9 +1396,14 @@ const SupplierOrdersPage = () => {
                         <Text className="font-medium text-green-600">{line.quantity_received}</Text>
                       </Table.Cell>
                       <Table.Cell>
-                        <Text className={`font-medium ${line.quantity_pending > 0 ? "text-orange-600" : "text-gray-500"}`}>
-                          {line.quantity_pending}
-                        </Text>
+                        {(() => {
+                          const pendingQty = line.quantity_pending || (line.quantity_ordered - line.quantity_received);
+                          return (
+                            <Text className={`font-medium ${pendingQty > 0 ? "text-orange-600" : "text-gray-500"}`}>
+                              {pendingQty}
+                            </Text>
+                          );
+                        })()}
                       </Table.Cell>
                       <Table.Cell>
                         <Text>{formatCurrency(line.unit_price, selectedOrder.currency_code)}</Text>
@@ -927,25 +1421,6 @@ const SupplierOrdersPage = () => {
                              line.line_status === "cancelled" ? "Cancelado" : "Completo"}
                           </Badge>
                           
-                          {/* Checkbox para marcar incidencia */}
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="checkbox"
-                              checked={line.line_status === "incident"}
-                              onChange={(e) => {
-                                const notes = e.target.checked ? prompt("Notas de la incidencia (opcional):") || "" : "";
-                                updateLineIncidentMutation.mutate({
-                                  lineId: line.id,
-                                  hasIncident: e.target.checked,
-                                  notes
-                                });
-                              }}
-                              className="w-3 h-3"
-                              title="Marcar como incidencia"
-                              disabled={updateLineIncidentMutation.isPending}
-                            />
-                            <span className="text-xs text-gray-500">Inc.</span>
-                          </div>
                         </div>
                         
                         {line.line_status === "incident" && line.reception_notes && (
@@ -957,31 +1432,81 @@ const SupplierOrdersPage = () => {
                         )}
                       </Table.Cell>
                       <Table.Cell>
-                        {line.quantity_pending > 0 && selectedOrder.status !== "cancelled" && (
-                          <Button
-                            variant="secondary"
-                            size="small"
-                            onClick={() => handleReceiveItems(line)}
-                          >
-                            <Package className="w-4 h-4" />
-                            Recepcionar
-                          </Button>
-                        )}
-                        {line.received_at && (
-                          <div className="mt-1">
-                            <Text size="small" className="text-gray-500">
-                              Recibido: {formatDateTime(line.received_at)}
-                            </Text>
-                            {line.reception_notes && (
-                              <Text size="small" className="text-gray-400">
-                                {line.reception_notes}
+                        <div className="flex flex-col gap-2 py-2">
+                          {/* Botones de acción según estado de línea */}
+                          {selectedOrder.status !== "cancelled" && (
+                            <>
+                              {/* Marcar como incidencia */}
+                              <Button
+                                variant={line.line_status === "incident" ? "primary" : "secondary"}
+                                size="small"
+                                onClick={() => handleIncidentModal(line)}
+                                disabled={updateLineIncidentMutation.isPending}
+                                className="text-xs"
+                              >
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                {line.line_status === "incident" ? "Quitar incidencia" : "Marcar incidencia"}
+                              </Button>
+
+                              {/* Recepción completa */}
+                              {(() => {
+                                const pendingQty = line.quantity_pending || (line.quantity_ordered - line.quantity_received);
+                                return pendingQty > 0;
+                              })() && (
+                                <Button
+                                  variant="secondary"
+                                  size="small"
+                                  onClick={() => handleCompleteReceive(line)}
+                                  disabled={receiveLineMutation.isPending}
+                                  className="text-xs"
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Recepcionar todo
+                                </Button>
+                              )}
+
+                              {/* Recepción parcial */}
+                              {(() => {
+                                const pendingQty = line.quantity_pending || (line.quantity_ordered - line.quantity_received);
+                                return pendingQty > 0;
+                              })() && (
+                                <Button
+                                  variant="secondary"
+                                  size="small"
+                                  onClick={() => handleReceiveItems(line)}
+                                  disabled={receiveLineMutation.isPending}
+                                  className="text-xs"
+                                >
+                                  <Package className="w-3 h-3 mr-1" />
+                                  Recepción parcial
+                                </Button>
+                              )}
+                            </>
+                          )}
+                          
+                          {/* Información de recepción */}
+                          {line.received_at && (
+                            <div className="mt-1">
+                              <Text size="small" className="text-gray-500">
+                                Recibido: {formatDateTime(line.received_at)}
                               </Text>
-                            )}
-                          </div>
-                        )}
+                              {line.received_by && (
+                                <Text size="small" className="text-gray-500">
+                                  Por: {line.received_by}
+                                </Text>
+                              )}
+                              {line.reception_notes && (
+                                <Text size="small" className="text-gray-400">
+                                  {line.reception_notes}
+                                </Text>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </Table.Cell>
                     </Table.Row>
-                  ))}
+                    );
+                  })}
                 </Table.Body>
               </Table>
             ) : (
@@ -1114,10 +1639,34 @@ const SupplierOrdersPage = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Heading level="h3" className="text-lg">Líneas del Pedido</Heading>
-                <Button type="button" variant="secondary" size="small" onClick={addOrderLine}>
-                  <Plus className="w-4 h-4" />
-                  Agregar Producto
-                </Button>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">IVA por defecto:</label>
+                    <select
+                      value={globalTaxRate}
+                      onChange={(e) => setGlobalTaxRate(parseInt(e.target.value))}
+                      className="px-2 py-1 border border-gray-300 rounded text-sm"
+                    >
+                      <option value={0}>0%</option>
+                      <option value={21}>21%</option>
+                    </select>
+                    {orderLines.length > 0 && (
+                      <Button 
+                        type="button" 
+                        variant="secondary" 
+                        size="small"
+                        onClick={applyGlobalTaxToAllLines}
+                        className="text-xs"
+                      >
+                        Aplicar a todas
+                      </Button>
+                    )}
+                  </div>
+                  <Button type="button" variant="secondary" size="small" onClick={addOrderLine}>
+                    <Plus className="w-4 h-4" />
+                    Agregar Producto
+                  </Button>
+                </div>
               </div>
 
               {orderLines.length > 0 ? (
@@ -1142,7 +1691,7 @@ const SupplierOrdersPage = () => {
                           
                           {/* Dropdown de productos filtrados */}
                           {showProductDropdowns[index] && (
-                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
                               {getFilteredProducts(index).length > 0 ? (
                                 getFilteredProducts(index).map((product) => (
                                   <button
@@ -1151,10 +1700,11 @@ const SupplierOrdersPage = () => {
                                     onClick={() => selectProduct(index, product)}
                                     className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                                   >
+                                    <img className="w-20 h-20 rounded-xl" src={product.thumbnail} />
                                     <div className="font-medium text-gray-900">{product.title}</div>
-                                    <div className="text-gray-500 text-xs">
+                                    {/* <div className="text-gray-500 text-xs">
                                       ID: {product.id}
-                                    </div>
+                                    </div> */}
                                   </button>
                                 ))
                               ) : (
@@ -1169,7 +1719,7 @@ const SupplierOrdersPage = () => {
                         </div>
                         
                         {/* Segunda fila: Resto de campos */}
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                           <div>
                             <label className="block text-sm font-medium mb-1">SKU Proveedor</label>
                             <input
@@ -1198,9 +1748,48 @@ const SupplierOrdersPage = () => {
                               step="0.01"
                               min="0"
                               value={line.unit_price || 0}
-                              onChange={(e) => updateOrderLine(index, "unit_price", parseFloat(e.target.value) || 0)}
+                              onChange={(e) => {
+                                updateOrderLine(index, "unit_price", parseFloat(e.target.value) || 0);
+                                // Limpiar indicador de autocompletado si el usuario modifica manualmente
+                                if (autocompletedPrices[index]) {
+                                  const newAutocompleted = { ...autocompletedPrices };
+                                  delete newAutocompleted[index];
+                                  setAutocompletedPrices(newAutocompleted);
+                                }
+                              }}
                               className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                               placeholder="0.00"
+                            />
+                            {autocompletedPrices[index] && (
+                              <div className="text-xs text-blue-600 mt-1">
+                                💡 Precio del pedido {autocompletedPrices[index].display_id} ({autocompletedPrices[index].date})
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">% IVA</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max="100"
+                              value={line.tax_rate || 0}
+                              onChange={(e) => updateOrderLine(index, "tax_rate", parseFloat(e.target.value) || 0)}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              placeholder="21"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">% Desc.</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max="100"
+                              value={line.discount_rate || 0}
+                              onChange={(e) => updateOrderLine(index, "discount_rate", parseFloat(e.target.value) || 0)}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              placeholder="0"
                             />
                           </div>
                           <div>
@@ -1208,8 +1797,19 @@ const SupplierOrdersPage = () => {
                               <div>
                                 <label className="block text-sm font-medium mb-1">Total Línea</label>
                                 <div className="px-2 py-1 bg-blue-50 border border-blue-200 rounded text-sm font-medium text-blue-800">
-                                  {formatCurrency((line.quantity_ordered || 0) * (line.unit_price || 0), "EUR")}
+                                  {formatCurrency(calculateLineTotal(line), "EUR")}
                                 </div>
+                                {(line.discount_rate > 0 || line.tax_rate > 0) && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    Base: {formatCurrency((line.quantity_ordered || 0) * (line.unit_price || 0), "EUR")}
+                                    {line.discount_rate > 0 && (
+                                      <span> | -{line.discount_rate}%</span>
+                                    )}
+                                    {line.tax_rate > 0 && (
+                                      <span> | +{line.tax_rate}% IVA</span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               <div className="h-8"></div>
@@ -1234,13 +1834,28 @@ const SupplierOrdersPage = () => {
                   
                   {orderLines.length > 0 && (
                     <div className="bg-blue-50 dark:bg-gray-500 p-4 rounded-lg">
-                      <div className="text-right">
-                        <Text className="font-medium">
-                          Total Pedido: {formatCurrency(
-                            orderLines.reduce((sum, line) => sum + ((line.quantity_ordered || 0) * (line.unit_price || 0)), 0),
-                            "EUR"
-                          )}
-                        </Text>
+                      <div className="text-right space-y-2">
+                        {(() => {
+                          const totals = calculateOrderTotals();
+                          return (
+                            <>
+                              <div className="text-sm text-gray-600">
+                                <div>Subtotal: {formatCurrency(totals.subtotal, "EUR")}</div>
+                                {totals.totalDiscounts > 0 && (
+                                  <div className="text-red-600">Descuentos: -{formatCurrency(totals.totalDiscounts, "EUR")}</div>
+                                )}
+                                {totals.totalTax > 0 && (
+                                  <div className="text-green-600">IVA: +{formatCurrency(totals.totalTax, "EUR")}</div>
+                                )}
+                              </div>
+                              <div className="border-t pt-2">
+                                <Text className="font-bold text-lg">
+                                  Total Pedido: {formatCurrency(totals.total, "EUR")}
+                                </Text>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
@@ -1374,7 +1989,7 @@ const SupplierOrdersPage = () => {
               <Table.Row>
                 <Table.HeaderCell>Pedido</Table.HeaderCell>
                 <Table.HeaderCell>Estado</Table.HeaderCell>
-                <Table.HeaderCell>Proveedor</Table.HeaderCell>
+                <Table.HeaderCell>Tipo / Origen</Table.HeaderCell>
                 <Table.HeaderCell>Total</Table.HeaderCell>
                 <Table.HeaderCell>Fechas</Table.HeaderCell>
                 <Table.HeaderCell>Progreso</Table.HeaderCell>
@@ -1386,7 +2001,10 @@ const SupplierOrdersPage = () => {
                 <Table.Row key={order.id}>
                   <Table.Cell>
                     <div className="space-y-1">
-                      <Text className="font-medium">{order.display_id}</Text>
+                      <div className="flex items-center gap-2">
+                        {getOrderTypeIcon(order)}
+                        <Text className="font-medium">{order.display_id}</Text>
+                      </div>
                       {order.reference && (
                         <Text size="small" className="text-gray-500">Ref: {order.reference}</Text>
                       )}
@@ -1400,12 +2018,34 @@ const SupplierOrdersPage = () => {
                   </Table.Cell>
                   <Table.Cell>
                     <div className="space-y-1">
-                      <Text className="font-medium">{order.supplier.name}</Text>
-                      <Text size="small" className="text-gray-500">{order.supplier.legal_name}</Text>
+                      {isTransferOrder(order) ? (
+                        <>
+                          <div className="flex items-center gap-1">
+                            <Badge size="small" className="bg-blue-100 text-blue-800 border-blue-200">
+                              {getOrderTypeLabel(order)}
+                            </Badge>
+                          </div>
+                          <Text size="small" className="text-gray-600">
+                            {getLocationDisplay(order)}
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          <Text className="font-medium">{order.supplier.name}</Text>
+                          <Text size="small" className="text-gray-500">{order.supplier.legal_name}</Text>
+                        </>
+                      )}
                     </div>
                   </Table.Cell>
                   <Table.Cell>
-                    <Text className="font-semibold">{formatCurrency(order.total, order.currency_code)}</Text>
+                    {isTransferOrder(order) ? (
+                      <div className="flex items-center gap-1 text-gray-500">
+                        <ArrowUpRight className="w-4 h-4" />
+                        <Text size="small">Transferencia</Text>
+                      </div>
+                    ) : (
+                      <Text className="font-semibold">{formatCurrency(order.total, order.currency_code)}</Text>
+                    )}
                   </Table.Cell>
                   <Table.Cell>
                     <div className="space-y-1">

@@ -1,8 +1,8 @@
 import { Container, Heading, Button, Input, Label, Text, toast } from "@medusajs/ui";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { defineRouteConfig } from "@medusajs/admin-sdk";
 import { useState, useEffect } from "react";
-import { ArrowLeftRight, Package, MapPin, Hash, AlertCircle, Bug } from "lucide-react";
+import { ArrowLeftRight, Package, MapPin, Hash, AlertCircle, Bug, RefreshCw } from "lucide-react";
 import { sdk } from "../../lib/sdk";
 
 export const config = defineRouteConfig({
@@ -11,6 +11,7 @@ export const config = defineRouteConfig({
 });
 
 export default function StockTransfersPage() {
+  const queryClient = useQueryClient();
   const [selectedProduct, setSelectedProduct] = useState<string>("");
   const [selectedFromLocation, setSelectedFromLocation] = useState<string>("");
   const [selectedToLocation, setSelectedToLocation] = useState<string>("");
@@ -20,6 +21,8 @@ export default function StockTransfersPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [showDebugInfo, setShowDebugInfo] = useState<boolean>(false);
+  const [productSearchTerm, setProductSearchTerm] = useState<string>("");
+  const [showProductDropdown, setShowProductDropdown] = useState<boolean>(false);
 
   // Obtener todas las ubicaciones
   const { data: locations = [], isLoading: loadingLocations } = useQuery({
@@ -49,122 +52,77 @@ export default function StockTransfersPage() {
         return [];
       }
 
-      console.log(`🚀 === INICIO CONSULTA ===`);
-      console.log(`🔍 selectedFromLocation: "${selectedFromLocation}" (tipo: ${typeof selectedFromLocation})`);
+      console.log(`🚀 Obteniendo stock real para ubicación: ${selectedFromLocation}`);
 
-      // STEP 1: Obtener toda la info real del backend
-      console.log(`📡 Obteniendo debug info...`);
       try {
-        const debugResponse = await fetch('/admin/debug/inventory-levels');
-        
-        if (!debugResponse.ok) {
-          throw new Error(`Debug response not OK: ${debugResponse.status}`);
+        // Usar SDK real para obtener inventory items
+        const inventoryResponse = await sdk.admin.inventoryItem.list({
+          limit: 100,
+        });
+
+        console.log(`📦 Found ${inventoryResponse.inventory_items.length} inventory items`);
+
+        // Buscar el producto conocido (Vinilos Teverun)
+        const knownInventoryItemId = "iitem_01K2HTR2JH1NHDAFF7R3GZVF5F";
+        const targetItem = inventoryResponse.inventory_items.find(
+          item => item.id === knownInventoryItemId
+        );
+
+        if (!targetItem) {
+          console.log(`❌ No se encontró inventory item: ${knownInventoryItemId}`);
+          return [];
         }
-        
-        const debugData = await debugResponse.json();
-        const debug = debugData.debug;
-        
-        console.log(`✅ Debug data obtenida:`);
-        console.log(`   - Inventory levels: ${debug.inventoryLevels.length}`);
-        console.log(`   - Locations: ${debug.locations.length}`);
-        console.log(`   - Product found: ${debug.summary.productFound}`);
 
-        // STEP 2: Imprimir TODOS los datos disponibles
-        console.log(`📍 UBICACIONES DISPONIBLES:`);
-        debug.locations.forEach((loc: any, idx: number) => {
-          console.log(`   ${idx + 1}. ID: "${loc.id}" | Nombre: "${loc.name}"`);
+        // Obtener levels de stock para este item
+        const levelsResponse = await sdk.admin.inventoryItem.listLevels(targetItem.id, {
+          location_id: [selectedFromLocation]
         });
 
-        console.log(`📦 INVENTORY LEVELS DISPONIBLES:`);
-        debug.inventoryLevels.forEach((level: any, idx: number) => {
-          console.log(`   ${idx + 1}. LocationID: "${level.location_id}" | Stock: ${level.stocked_quantity}`);
-        });
+        console.log(`📊 Levels para item ${targetItem.id}:`, levelsResponse.inventory_levels);
 
-        // STEP 3: Buscar match EXACTO
-        console.log(`🔍 Buscando match para: "${selectedFromLocation}"`);
-        
-        let matchingLevel = null;
-        let matchedLocation = null;
+        const stockLevel = levelsResponse.inventory_levels.find(
+          level => level.location_id === selectedFromLocation
+        );
 
-        // Buscar por ID exacto
-        matchingLevel = debug.inventoryLevels.find((level: any) => level.location_id === selectedFromLocation);
-        
-        if (matchingLevel) {
-          matchedLocation = debug.locations.find((loc: any) => loc.id === selectedFromLocation);
-          console.log(`✅ MATCH ENCONTRADO por ID exacto!`);
-          console.log(`   Level:`, matchingLevel);
-          console.log(`   Location:`, matchedLocation);
-        } else {
-          console.log(`⚠️ No match por ID exacto, intentando por nombre...`);
-          
-          // Buscar por nombre de ubicación
-          matchedLocation = debug.locations.find((loc: any) => loc.name === selectedFromLocation);
-          
-          if (matchedLocation) {
-            matchingLevel = debug.inventoryLevels.find((level: any) => level.location_id === matchedLocation.id);
-            console.log(`✅ MATCH ENCONTRADO por nombre!`);
-            console.log(`   Location:`, matchedLocation);
-            console.log(`   Level:`, matchingLevel);
-          } else {
-            console.log(`❌ NO MATCH encontrado ni por ID ni por nombre`);
+        if (stockLevel && stockLevel.stocked_quantity > 0) {
+          // Obtener información completa del producto incluyendo thumbnail
+          let thumbnail = null;
+          try {
+            const productResponse = await sdk.client.fetch("/admin/products/prod_01JW8Q2AMT137NRGVSZVECKPM3", {
+              method: "GET",
+            });
+            thumbnail = productResponse.product?.thumbnail;
+            console.log(`🖼️ Thumbnail obtenido:`, thumbnail);
+          } catch (error) {
+            console.warn(`⚠️ No se pudo obtener thumbnail del producto:`, error);
           }
-        }
 
-        // STEP 4: Si encontramos match, crear el producto
-        if (matchingLevel && matchingLevel.stocked_quantity > 0) {
-          const realProduct = {
-            id: debug.productInfo?.id || "prod_01JW8Q2AMT137NRGVSZVECKPM3",
-            title: debug.productInfo?.title || "Vinilos Teverun Mini", 
+          const product = {
+            id: "prod_01JW8Q2AMT137NRGVSZVECKPM3",
+            title: "Vinilos Teverun FIGHTER MINI FERRARI",
+            thumbnail: thumbnail,
             status: "published",
-            stockInLocation: matchingLevel.stocked_quantity,
-            inventoryItemId: debug.knownInventoryItemId,
-            locationName: matchedLocation?.name || "Ubicación"
+            stockInLocation: stockLevel.stocked_quantity,
+            inventoryItemId: targetItem.id,
+            locationName: stockLevel.location_id
           };
-          
-          console.log(`🎉 PRODUCTO FINAL CREADO:`, realProduct);
-          console.log(`🏁 === FIN CONSULTA (ÉXITO) ===`);
-          return [realProduct];
+
+          console.log(`✅ Producto con stock real y thumbnail:`, product);
+          return [product];
         } else {
-          console.log(`❌ No hay stock disponible o no se encontró match`);
+          console.log(`❌ No hay stock disponible en ubicación ${selectedFromLocation}`);
+          return [];
         }
 
       } catch (error) {
-        console.error(`❌ ERROR en debug fetch:`, error);
-        console.error(`📊 Error details:`, error.message, error.stack);
-        
-        // Si falla el debug, intentar fallback solo como último recurso
-        console.log(`🔧 ÚLTIMO RECURSO: Usando fallback por fallo en debug`);
-        const knownMappings = {
-          'sloc_01K2HM2QMRRGZ2ETFKZBAG5GK6': { name: '1.0', stock: 27 }, // Stock actualizado
-          'sloc_01K30YP84GBYKXKYVG1180MG6D': { name: '2.0', stock: 22 }  // Stock actualizado
-        };
-
-        const knownData = knownMappings[selectedFromLocation as keyof typeof knownMappings];
-        if (knownData) {
-          const fallbackProduct = {
-            id: "prod_01JW8Q2AMT137NRGVSZVECKPM3",
-            title: "Vinilos Teverun Mini",
-            status: "published",
-            stockInLocation: knownData.stock,
-            inventoryItemId: "iitem_01K2HTR2JH1NHDAFF7R3GZVF5F",
-            locationName: knownData.name
-          };
-          
-          console.log(`✅ USANDO FALLBACK ACTUALIZADO:`, fallbackProduct);
-          console.log(`🏁 === FIN CONSULTA (FALLBACK) ===`);
-          return [fallbackProduct];
-        }
+        console.error(`❌ Error obteniendo stock real:`, error);
+        return [];
       }
-
-      // FALLBACK: SOLO si realmente no pudimos obtener datos reales
-      console.log(`🔧 FALLBACK: Solo usar si no hay datos reales...`);
-      console.log(`❌ No se pudieron obtener datos reales del debug endpoint`);
-
-      console.log(`❌ FALLO TOTAL - No se pudo obtener productos para: "${selectedFromLocation}"`);
-      console.log(`🏁 === FIN CONSULTA (FALLO) ===`);
-      return [];
     },
     enabled: !!selectedFromLocation,
+    staleTime: 0, // Los datos siempre se consideran obsoletos
+    refetchOnWindowFocus: true, // Refrescar cuando la ventana recibe foco
+    refetchOnMount: true, // Siempre refrescar al montar
   });
 
   // Actualizar stock disponible cuando se selecciona un producto
@@ -187,6 +145,8 @@ export default function StockTransfersPage() {
     setSelectedToLocation("");
     setQuantity(1);
     setAvailableStock(0);
+    setProductSearchTerm("");
+    setShowProductDropdown(false);
   }, [selectedFromLocation]);
 
   // Reset quantity cuando cambia el stock disponible
@@ -195,6 +155,51 @@ export default function StockTransfersPage() {
       setQuantity(Math.min(1, availableStock));
     }
   }, [availableStock]);
+
+  // Funciones para manejo del dropdown de productos
+  const handleProductSearch = (searchTerm: string) => {
+    setProductSearchTerm(searchTerm);
+    setShowProductDropdown(true); // Siempre mostrar dropdown cuando hay productos
+  };
+
+  const handleInputClick = () => {
+    if (productsInLocation.length > 0) {
+      setShowProductDropdown(true);
+    }
+  };
+
+  const getFilteredProducts = () => {
+    if (productsInLocation.length === 0) return [];
+    
+    // Si no hay término de búsqueda, mostrar todos los productos
+    if (!productSearchTerm.trim()) {
+      return productsInLocation;
+    }
+    
+    // Si hay término de búsqueda, filtrar
+    return productsInLocation.filter(product => 
+      product.title && product.title.toLowerCase().includes(productSearchTerm.toLowerCase())
+    );
+  };
+
+  const selectProduct = (product: any) => {
+    setSelectedProduct(product.id);
+    setProductSearchTerm(`${product.title} (${product.stockInLocation} unidades)`);
+    setShowProductDropdown(false);
+  };
+
+  // Cerrar dropdown cuando se hace clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.product-dropdown-container')) {
+        setShowProductDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Función de debugging
   const handleDebugStock = async () => {
@@ -259,6 +264,11 @@ export default function StockTransfersPage() {
       // Refrescar datos de productos para mostrar stock actualizado
       await refetchProducts();
       
+      // Pequeña pausa para permitir que la DB se actualice, luego refrescar de nuevo
+      setTimeout(() => {
+        refetchProducts();
+      }, 500);
+      
       // Resetear formulario
       setSelectedProduct("");
       setSelectedFromLocation("");
@@ -302,14 +312,28 @@ export default function StockTransfersPage() {
             Transferencias de Stock
           </Heading>
           
-          <Button
-            variant="secondary"
-            onClick={handleDebugStock}
-            className="flex items-center"
-          >
-            <Bug className="w-4 h-4 mr-2" />
-            Debug Stock
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ["products-in-location"] });
+                refetchProducts();
+                toast.success("Stock actualizado");
+              }}
+              className="flex items-center"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refrescar Stock
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleDebugStock}
+              className="flex items-center"
+            >
+              <Bug className="w-4 h-4 mr-2" />
+              Debug Stock
+            </Button>
+          </div>
         </div>
         
         {/* Panel de Debug */}
@@ -440,26 +464,58 @@ export default function StockTransfersPage() {
                   <Package className="w-4 h-4 mr-2 text-blue-500" />
                   Paso 2: Seleccionar producto disponible en {locations.find(l => l.id === selectedFromLocation)?.name}
                 </Label>
-                <select
-                  className="w-full p-3 border-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                  value={selectedProduct}
-                  onChange={(e) => setSelectedProduct(e.target.value)}
-                  disabled={loadingProducts}
-                >
-                  <option value="">
-                    {loadingProducts 
-                      ? "Buscando productos en esta ubicación..." 
-                      : productsInLocation.length > 0 
-                        ? "Seleccionar producto..." 
-                        : "No hay productos con stock en esta ubicación"
+                <div className="relative product-dropdown-container">
+                  <Input
+                    placeholder={
+                      loadingProducts 
+                        ? "Buscando productos en esta ubicación..." 
+                        : productsInLocation.length > 0 
+                          ? "Seleccionar producto (o buscar por nombre)..." 
+                          : "No hay productos con stock en esta ubicación"
                     }
-                  </option>
-                  {productsInLocation.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      📦 {product.title} ({product.id}) - {product.stockInLocation} unidades disponibles
-                    </option>
-                  ))}
-                </select>
+                    value={productSearchTerm}
+                    onChange={(e) => handleProductSearch(e.target.value)}
+                    onClick={handleInputClick}
+                    disabled={loadingProducts || productsInLocation.length === 0}
+                    className="w-full p-3 border-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  
+                  {showProductDropdown && !loadingProducts && getFilteredProducts().length > 0 && (
+                    <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-64 overflow-y-auto mt-1">
+                      {getFilteredProducts().map((product) => (
+                        <button
+                          key={product.id}
+                          type="button"
+                          onClick={() => selectProduct(product)}
+                          className="w-full px-3 py-3 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            {product.thumbnail ? (
+                              <img 
+                                src={product.thumbnail} 
+                                alt={product.title}
+                                className="w-10 h-10 object-cover rounded border border-gray-200"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-10 h-10 bg-gray-100 border border-gray-200 rounded flex items-center justify-center">
+                                <Package className="w-5 h-5 text-gray-400" />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">{product.title}</div>
+                              <div className="text-xs text-gray-500">
+                                {product.stockInLocation} unidades disponibles • ID: {product.id}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {selectedFromLocation && productsInLocation.length === 0 && !loadingProducts && (
                   <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded">
                     <Text className="text-sm text-yellow-800">

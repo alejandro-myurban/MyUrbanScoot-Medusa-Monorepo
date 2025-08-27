@@ -17,8 +17,9 @@ export const POST = async (
           //@ts-ignore
       ...req.body,
       supplier_id,
+      // Si el frontend no envía created_by, usar el ID del usuario autenticado
           //@ts-ignore
-      created_by: req.auth?.actor_id || req.auth?.user?.id
+      created_by: req.body.created_by || req.auth?.actor_id || req.auth?.user?.id
     };
     
     const order = await supplierService.createSupplierOrder(orderData);

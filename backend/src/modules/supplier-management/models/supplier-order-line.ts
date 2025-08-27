@@ -12,6 +12,7 @@ const SupplierOrderLine = model.define("supplier_order_line", {
   product_variant_id: model.text().nullable(), // ID de la variante específica
   product_title: model.text(),             // Título del producto (snapshot)
   product_description: model.text().nullable(), // Descripción del producto
+  product_thumbnail: model.text().nullable(), // Imagen del producto (snapshot)
   
   // Información del proveedor sobre el producto
   supplier_sku: model.text().nullable(),   // SKU del proveedor
@@ -24,6 +25,8 @@ const SupplierOrderLine = model.define("supplier_order_line", {
   
   // Precios (en la moneda del pedido)
   unit_price: model.number(),              // Precio unitario
+  tax_rate: model.number().default(0),     // Porcentaje de IVA (0, 21, etc.)
+  discount_rate: model.number().default(0), // Porcentaje de descuento (0, 10, etc.)
   total_price: model.number(),             // Precio total de la línea (unit_price * quantity_ordered)
   
   // Información de recepción
