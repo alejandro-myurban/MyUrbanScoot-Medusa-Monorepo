@@ -16,21 +16,20 @@ const SortProducts = ({
   sortBy,
   setQueryParams,
 }: SortProductsProps) => {
-  // Inicializamos el hook de traducción con el namespace 'SortProducts'
-  const { t } = useTranslation('SortProducts')
+  const { t } = useTranslation() // Eliminamos el namespace específico
 
   const sortOptions = [
     {
       value: 'created_at',
-      label: t('latestArrivals'),
+      label: t('SortProducts.latestArrivals'),
     },
     {
       value: 'price_asc',
-      label: t('lowestPrice'),
+      label: t('SortProducts.lowestPrice'),
     },
     {
       value: 'price_desc',
-      label: t('highestPrice'),
+      label: t('SortProducts.highestPrice'),
     },
   ]
 
@@ -40,7 +39,7 @@ const SortProducts = ({
 
   return (
     <FilterRadioGroup
-      title={t('filterBy')}
+      title={t('SortProducts.filterBy')}
       items={sortOptions}
       value={sortBy}
       handleChange={handleChange}

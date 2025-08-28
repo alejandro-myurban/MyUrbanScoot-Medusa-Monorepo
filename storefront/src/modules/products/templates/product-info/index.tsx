@@ -14,7 +14,8 @@ type ProductInfoProps = {
 }
 
 const ProductInfo = ({ product }: ProductInfoProps) => {
-  const { t } = useTranslation('ProductInfo')
+  const { t } = useTranslation()
+  console.log('Traducción de deliveryTime:', t('ProductInfo.deliveryTime'));
 
   const hasCompatibleCategory = product.categories?.some(
     (c) => c.handle === 'vinilos' || c.handle === 'modelos'
@@ -25,14 +26,14 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
       ? [
           {
             id: 'modelos-compatibles',
-            title: t('compatibleModels'),
+            title: t('ProductInfo.compatibleModels'),
             content: <CompatibleScooters product={product} />,
           },
         ]
       : []),
     {
       id: 'ver-detalles',
-      title: t('viewDetails'),
+      title: t('ProductInfo.viewDetails'),
       content: (
         <div>
           <ul className="mt-2 space-y-1">
@@ -52,17 +53,17 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
     },
     {
       id: 'envio-devoluciones',
-      title: t('shippingAndReturns'),
+      title: t('ProductInfo.shippingAndReturns'),
       content: (
         <div>
           <p>
-            <strong>{t('shippingInformation')}:</strong>
+            <strong>{t('ProductInfo.shippingInformation')}:</strong>
           </p>
           <ul className="mt-2 space-y-1">
-            <li>• {t('freeShipping')}</li>
-            <li>• {t('deliveryTime')}</li>
-            <li>• {t('freeReturns')}</li>
-            <li>• {t('warranty')}</li>
+            <li>• {t('ProductInfo.freeShipping')}</li>
+            <li>• {t('ProductInfo.deliveryTime')}</li>
+            <li>• {t('ProductInfo.freeReturns')}</li>
+            <li>• {t('ProductInfo.warranty')}</li>
           </ul>
         </div>
       ),
@@ -85,10 +86,10 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
 
   const priceText =
     rawPrices.length === 0
-      ? t('priceNotAvailable')
+      ? t('ProductInfo.priceNotAvailable')
       : minAmount === maxAmount
-      ? t('singlePrice', { price: minPrice })
-      : t('priceRange', { minPrice, maxPrice })
+      ? t('ProductInfo.singlePrice', { price: minPrice })
+      : t('ProductInfo.priceRange', { minPrice, maxPrice })
 
   return (
     <div id="product-info">
