@@ -299,6 +299,7 @@ export default function FinancingPage() {
 
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [isUnemployed, setIsUnemployed] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [phoneValidation, setPhoneValidation] = useState<{
     isChecking: boolean
@@ -618,6 +619,11 @@ export default function FinancingPage() {
     const newFormData = { ...formData, [name]: value }
     setFormData(newFormData)
 
+    // Detectar si el usuario selecciona "unemployed" (desempleado)
+    if (name === "contract_type") {
+      setIsUnemployed(value === "unemployed")
+    }
+
     // Si es el campo del teléfono, validar después de un delay
     if (name === "phone_mumber") {
       console.log("📞 Campo teléfono detectado, valor:", value)
@@ -787,6 +793,12 @@ export default function FinancingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // ✅ VALIDACIÓN DE USUARIO DESEMPLEADO: Bloquear envío si está desempleado
+    if (isUnemployed) {
+      toast.error("La financiación no está disponible para personas en situación de desempleo")
+      return
+    }
 
     // ✅ PRIMERA VALIDACIÓN: Verificar que todos los documentos requeridos estén presentes
     if (!isFormValid) {
@@ -1013,6 +1025,11 @@ export default function FinancingPage() {
     const questions = []
     questions.push(1, 2, 3)
 
+    // Si el usuario está desempleado, no mostrar más preguntas (bloqueo)
+    if (isUnemployed) {
+      return questions
+    }
+
     if (
       formData.contract_type === "employee_temporary" ||
       formData.contract_type === "employee_permanent"
@@ -1020,8 +1037,8 @@ export default function FinancingPage() {
       questions.push(4, 5, 6)
     } else if (formData.contract_type === "freelance") {
       questions.push(7, 8, 9)  // 7 es la nueva pregunta de fecha de alta
-    } else if (formData.contract_type === "pensioner" || formData.contract_type === "unemployed") {
-      questions.push(10)  // Pensionistas y desempleados usan la misma pregunta
+    } else if (formData.contract_type === "pensioner") {
+      questions.push(10)  // Solo pensionistas, desempleados quedan bloqueados
     }
 
     if (formData.contract_type) {
@@ -1086,7 +1103,7 @@ export default function FinancingPage() {
   
   console.log("🔍 DEBUG VALIDACIÓN:", debugValidation)
   
-  const isFormValid = validateRequiredDocuments() && !phoneValidation.exists && isPhoneValidZod && !phoneValidationError && !hasFieldErrors
+  const isFormValid = !isUnemployed && validateRequiredDocuments() && !phoneValidation.exists && isPhoneValidZod && !phoneValidationError && !hasFieldErrors
   const visibleQuestions = getVisibleQuestions()
 
   return (
@@ -1419,6 +1436,58 @@ export default function FinancingPage() {
                 </div>
               )}
 
+              {/* Mensaje de bloqueo para desempleados */}
+              {isUnemployed && (
+                <div className="space-y-6 border-t border-gray-100 pt-10">
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-8">
+                    <div className="flex items-start sm:gap-6">
+                      <div className="flex-shrink-0">
+                        <div className=" items-center hidden sm:flex justify-center w-12 h-12 bg-amber-100 text-amber-600 rounded-full">
+                          <AlertCircle className="h-6 w-6" />
+                        </div>
+                      </div>
+                      <div className="flex-grow">
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">
+                          Financiación no disponible
+                        </h3>
+                        <p className="text-gray-700 leading-relaxed mb-4">
+                          Lamentamos informarte que actualmente no podemos ofrecerte opciones de financiación para personas en situación de desempleo. Esto se debe a los requisitos de estabilidad económica establecidos por nuestras entidades financieras colaboradoras.
+                        </p>
+                        <div className="bg-white rounded-lg p-4 border border-amber-200">
+                          <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            ¿Tienes otra situación laboral?
+                          </h4>
+                          <p className="text-sm text-gray-600 mb-3">
+                            Si cuentas con ingresos regulares de otra fuente (pensión, autónomo, empleado), selecciona la opción correspondiente arriba.
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <a
+                              href="https://wa.me/34647744525?text=Hola,%20me%20interesa%20información%20sobre%20financiación%20y%20tengo%20una%20situación%20especial"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                            >
+                              <WhatsApp className="h-4 w-4" />
+                              Consultar por WhatsApp
+                            </a>
+                            <a
+                              href="tel:+34647744525"
+                              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                            >
+                              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                              </svg>
+                              Llamar al 647 744 525
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Preguntas 4-6: Empleados */}
               {visibleQuestions.includes(4) && (
                 <div className="space-y-6 border-t border-gray-100 pt-10">
@@ -1484,14 +1553,14 @@ export default function FinancingPage() {
                     </div>
                   </div>
                   <p className="text-gray-500 text-sm">
-                    Las nóminas deben ser las dos más recientes, además en
+                    Las nóminas deben ser <span className="font-bold text-black underline">las dos más recientes</span>, además en
                     formato PDF. No se aceptan imágenes.
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FileInputEnhanced
                       id="paysheet_file"
-                      label="Primera nómina"
+                      label="Nómina 1"
                       file={files.paysheet_file}
                       onRemove={removeFile}
                       required={true}
@@ -1505,7 +1574,7 @@ export default function FinancingPage() {
 
                     <FileInputEnhanced
                       id="paysheet_file_2"
-                      label="Segunda nómina (opcional)"
+                      label="Nómina 2"
                       file={files.paysheet_file_2}
                       onRemove={removeFile}
                       required={false}
@@ -1767,6 +1836,11 @@ export default function FinancingPage() {
                       <CheckCircle2 className="mr-3 h-6 w-6" />
                       ¡Enviado con éxito!
                     </>
+                  ) : isUnemployed ? (
+                    <>
+                      <AlertCircle className="mr-3 h-6 w-6" />
+                      Financiación no disponible
+                    </>
                   ) : !isFormValid ? (
                     <>
                       <AlertCircle className="mr-3 h-6 w-6" />
@@ -1783,6 +1857,8 @@ export default function FinancingPage() {
                 <p className="text-center text-sm text-gray-500 mt-4">
                   {submitted
                     ? "Redirigiendo a la página de confirmación..."
+                    : isUnemployed
+                    ? "La financiación requiere ingresos regulares demostrables."
                     : !isFormValid
                     ? "Completa todos los documentos requeridos para continuar."
                     : "Al enviar esta solicitud, aceptas nuestros términos y condiciones de financiación."}

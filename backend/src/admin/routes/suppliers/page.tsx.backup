@@ -80,11 +80,6 @@ const SuppliersPage = () => {
     is_active: true
   });
 
-  // Reset página cuando cambian los filtros
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filterByStatus, searchTerm]);
-
   // Query para obtener proveedores
   const {
     data: suppliersData,
@@ -299,6 +294,10 @@ const SuppliersPage = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedSuppliers = filteredSuppliers.slice(startIndex, endIndex);
 
+  // Reset página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterByStatus, searchTerm]);
 
   // Vista detalle de proveedor
   if (selectedSupplier) {
