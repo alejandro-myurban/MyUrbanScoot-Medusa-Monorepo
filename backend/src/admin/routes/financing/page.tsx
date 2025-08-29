@@ -70,6 +70,13 @@ const FinancingPage = () => {
   
   // Estados para acordeón de datos extraídos
   const [showExtractedData, setShowExtractedData] = useState<boolean>(false);
+  const [manualDniMode, setManualDniMode] = useState<boolean>(false);
+
+  // Reset manual mode when selected request changes
+  useEffect(() => {
+    setManualDniMode(false);
+    setShowExtractedData(false);
+  }, [selectedRequest?.id]);
 
   const {
     data: financingData,
@@ -355,6 +362,91 @@ const FinancingPage = () => {
     }
 
     return payrollData;
+  };
+
+  // Función para crear estructura de datos DNI frontal manual
+  const createManualDniFrontData = () => {
+    return {
+      extractedData: {
+        fullName: "",
+        documentNumber: "",
+        birthDate: "",
+        nationality: "ESP",
+        sex: "",
+        expirationDate: "",
+        equipmentNumber: "",
+        hasOfficialDesign: true,
+        documentSide: "front"
+      },
+      confidence: 0,
+      issues: ["Entrada manual"],
+      imageQuality: "manual" as any,
+      isValid: true
+    };
+  };
+
+  // Función para crear estructura de datos DNI trasero manual
+  const createManualDniBackData = () => {
+    return {
+      extractedData: {
+        addresses: [""],
+        birthPlace: "",
+        documentSide: "back",
+        equipmentNumber: null,
+        hasOfficialText: true,
+        hasOfficialDesign: true
+      },
+      confidence: 0,
+      issues: ["Entrada manual"],
+      imageQuality: "manual" as any,
+      isValid: true
+    };
+  };
+
+  // Función para crear estructura de datos DNI manual (mantener compatibilidad)
+  const createManualDniData = () => {
+    return createManualDniFrontData();
+  };
+
+  // Función para inicializar datos DNI manuales completos
+  const initializeManualDniData = async () => {
+    if (!selectedRequest?.id) return;
+
+    try {
+      console.log("🔄 Inicializando datos DNI manuales para ID:", selectedRequest.id);
+      
+      const manualFrontData = createManualDniFrontData();
+      const manualBackData = createManualDniBackData();
+      
+      // Actualizar ambos campos de verificación DNI
+      await updateField("dni_front_verification", manualFrontData);
+      await updateField("dni_back_verification", manualBackData);
+      
+      setManualDniMode(true);
+      setShowExtractedData(true);
+      
+    } catch (error) {
+      console.error("Error inicializando datos DNI manuales:", error);
+    }
+  };
+
+  // Función para inicializar solo datos DNI trasero manuales
+  const initializeManualDniBackData = async () => {
+    if (!selectedRequest?.id) return;
+
+    try {
+      console.log("🔄 Inicializando datos DNI trasero manuales para ID:", selectedRequest.id);
+      
+      const manualBackData = createManualDniBackData();
+      
+      // Actualizar solo el campo de verificación DNI trasero
+      await updateField("dni_back_verification", manualBackData);
+      
+      setShowExtractedData(true);
+      
+    } catch (error) {
+      console.error("Error inicializando datos DNI trasero manuales:", error);
+    }
   };
 
   // Funciones para manejar estados
@@ -782,10 +874,50 @@ const FinancingPage = () => {
                   );
                 })()}
                 
+                {/* Botón para añadir datos DNI manualmente cuando no existen */}
+                {(!selectedRequest.dni_front_verification?.extractedData && 
+                  !selectedRequest.dni_back_verification?.extractedData &&
+                  !manualDniMode) && (
+                  <div className="space-y-2">
+                    <Button
+                      variant="secondary"
+                      size="small"
+                      onClick={initializeManualDniData}
+                      className="flex items-center gap-2 bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100"
+                    >
+                      <Edit className="w-4 h-4" />
+                      ➕ Añadir Datos DNI Manualmente
+                    </Button>
+                    <Text size="small" className="text-gray-500">
+                      No se detectaron datos extraídos del DNI. Puede añadirlos manualmente.
+                    </Text>
+                  </div>
+                )}
+
+                {/* Botón para añadir solo datos DNI trasero cuando existe el frontal */}
+                {(selectedRequest.dni_front_verification?.extractedData && 
+                  !selectedRequest.dni_back_verification?.extractedData) && (
+                  <div className="space-y-2">
+                    <Button
+                      variant="secondary"
+                      size="small"
+                      onClick={initializeManualDniBackData}
+                      className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100"
+                    >
+                      <Edit className="w-4 h-4" />
+                      ➕ Añadir Datos DNI Trasero Manualmente
+                    </Button>
+                    <Text size="small" className="text-gray-500">
+                      Solo se detectaron datos del DNI frontal. Puede añadir los del trasero manualmente.
+                    </Text>
+                  </div>
+                )}
+
                 {/* Botón para mostrar/ocultar datos extraídos */}
                 {(selectedRequest.dni_front_verification?.extractedData || 
                   selectedRequest.dni_back_verification?.extractedData ||
-                  selectedRequest.payroll_verification?.extractedData) && (
+                  selectedRequest.payroll_verification?.extractedData ||
+                  manualDniMode) && (
                   <div className="space-y-2">
                     <Button
                       variant="secondary"
@@ -809,8 +941,18 @@ const FinancingPage = () => {
                         {/* DNI Frontal */}
                         {selectedRequest.dni_front_verification?.extractedData && (
                           <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <Text className="font-medium text-sm text-blue-800 dark:text-blue-300">
-                              📋 Datos Extraídos del DNI Frontal
+                            <Text className="font-medium text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                              {selectedRequest.dni_front_verification.issues?.includes("Entrada manual") ? (
+                                <>
+                                  ✏️ Datos DNI Frontal (Manual)
+                                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">MANUAL</span>
+                                </>
+                              ) : (
+                                <>
+                                  📋 Datos Extraídos del DNI Frontal
+                                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">EXTRAÍDO</span>
+                                </>
+                              )}
                             </Text>
                             
                             <EditableField
@@ -909,57 +1051,65 @@ const FinancingPage = () => {
                         {/* DNI Trasero */}
                         {selectedRequest.dni_back_verification?.extractedData && (
                           <div className="space-y-2 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                            <Text className="font-medium text-sm text-green-800 dark:text-green-300">
-                              📋 Datos Extraídos del DNI Trasero
+                            <Text className="font-medium text-sm text-green-800 dark:text-green-300 flex items-center gap-2">
+                              {selectedRequest.dni_back_verification.issues?.includes("Entrada manual") ? (
+                                <>
+                                  ✏️ Datos DNI Trasero (Manual)
+                                  <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">MANUAL</span>
+                                </>
+                              ) : (
+                                <>
+                                  📋 Datos Extraídos del DNI Trasero
+                                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">EXTRAÍDO</span>
+                                </>
+                              )}
                             </Text>
                             
-                            {selectedRequest.dni_back_verification.extractedData.addresses && (
-                              <EditableField
-                                label="Dirección (DNI Trasero)"
-                                value={(() => {
-                                  const fullAddress = selectedRequest.dni_back_verification.extractedData.addresses;
-                                  // Verificar que sea string antes de hacer split
-                                  if (typeof fullAddress === 'string') {
-                                    const streetOnly = fullAddress.split(',')[0]?.trim() || fullAddress;
-                                    return streetOnly;
+                            <EditableField
+                              label="Dirección (DNI Trasero)"
+                              value={(() => {
+                                const addressData = selectedRequest.dni_back_verification.extractedData.addresses;
+                                if (Array.isArray(addressData) && addressData.length > 0) {
+                                  return addressData[0] || "";
+                                }
+                                if (typeof addressData === 'string') {
+                                  const streetOnly = addressData.split(',')[0]?.trim() || addressData;
+                                  return streetOnly;
+                                }
+                                return "";
+                              })()}
+                              type="text"
+                              required={false}
+                              placeholder="Ej: C. JOSEP BONATERA 44"
+                              onSave={(value) => {
+                                const updated = {
+                                  ...selectedRequest.dni_back_verification,
+                                  extractedData: {
+                                    ...selectedRequest.dni_back_verification.extractedData,
+                                    addresses: [value]
                                   }
-                                  // Si no es string, devolver tal como está
-                                  return fullAddress;
-                                })()}
-                                type="text"
-                                required={false}
-                                placeholder="Ej: C. JOSEP BONATERA 44"
-                                onSave={(value) => {
-                                  const currentAddress = selectedRequest.dni_back_verification.extractedData.addresses;
-                                  
-                                  // Si la dirección actual es string, hacer el split
-                                  if (typeof currentAddress === 'string') {
-                                    const parts = currentAddress.split(',');
-                                    parts[0] = value;
-                                    const newFullAddress = parts.join(',');
-                                    
-                                    const updated = {
-                                      ...selectedRequest.dni_back_verification,
-                                      extractedData: {
-                                        ...selectedRequest.dni_back_verification.extractedData,
-                                        addresses: newFullAddress
-                                      }
-                                    };
-                                    return updateField("dni_back_verification", updated);
-                                  } else {
-                                    // Si no es string, solo actualizar con el valor nuevo
-                                    const updated = {
-                                      ...selectedRequest.dni_back_verification,
-                                      extractedData: {
-                                        ...selectedRequest.dni_back_verification.extractedData,
-                                        addresses: value
-                                      }
-                                    };
-                                    return updateField("dni_back_verification", updated);
+                                };
+                                return updateField("dni_back_verification", updated);
+                              }}
+                            />
+                            
+                            <EditableField
+                              label="Lugar de Nacimiento (DNI Trasero)"
+                              value={selectedRequest.dni_back_verification.extractedData.birthPlace || ""}
+                              type="text"
+                              required={false}
+                              placeholder="Ej: BARCELONA"
+                              onSave={(value) => {
+                                const updated = {
+                                  ...selectedRequest.dni_back_verification,
+                                  extractedData: {
+                                    ...selectedRequest.dni_back_verification.extractedData,
+                                    birthPlace: value
                                   }
-                                }}
-                              />
-                            )}
+                                };
+                                return updateField("dni_back_verification", updated);
+                              }}
+                            />
                           </div>
                         )}
 

@@ -186,26 +186,6 @@ const ProductSuppliersPage = () => {
     }
   });
 
-  // 🔧 HOOKS MOVIDOS AQUÍ - Reset página cuando cambian los filtros
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filterBySupplier, filterByPreferred, filterByWorkshop, searchTerm]);
-
-  // 🔧 HOOKS MOVIDOS AQUÍ - Si se solicitó mostrar historial pero no se encuentra la relación, resetear el estado
-  useEffect(() => {
-    const relations: ProductSupplier[] = relationsData?.product_suppliers || [];
-    const selectedRelationForHistory = showPriceHistory ? relations.find(r => r.id === showPriceHistory) : null;
-    
-    if (showPriceHistory && !selectedRelationForHistory) {
-      setShowPriceHistory(null);
-    }
-  }, [showPriceHistory, relationsData]);
-
-  // 🔧 LÓGICA DE DATOS DESPUÉS DE TODOS LOS HOOKS
-  const relations: ProductSupplier[] = relationsData?.product_suppliers || [];
-  const suppliers: Supplier[] = suppliersData?.suppliers || [];
-  const products: any[] = productsData?.products || [];
-
   const resetForm = () => {
     setFormData({
       product_id: "",
@@ -356,11 +336,22 @@ const ProductSuppliersPage = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedRelations = filteredRelations.slice(startIndex, endIndex);
 
+  // Reset página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterBySupplier, filterByPreferred, filterByWorkshop, searchTerm]);
 
-  // Buscar la relación para el historial
+  // Buscar la relación para el historial DESPUÉS de todos los hooks
   const selectedRelationForHistory = showPriceHistory ? relations.find(r => r.id === showPriceHistory) : null;
 
-  // 🔧 RENDER CONDICIONAL CON JSX - Vista de historial de precios
+  // Si se solicitó mostrar historial pero no se encuentra la relación, resetear el estado
+  useEffect(() => {
+    if (showPriceHistory && !selectedRelationForHistory) {
+      setShowPriceHistory(null);
+    }
+  }, [showPriceHistory, selectedRelationForHistory]);
+
+  // Vista de historial de precios - DESPUÉS de todos los hooks
   if (showPriceHistory && selectedRelationForHistory) {
     return (
       <Container className="divide-y p-0">

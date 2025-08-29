@@ -1,5 +1,6 @@
 import { model } from "@medusajs/framework/utils";
 import SupplierOrder from "./supplier-order";
+import ProductSupplier from "./product-supplier";
 
 const Supplier = model.define("supplier", {
   id: model.id().primaryKey(),
@@ -32,6 +33,7 @@ const Supplier = model.define("supplier", {
   
   // Relaciones
   supplier_orders: model.hasMany(() => SupplierOrder, { mappedBy: "supplier" }),
+  product_suppliers: model.hasMany(() => ProductSupplier, { mappedBy: "supplier" }),
 });
 
 export default Supplier;
