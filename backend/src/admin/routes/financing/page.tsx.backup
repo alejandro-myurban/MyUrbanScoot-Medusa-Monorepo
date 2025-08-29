@@ -78,18 +78,6 @@ const FinancingPage = () => {
     setShowExtractedData(false);
   }, [selectedRequest?.id]);
 
-  // Reset página cuando cambian los filtros
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filterByContractType, searchTerm, filterByStatus, filterByContacted, showCancelledDelivered]);
-
-  // Cargar las notas cuando se selecciona una solicitud
-  useEffect(() => {
-    if (selectedRequest) {
-      setAdminNotes(selectedRequest.admin_notes || "");
-    }
-  }, [selectedRequest]);
-
   const {
     data: financingData,
     isLoading,
@@ -104,18 +92,6 @@ const FinancingPage = () => {
       return response as { financing_data: FinancingData[] };
     },
   });
-
-  // Sincronizar selectedRequest cuando se actualizan los datos
-  useEffect(() => {
-    if (selectedRequest && financingData?.financing_data) {
-      const updatedRequest = financingData.financing_data.find(
-        item => item.id === selectedRequest.id
-      );
-      if (updatedRequest) {
-        setSelectedRequest(updatedRequest);
-      }
-    }
-  }, [financingData?.financing_data]);
 
   const downloadAllDocuments = async (request: FinancingData) => {
     console.log("🍎 Iniciando descarga en:", navigator.platform || "Plataforma desconocida");
@@ -659,6 +635,24 @@ const FinancingPage = () => {
     }
   };
 
+  // Cargar las notas cuando se selecciona una solicitud
+  useEffect(() => {
+    if (selectedRequest) {
+      setAdminNotes(selectedRequest.admin_notes || "");
+    }
+  }, [selectedRequest]);
+
+  // Sincronizar selectedRequest cuando se actualizan los datos
+  useEffect(() => {
+    if (selectedRequest && financingData?.financing_data) {
+      const updatedRequest = financingData.financing_data.find(
+        item => item.id === selectedRequest.id
+      );
+      if (updatedRequest) {
+        setSelectedRequest(updatedRequest);
+      }
+    }
+  }, [financingData?.financing_data]);
 
   const hasDocuments = (request: FinancingData) => {
     let count = 0;
@@ -768,6 +762,10 @@ const FinancingPage = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedFinancing = filteredFinancing.slice(startIndex, endIndex);
 
+  // Reset página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterByContractType, searchTerm, filterByStatus, filterByContacted, showCancelledDelivered]);
 
   if (selectedRequest) {
     return (
