@@ -131,6 +131,11 @@ const SupplierOrdersPage = () => {
   const [showProductDropdowns, setShowProductDropdowns] = useState<{[key: number]: boolean}>({});
   const [autocompletedPrices, setAutocompletedPrices] = useState<{[key: number]: { display_id: string, date: string }}>({});
 
+  // Reset página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterByStatus, filterBySupplier, searchTerm]);
+
   // Query para obtener pedidos
   const {
     data: ordersData,
@@ -193,6 +198,32 @@ const SupplierOrdersPage = () => {
     },
   });
 
+  // Auto-completar el campo "created_by" con el usuario logueado
+  useEffect(() => {
+    if (currentUserData?.user && !orderFormData.created_by) {
+      const user = currentUserData.user;
+      const userName = user.first_name && user.last_name 
+        ? `${user.first_name} ${user.last_name}`
+        : user.email;
+      setOrderFormData(prev => ({ ...prev, created_by: userName }));
+    }
+  }, [currentUserData, orderFormData.created_by]);
+
+  // Query para obtener precios masivos cuando se selecciona proveedor
+  const { data: productPricesData } = useQuery<{ data: Record<string, any> }>({
+    queryKey: ["supplier-product-prices", orderFormData.supplier_id],
+    queryFn: async () => {
+      if (!orderFormData.supplier_id) return { data: {} };
+      console.log(`💰 Cargando precios masivos para proveedor: ${orderFormData.supplier_id}`);
+      const response = await sdk.client.fetch(`/admin/suppliers/${orderFormData.supplier_id}/products/prices`, {
+        method: "GET",
+      });
+      console.log(`💰 Precios masivos cargados:`, response);
+      return response as { data: Record<string, any> };
+    },
+    enabled: !!orderFormData.supplier_id,
+  });
+
   // Query para obtener líneas del pedido seleccionado
   const {
     data: orderLinesData,
@@ -248,6 +279,24 @@ const SupplierOrdersPage = () => {
               method: "POST",
               body: lineData,
             });
+
+            // Sincronizar ProductSupplier si tenemos product_id y supplier_sku
+            if (line.product_id && line.supplier_sku && line.supplier_sku.trim() !== "") {
+              try {
+                console.log(`🔗 Sincronizando ProductSupplier para producto ${line.product_id} con SKU ${line.supplier_sku}`);
+                await sdk.client.fetch(`/admin/suppliers/${data.supplier_id}/products/sync`, {
+                  method: "POST",
+                  body: {
+                    product_id: line.product_id,
+                    supplier_sku: line.supplier_sku,
+                    unit_price: line.unit_price || 0,
+                  }
+                });
+              } catch (syncError) {
+                console.warn(`⚠️ No se pudo sincronizar ProductSupplier:`, syncError);
+                // No fallar el pedido por este error, solo logearlo
+              }
+            }
           }
         }
       }
@@ -383,7 +432,32 @@ const SupplierOrdersPage = () => {
   };
 
   const addOrderLine = () => {
-    setOrderLines([...orderLines, {
+    // Reindexar los estados existentes
+    const newProductSearchTerms = {};
+    const newShowDropdowns = {};
+    const newAutocompletedPrices = {};
+    
+    // Mover todos los índices existentes +1
+    Object.keys(productSearchTerms).forEach(key => {
+      const oldIndex = parseInt(key);
+      newProductSearchTerms[oldIndex + 1] = productSearchTerms[oldIndex];
+    });
+    
+    Object.keys(showProductDropdowns).forEach(key => {
+      const oldIndex = parseInt(key);
+      newShowDropdowns[oldIndex + 1] = showProductDropdowns[oldIndex];
+    });
+    
+    Object.keys(autocompletedPrices).forEach(key => {
+      const oldIndex = parseInt(key);
+      newAutocompletedPrices[oldIndex + 1] = autocompletedPrices[oldIndex];
+    });
+    
+    // El nuevo producto en índice 0 tendrá valores vacíos
+    newProductSearchTerms[0] = "";
+    newShowDropdowns[0] = false;
+    
+    setOrderLines([{
       product_id: "", // ✅ CRÍTICO: Incluir product_id para productos de Medusa
       product_title: "",
       supplier_sku: "",
@@ -391,7 +465,11 @@ const SupplierOrdersPage = () => {
       unit_price: 0,
       tax_rate: globalTaxRate, // Usar IVA global seleccionado
       discount_rate: 0, // Sin descuento por defecto
-    }]);
+    }, ...orderLines]);
+    
+    setProductSearchTerms(newProductSearchTerms);
+    setShowProductDropdowns(newShowDropdowns);
+    setAutocompletedPrices(newAutocompletedPrices);
   };
 
   const removeOrderLine = (index: number) => {
@@ -525,6 +603,7 @@ const SupplierOrdersPage = () => {
               unit_price: data.data.last_price,
               tax_rate: data.data.tax_rate || globalTaxRate,
               discount_rate: data.data.discount_rate || 0,
+              supplier_sku: data.data.supplier_sku || "",
             };
             
             // Guardar información de autocompletado para mostrar al usuario
@@ -536,7 +615,10 @@ const SupplierOrdersPage = () => {
               }
             });
             
-            console.log(`💡 Precios autocompletados desde último pedido ${data.data.last_order_display_id}`);
+            console.log(`💡 Precios y SKU autocompletados desde último pedido ${data.data.last_order_display_id}:`, {
+              sku: data.data.supplier_sku,
+              price: data.data.last_price
+            });
           }
         } else {
           console.log(`ℹ️ No se encontró historial de precios para este producto`);
@@ -801,6 +883,7 @@ const SupplierOrdersPage = () => {
   const lines: SupplierOrderLine[] = orderLinesData?.lines || [];
   const products: any[] = productsData?.products || [];
   const locations: any[] = locationsData?.stock_locations || [];
+  const productPrices: Record<string, any> = productPricesData?.data || {};
 
   // Filtros
   const filteredOrders = orders.filter((order) => {
@@ -820,21 +903,6 @@ const SupplierOrdersPage = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
-  // Reset página cuando cambian los filtros
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filterByStatus, filterBySupplier, searchTerm]);
-
-  // Auto-completar el campo "created_by" con el usuario logueado
-  useEffect(() => {
-    if (currentUserData?.user && !orderFormData.created_by) {
-      const user = currentUserData.user;
-      const userName = user.first_name && user.last_name 
-        ? `${user.first_name} ${user.last_name}`
-        : user.email;
-      setOrderFormData(prev => ({ ...prev, created_by: userName }));
-    }
-  }, [currentUserData, orderFormData.created_by]);
 
   // Helper para obtener el nombre del usuario actual
   const getCurrentUserName = (): string => {
@@ -1671,13 +1739,24 @@ const SupplierOrdersPage = () => {
               </div>
 
               {orderLines.length > 0 ? (
-                <div className="space-y-4">
+                <div className="border border-gray-200 rounded-lg overflow-visible">
+                  {/* Headers de la tabla */}
+                  <div className="bg-gray-50 grid grid-cols-[3fr,1.5fr,1fr,1fr,1fr,1fr,1fr,1fr] gap-2 px-4 py-3 text-sm font-medium text-gray-700">
+                    <div>Producto</div>
+                    <div>SKU</div>
+                    <div>Cantidad</div>
+                    <div>Precio Unit.</div>
+                    <div>IVA %</div>
+                    <div>Desc. %</div>
+                    <div>Total</div>
+                    <div>Acciones</div>
+                  </div>
+                  
+                  {/* Filas de productos */}
                   {orderLines.map((line, index) => (
-                    <div key={index} className="bg-gray-50 dark:bg-gray-500 p-4 rounded-lg">
-                      <div className="space-y-4">
-                        {/* Primera fila: Producto (ocupa todo el ancho) */}
+                    <div key={index} className="grid grid-cols-[3fr,1.5fr,1fr,1fr,1fr,1fr,1fr,1fr] gap-2 px-4 py-3 border-b border-gray-100 bg-white hover:bg-gray-50">
+                        {/* Producto */}
                         <div className="relative">
-                          <label className="block text-sm font-medium mb-1">Producto *</label>
                           <input
                             type="text"
                             value={productSearchTerms[index] || line.product_title || ""}
@@ -1685,151 +1764,150 @@ const SupplierOrdersPage = () => {
                               handleProductSearch(index, e.target.value);
                               updateOrderLine(index, "product_title", e.target.value);
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="Buscar producto por nombre..."
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            placeholder="Buscar producto..."
                             required
                           />
                           
                           {/* Dropdown de productos filtrados */}
                           {showProductDropdowns[index] && (
-                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                            <div className="absolute z-50 w-full min-w-[600px] mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-y-auto">
                               {getFilteredProducts(index).length > 0 ? (
                                 getFilteredProducts(index).map((product) => (
                                   <button
                                     key={product.id}
                                     type="button"
                                     onClick={() => selectProduct(index, product)}
-                                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0"
                                   >
-                                    <img className="w-20 h-20 rounded-xl" src={product.thumbnail} />
-                                    <div className="font-medium text-gray-900">{product.title}</div>
-                                    {/* <div className="text-gray-500 text-xs">
-                                      ID: {product.id}
-                                    </div> */}
+                                    <div className="flex items-center gap-3">
+                                      <img className="w-8 h-8 rounded object-cover" src={product.thumbnail} />
+                                      <div className="flex-1">
+                                        <div className="font-medium text-gray-900 text-xs">{product.title}</div>
+                                        {productPrices[product.id] && (
+                                          <div className="text-xs text-green-600 font-medium">
+                                            €{productPrices[product.id].last_price} 
+                                            <span className="text-gray-400 ml-1">
+                                              (último: {new Date(productPrices[product.id].last_order_date).toLocaleDateString()})
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
                                   </button>
                                 ))
                               ) : (
                                 <div className="px-3 py-2 text-sm text-gray-500">
                                   No se encontraron productos para "{productSearchTerms[index] || ""}"
-                                  <br />
-                                  <span className="text-xs">Total productos: {products.length}</span>
                                 </div>
                               )}
                             </div>
                           )}
                         </div>
                         
-                        {/* Segunda fila: Resto de campos */}
-                        <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium mb-1">SKU Proveedor</label>
-                            <input
-                              type="text"
-                              value={line.supplier_sku || ""}
-                              onChange={(e) => updateOrderLine(index, "supplier_sku", e.target.value)}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              placeholder="Código del proveedor"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1">Cantidad *</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={line.quantity_ordered || 1}
-                              onChange={(e) => updateOrderLine(index, "quantity_ordered", parseInt(e.target.value) || 1)}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1">Precio Unit.</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={line.unit_price || 0}
-                              onChange={(e) => {
-                                updateOrderLine(index, "unit_price", parseFloat(e.target.value) || 0);
-                                // Limpiar indicador de autocompletado si el usuario modifica manualmente
-                                if (autocompletedPrices[index]) {
-                                  const newAutocompleted = { ...autocompletedPrices };
-                                  delete newAutocompleted[index];
-                                  setAutocompletedPrices(newAutocompleted);
-                                }
-                              }}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              placeholder="0.00"
-                            />
-                            {autocompletedPrices[index] && (
-                              <div className="text-xs text-blue-600 mt-1">
-                                💡 Precio del pedido {autocompletedPrices[index].display_id} ({autocompletedPrices[index].date})
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1">% IVA</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              max="100"
-                              value={line.tax_rate || 0}
-                              onChange={(e) => updateOrderLine(index, "tax_rate", parseFloat(e.target.value) || 0)}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              placeholder="21"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1">% Desc.</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              max="100"
-                              value={line.discount_rate || 0}
-                              onChange={(e) => updateOrderLine(index, "discount_rate", parseFloat(e.target.value) || 0)}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              placeholder="0"
-                            />
-                          </div>
-                          <div>
-                            {(line.quantity_ordered && line.unit_price) ? (
-                              <div>
-                                <label className="block text-sm font-medium mb-1">Total Línea</label>
-                                <div className="px-2 py-1 bg-blue-50 border border-blue-200 rounded text-sm font-medium text-blue-800">
-                                  {formatCurrency(calculateLineTotal(line), "EUR")}
-                                </div>
-                                {(line.discount_rate > 0 || line.tax_rate > 0) && (
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    Base: {formatCurrency((line.quantity_ordered || 0) * (line.unit_price || 0), "EUR")}
-                                    {line.discount_rate > 0 && (
-                                      <span> | -{line.discount_rate}%</span>
-                                    )}
-                                    {line.tax_rate > 0 && (
-                                      <span> | +{line.tax_rate}% IVA</span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="h-8"></div>
-                            )}
-                          </div>
-                          <div className="flex items-end">
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="small"
-                              onClick={() => removeOrderLine(index)}
-                              className="w-full"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Eliminar
-                            </Button>
-                          </div>
+                        {/* SKU */}
+                        <div>
+                          <input
+                            type="text"
+                            value={line.supplier_sku || ""}
+                            onChange={(e) => updateOrderLine(index, "supplier_sku", e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            placeholder="SKU"
+                          />
                         </div>
-                      </div>
+                        
+                        {/* Cantidad */}
+                        <div>
+                          <input
+                            type="number"
+                            min="1"
+                            value={line.quantity_ordered || 1}
+                            onChange={(e) => updateOrderLine(index, "quantity_ordered", parseInt(e.target.value) || 1)}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            required
+                          />
+                        </div>
+                        
+                        {/* Precio Unit */}
+                        <div>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={line.unit_price || ""}
+                            onChange={(e) => {
+                              const value = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                              updateOrderLine(index, "unit_price", value);
+                              // Limpiar indicador de autocompletado si el usuario modifica manualmente
+                              if (autocompletedPrices[index]) {
+                                const newAutocompleted = { ...autocompletedPrices };
+                                delete newAutocompleted[index];
+                                setAutocompletedPrices(newAutocompleted);
+                              }
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            placeholder="0.00"
+                          />
+                          {autocompletedPrices[index] && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              💡 Precio anterior
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* IVA % */}
+                        <div>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            value={line.tax_rate || 0}
+                            onChange={(e) => updateOrderLine(index, "tax_rate", parseFloat(e.target.value) || 0)}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            placeholder="21"
+                          />
+                        </div>
+                        
+                        {/* Descuento % */}
+                        <div>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            value={line.discount_rate || ""}
+                            onChange={(e) => {
+                              const value = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                              updateOrderLine(index, "discount_rate", value);
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            placeholder="0"
+                          />
+                        </div>
+                        
+                        {/* Total */}
+                        <div className="text-sm font-medium">
+                          {(line.quantity_ordered && line.unit_price) ? (
+                            <div className="text-blue-800">
+                              {formatCurrency(calculateLineTotal(line), "EUR")}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">€0.00</span>
+                          )}
+                        </div>
+                        
+                        {/* Acciones */}
+                        <div>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="small"
+                            onClick={() => removeOrderLine(index)}
+                            className="px-2 py-1 text-xs"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                     </div>
                   ))}
                   

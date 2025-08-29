@@ -619,9 +619,10 @@ const createTransferSupplierAndOrderStep = createStep(
   }
 );
 
-// WORKFLOW PRINCIPAL HÍBRIDO SIMPLIFICADO
+
+
 // @ts-ignore
-export const transferAsOrderWorkflow: any = createWorkflow(
+export const transferAsOrderWorkflow: Workflow<TransferAsOrderInput, WorkflowResponse> = createWorkflow(
   "transfer-as-order",
   function (input: TransferAsOrderInput) {
     // 1. Crear proveedor y pedido en un solo step

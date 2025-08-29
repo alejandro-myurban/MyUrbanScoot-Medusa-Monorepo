@@ -608,6 +608,70 @@ class SupplierManagementModuleService extends MedusaService({
     return await this.listProductSuppliers(filters, options);
   }
 
+  // Crear o actualizar relación ProductSupplier con SKU
+  async syncProductSupplier(data: {
+    product_id: string;
+    supplier_id: string;
+    supplier_sku?: string;
+    unit_price?: number;
+  }): Promise<ProductSupplier> {
+    console.log(`🔗 Sincronizando ProductSupplier:`, JSON.stringify(data, null, 2));
+    
+    try {
+      // Buscar si ya existe una relación para este producto y proveedor
+      const searchCriteria = {
+        product_id: data.product_id,
+        supplier: { id: data.supplier_id }
+      };
+      console.log(`🔍 Buscando ProductSupplier con:`, JSON.stringify(searchCriteria, null, 2));
+      
+      const existingRelations = await this.listProductSuppliers(searchCriteria);
+      console.log(`📦 Encontradas ${existingRelations.length} relaciones existentes`);
+
+      if (existingRelations.length > 0) {
+        // Actualizar la relación existente
+        const existing = existingRelations[0];
+        const updateData: any = {
+          id: existing.id,
+          last_purchase_date: new Date(),
+          last_price_update: new Date(),
+        };
+
+        // Solo actualizar el SKU si se proporciona uno nuevo y es diferente
+        if (data.supplier_sku && data.supplier_sku !== existing.supplier_sku) {
+          updateData.supplier_sku = data.supplier_sku;
+          console.log(`📝 Actualizando SKU de "${existing.supplier_sku}" a "${data.supplier_sku}"`);
+        }
+
+        // Actualizar precio si se proporciona
+        if (data.unit_price) {
+          updateData.cost_price = data.unit_price;
+        }
+
+        //@ts-ignore
+        return await this.updateProductSupplier(updateData);
+      } else {
+        // Crear nueva relación
+        console.log(`✨ Creando nueva relación ProductSupplier`);
+        const createData = {
+          product_id: data.product_id,
+          supplier: { id: data.supplier_id },
+          supplier_sku: data.supplier_sku || null,
+          cost_price: data.unit_price || null,
+          last_purchase_date: new Date(),
+          last_price_update: new Date(),
+          is_active: true,
+        };
+        console.log(`📝 Datos para crear ProductSupplier:`, JSON.stringify(createData, null, 2));
+        
+        return await this.linkProductToSupplier(createData);
+      }
+    } catch (error: any) {
+      console.error(`❌ Error sincronizando ProductSupplier:`, error.message);
+      throw error;
+    }
+  }
+
   // =====================================================
   // MÉTODOS ADICIONALES PARA INVENTORY MOVEMENTS
   // =====================================================
@@ -920,6 +984,70 @@ class SupplierManagementModuleService extends MedusaService({
     }
   }
 
+  // Obtener precios de todos los productos para un proveedor específico
+  async getAllProductPricesForSupplier(supplierId: string): Promise<Record<string, any>> {
+    try {
+      console.log(`📊 Obteniendo precios masivos para proveedor: ${supplierId}`);
+      
+      // Obtener todos los pedidos de este proveedor para extraer productos únicos
+      const orders = await this.listSupplierOrders({ 
+        supplier_id: supplierId 
+      });
+      
+      if (orders.length === 0) {
+        console.log(`⚠️ No hay pedidos previos para proveedor ${supplierId}`);
+        return {};
+      }
+
+      // Obtener todas las líneas de estos pedidos
+      const allLines: any[] = [];
+      for (const order of orders) {
+        const lines = await this.listSupplierOrderLines({
+          supplier_order_id: order.id
+        });
+        allLines.push(...lines);
+      }
+
+      if (allLines.length === 0) {
+        console.log(`⚠️ No hay líneas de pedido para proveedor ${supplierId}`);
+        return {};
+      }
+
+      // Agrupar por product_id y obtener el más reciente de cada uno
+      const productPrices: Record<string, any> = {};
+      
+      for (const line of allLines) {
+        if (!line.product_id) continue; // Saltar líneas sin product_id
+
+        const existingPrice = productPrices[line.product_id];
+        
+        // Si no existe o esta línea es más reciente, actualizar
+        if (!existingPrice || new Date(line.created_at) > new Date(existingPrice.last_order_date)) {
+          // Obtener información del pedido para la fecha
+          const order = orders.find(o => o.id === line.supplier_order_id);
+          
+          productPrices[line.product_id] = {
+            product_id: line.product_id,
+            product_title: line.product_title,
+            last_price: line.unit_price,
+            tax_rate: line.tax_rate || 0,
+            discount_rate: line.discount_rate || 0,
+            last_order_date: order?.order_date || line.created_at,
+            last_order_display_id: order?.display_id,
+            supplier_sku: line.supplier_sku
+          };
+        }
+      }
+
+      console.log(`✅ Precios masivos obtenidos: ${Object.keys(productPrices).length} productos`);
+      return productPrices;
+
+    } catch (error: any) {
+      console.error(`❌ Error obteniendo precios masivos:`, error.message);
+      return {};
+    }
+  }
+
   private async generateOrderDisplayId(orderType: string = "supplier"): Promise<string> {
     // Obtener conteo específico por tipo de pedido
     const orders = await this.listSupplierOrders({ order_type: orderType });
@@ -956,12 +1084,30 @@ class SupplierManagementModuleService extends MedusaService({
     last_price?: number;
     tax_rate?: number;
     discount_rate?: number;
+    supplier_sku?: string;
     last_order_date?: string;
     last_order_display_id?: string;
   } | null> {
     console.log(`🔍 Buscando último precio para producto ${productId} del proveedor ${supplierId}`);
     
     try {
+      // 🆕 PRIMERO: Buscar en ProductSupplier para obtener SKU
+      let supplierSku: string | null = null;
+      try {
+        const productSupplierRelation = await this.listProductSuppliers({
+          product_id: productId,
+          supplier: { id: supplierId }
+        });
+        
+        if (productSupplierRelation.length > 0) {
+          supplierSku = productSupplierRelation[0].supplier_sku;
+          console.log(`✅ SKU encontrado en ProductSupplier: ${supplierSku}`);
+        } else {
+          console.log(`ℹ️ No se encontró relación ProductSupplier para este producto y proveedor`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error buscando en ProductSupplier:`, error.message);
+      }
       // Buscar las líneas de pedidos más recientes para este producto y proveedor
       const lines = await this.listSupplierOrderLines({
         product_id: productId,
@@ -975,17 +1121,51 @@ class SupplierManagementModuleService extends MedusaService({
 
       console.log(`📦 Encontradas ${lines.length} líneas para el producto ${productId}`);
       
-      // Filtrar por proveedor y buscar la más reciente de pedidos confirmados/completados
+      // Depurar: ver todos los pedidos de este producto con este proveedor
+      const allRelevantLines = lines.filter(line => {
+        //@ts-ignore
+        const order = line.supplier_order;
+        return order && order.supplier_id === supplierId;
+      });
+      
+      console.log(`🔍 Líneas de este proveedor encontradas: ${allRelevantLines.length}`);
+      allRelevantLines.forEach((line, index) => {
+        //@ts-ignore
+        const order = line.supplier_order;
+        console.log(`  📋 Línea ${index + 1}:`, {
+          status: order?.status,
+          display_id: order?.display_id,
+          supplier_sku: line.supplier_sku,
+          unit_price: line.unit_price,
+          created_at: order?.created_at
+        });
+      });
+      
+      // Filtrar por proveedor y buscar la más reciente de pedidos confirmados/completados/draft
       const relevantLine = lines.find(line => {
         //@ts-ignore
         const order = line.supplier_order;
         return order && 
                order.supplier_id === supplierId && 
-               ["confirmed", "shipped", "partially_received", "received"].includes(order.status);
+               ["draft", "confirmed", "shipped", "partially_received", "received"].includes(order.status);
       });
 
       if (!relevantLine) {
         console.log(`❌ No se encontró historial de precios para producto ${productId} del proveedor ${supplierId}`);
+        
+        // Si no hay historial de pedidos pero sí hay SKU en ProductSupplier, devolver al menos el SKU
+        if (supplierSku) {
+          console.log(`💡 No hay historial de precios, pero devolviendo SKU de ProductSupplier`);
+          return {
+            supplier_sku: supplierSku,
+            last_price: undefined,
+            tax_rate: undefined,
+            discount_rate: undefined,
+            last_order_date: undefined,
+            last_order_display_id: undefined,
+          };
+        }
+        
         return null;
       }
 
@@ -995,9 +1175,17 @@ class SupplierManagementModuleService extends MedusaService({
         last_price: relevantLine.unit_price,
         tax_rate: relevantLine.tax_rate || 0,
         discount_rate: relevantLine.discount_rate || 0,
+        // Priorizar SKU de ProductSupplier sobre historial de pedidos
+        supplier_sku: supplierSku || relevantLine.supplier_sku || null,
         last_order_date: order.order_date,
         last_order_display_id: order.display_id,
       };
+
+      if (supplierSku) {
+        console.log(`🎯 Usando SKU de ProductSupplier: ${supplierSku}`);
+      } else if (relevantLine.supplier_sku) {
+        console.log(`📋 Usando SKU del historial de pedidos: ${relevantLine.supplier_sku}`);
+      }
 
       console.log(`✅ Último precio encontrado:`, result);
       // @ts-ignore
