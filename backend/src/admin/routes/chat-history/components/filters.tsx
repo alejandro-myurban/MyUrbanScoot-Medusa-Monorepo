@@ -32,11 +32,9 @@ const Filters = ({
 }: Props) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Debounce para no spamear la URL en cada tecla
   const debouncedUserId = useDebounce(searchUserId, 300);
   const debouncedKeyword = useDebounce(searchKeyword, 300);
 
-  // Cargar filtros desde la URL al montar
   useEffect(() => {
     if (searchParams.get("userId")) setSearchUserId(searchParams.get("userId")!);
     if (searchParams.get("date")) setSearchDate(searchParams.get("date")!);
@@ -47,7 +45,6 @@ const Filters = ({
       setFilterStatus(searchParams.get("status") as "TODOS" | "IA" | "AGENTE");
   }, []);
 
-  // Guardar en la URL cuando cambie un filtro
   useEffect(() => {
     const params: Record<string, string> = {};
     if (debouncedUserId) params.userId = debouncedUserId;
@@ -70,54 +67,54 @@ const Filters = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 mb-4 md:flex-row md:items-center md:flex-wrap">
+    <div className="flex flex-col gap-4 mb-4 md:flex-row md:items-center md:flex-wrap animate-fade-in">
       {/* Grupo de filtros de búsqueda (text-based) */}
-      <div className="flex flex-col gap-4 w-full sm:flex-row sm:flex-1">
+      <div className="flex flex-col gap-4 w-full sm:flex-row sm:flex-1 animate-slide-in">
         {/* ID usuario */}
-        <div className="relative flex-1 w-full">
+        <div className="relative flex-1 w-full transform transition-all duration-200 hover:scale-105">
           <Input
             type="text"
             placeholder="Filtrar por número de usuario..."
             value={searchUserId}
             onChange={(e) => setSearchUserId(e.target.value)}
-            className="pl-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+            className="pl-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500 hover:shadow-lg"
           />
-          <Search className="w-4 h-4 absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400" />
+          <Search className="w-4 h-4 absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400 transition-all duration-200 hover:text-blue-500" />
         </div>
 
         {/* Fecha */}
-        <div className="relative flex-1 w-full">
+        <div className="relative flex-1 w-full transform transition-all duration-200 hover:scale-105">
           <Input
             type="date"
             value={searchDate}
             onChange={(e) => setSearchDate(e.target.value)}
-            className="pl-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+            className="pl-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500 hover:shadow-lg"
           />
-          <CalendarDays className="w-4 h-4 absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400" />
+          <CalendarDays className="w-4 h-4 absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400 transition-all duration-200 hover:text-blue-500" />
         </div>
 
         {/* Palabra clave */}
-        <div className="relative flex-1 w-full">
+        <div className="relative flex-1 w-full transform transition-all duration-200 hover:scale-105">
           <Input
             type="text"
             placeholder="Filtrar por palabra clave..."
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
-            className="pl-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+            className="pl-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500 hover:shadow-lg"
           />
-          <Search className="w-4 h-4 absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400" />
+          <Search className="w-4 h-4 absolute top-1/2 left-2 transform -translate-y-1/2 text-gray-400 transition-all duration-200 hover:text-blue-500" />
         </div>
       </div>
 
       {/* Grupo de selectores */}
-      <div className="flex flex-col gap-4 w-full sm:flex-row sm:flex-1">
+      <div className="flex flex-col gap-4 w-full sm:flex-row sm:flex-1 animate-slide-in">
         {/* Departamento */}
         <select
           value={filterDepartment}
           onChange={(e) =>
             setFilterDepartment(e.target.value as "TODOS" | Department)
           }
-          className="flex-1 w-full px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+          className="flex-1 w-full px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 transition-all duration-200 focus:ring-2 focus:ring-blue-500 hover:shadow-lg hover:border-blue-500"
         >
           <option value="TODOS">Todos los departamentos</option>
           <option value="Consultas generales sobre productos">
@@ -137,7 +134,7 @@ const Filters = ({
           onChange={(e) =>
             setFilterStatus(e.target.value as "TODOS" | "IA" | "AGENTE")
           }
-          className="flex-1 w-full px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 transition-all duration-200 focus:ring-2 focus:ring-blue-500"
+          className="flex-1 w-full px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 transition-all duration-200 focus:ring-2 focus:ring-blue-500 hover:shadow-lg hover:border-blue-500"
         >
           <option value="TODOS">Todos los estados</option>
           <option value="AGENTE">Chats en AGENTE</option>
@@ -147,10 +144,10 @@ const Filters = ({
         {/* Botón limpiar filtros */}
         <button
           onClick={handleClearFilters}
-          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-all duration-200"
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-all duration-200 transform hover:scale-105 hover:shadow-lg"
         >
-          <FilterX className="w-4 h-4" />
-          Limpiar filtros
+          <FilterX className="w-4 h-4 transition-transform duration-200 hover:rotate-90" />
+          <span className="transition-all duration-200">Limpiar filtros</span>
         </button>
       </div>
     </div>

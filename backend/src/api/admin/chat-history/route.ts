@@ -5,7 +5,6 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const history = await chatHistoryService.list(
     {},
     { orderBy: { created_at: "DESC" } }
-    // No necesitas pasar manager aquí
   )
   res.json({ history })
 }

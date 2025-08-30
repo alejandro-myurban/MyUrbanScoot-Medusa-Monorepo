@@ -6,7 +6,7 @@ import { cleanUserId } from "../utils/chat-helpers";
 import { departmentColors } from "../utils/department";
 
 type Props = {
-  paginatedChats: { latestMessage: ChatMessage; departments: Department[] }[];
+  paginatedChats: { latestMessage: ChatMessage; departments: Department[]; autoDepartment: Department }[];
   grouped: Record<string, ChatMessage[]>;
   handleRowClick: (userId: string) => void;
   page: number;
@@ -31,58 +31,40 @@ const ChatTable = ({
   const [unreadChats, setUnreadChats] = useState<string[]>([]);
   const allDepartments = Object.keys(departmentColors) as Department[];
 
-  // ✅ cargar desde localStorage
   useEffect(() => {
     const saved = localStorage.getItem("readChats");
     if (saved) {
       const parsedSaved = JSON.parse(saved);
       setReadChats(parsedSaved);
-      console.log("✅ useEffect: Chats leídos cargados desde localStorage:", parsedSaved);
-    } else {
-      console.log("⚠️ useEffect: No se encontraron chats leídos en localStorage.");
     }
   }, []);
 
-  // ✅ guardar en localStorage cuando cambie
   useEffect(() => {
     localStorage.setItem("readChats", JSON.stringify(readChats));
-    console.log("💾 useEffect: Guardando chats leídos en localStorage:", readChats);
   }, [readChats]);
 
   const getUnreadChats = () => {
-    const unread = paginatedChats
+    return paginatedChats
       .filter(({ latestMessage }) => {
         if (latestMessage.status !== "AGENTE") return false;
-
         const messages = grouped[latestMessage.user_id] || [];
-        const lastAgentMessage = [...messages]
+        const lastAgentMessage = messages
           .filter((msg) => msg.role === "assistant" && msg.status === "AGENTE")
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-
         const pendingMessages = messages.filter(
           (msg) =>
             msg.role === "user" &&
             (!lastAgentMessage || new Date(msg.created_at) > new Date(lastAgentMessage.created_at))
         );
-        
-        const isUnread = pendingMessages.length > 0;
-        if(isUnread) {
-          console.log(`🔍 getUnreadChats: El chat ${latestMessage.user_id} tiene ${pendingMessages.length} mensajes pendientes.`);
-        }
-        return isUnread;
+        return pendingMessages.length > 0;
       })
       .map(({ latestMessage }) => latestMessage.user_id);
-    
-    console.log("📊 getUnreadChats: Lista total de chats no leídos (sin filtrar por `readChats`):", unread);
-    return unread;
   };
 
-  // ✅ recalcular no leídos
   useEffect(() => {
     const currentUnread = getUnreadChats();
     const activeUnread = currentUnread.filter((id) => !readChats.includes(id));
     setUnreadChats(activeUnread);
-    console.log("🔄 useEffect: Chats no leídos (después de filtrar `readChats`):", activeUnread);
   }, [paginatedChats, grouped, readChats]);
 
   const handleAssignClick = (e: React.MouseEvent, userId: string, dept: Department) => {
@@ -96,150 +78,154 @@ const ChatTable = ({
     onRemoveDepartment(userId, dept);
   };
 
-  // ✅ marcar como leído al clickear el badge
   const handleBadgeClick = (e: React.MouseEvent, userId: string) => {
     e.stopPropagation();
-    console.log("🔵 handleBadgeClick: Marcando el chat como leído al clickear la badge:", userId);
     setReadChats((prev) => [...new Set([...prev, userId])]);
   };
 
-  // ✅ marcar como leído al abrir el chat
   const handleOpenChat = (userId: string) => {
-    console.log("🟢 handleOpenChat: Marcando el chat como leído al abrirlo:", userId);
     setReadChats((prev) => [...new Set([...prev, userId])]);
     handleRowClick(userId);
   };
 
   return (
-    <div className="w-full">
-      <div className="divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
-        {paginatedChats.length > 0 ? (
-          paginatedChats.map(({ latestMessage, departments }) => {
-            const messages = grouped[latestMessage.user_id] || [];
-            const lastAgentMessage = [...messages]
-              .filter((msg) => msg.role === "assistant" && msg.status === "AGENTE")
-              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    <div className="w-full animate-fade-in">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm transition-all duration-400 hover:shadow-md overflow-hidden">
+        <div className="divide-y divide-gray-200 dark:divide-gray-800">
+          {paginatedChats.length > 0 ? (
+            paginatedChats.map(({ latestMessage, departments, autoDepartment }, index) => {
+              const messages = grouped[latestMessage.user_id] || [];
+              const lastAgentMessage = messages
+                .filter((msg) => msg.role === "assistant" && msg.status === "AGENTE")
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+              const pendingMessages = messages.filter(
+                (msg) =>
+                  msg.role === "user" &&
+                  (!lastAgentMessage || new Date(msg.created_at) > new Date(lastAgentMessage.created_at))
+              );
+              const unreadCount = pendingMessages.length;
+              const isUnread = unreadChats.includes(latestMessage.user_id);
+              const lastUserMessage = messages
+                .filter((msg) => msg.role === "user")
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+              const needsAgentAttentionInConversation =
+                lastUserMessage?.message.toUpperCase().includes("ASISTENCIA PERSONAL") &&
+                latestMessage.status !== "AGENTE";
+              const formattedDate = new Date(latestMessage.created_at).toLocaleString("es-ES", {
+                year: "numeric",
+                month: "numeric",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              });
+              const userDisplay = latestMessage.profile_name
+                ? `${latestMessage.profile_name} - ${cleanUserId(latestMessage.user_id)}`
+                : cleanUserId(latestMessage.user_id);
 
-            const pendingMessages = messages.filter(
-              (msg) =>
-                msg.role === "user" &&
-                (!lastAgentMessage || new Date(msg.created_at) > new Date(lastAgentMessage.created_at))
-            );
+              const allAssignedDepartments = [...new Set([autoDepartment, ...departments])];
+              const remainingDepartments = allDepartments.filter(d => !allAssignedDepartments.includes(d));
 
-            const unreadCount = pendingMessages.length;
-            const isUnread = unreadChats.includes(latestMessage.user_id);
-            console.log(`🔄 Renderizado: Chat ${latestMessage.user_id} - ¿Es no leído? ${isUnread} (Conteo de mensajes pendientes: ${unreadCount})`);
-
-            const lastUserMessage = messages
-              .filter((msg) => msg.role === "user")
-              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-
-            const needsAgentAttentionInConversation =
-              lastUserMessage &&
-              lastUserMessage.message.toUpperCase().includes("ASISTENCIA PERSONAL") &&
-              latestMessage.status !== "AGENTE";
-
-            const formattedDate = new Date(latestMessage.created_at).toLocaleString("es-ES", {
-              year: "numeric",
-              month: "numeric",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            });
-
-            const userDisplay = latestMessage.profile_name
-              ? `${latestMessage.profile_name} - ${cleanUserId(latestMessage.user_id)}`
-              : cleanUserId(latestMessage.user_id);
-
-            const uniqueDepartments = [...new Set(departments)];
-
-            return (
-              <div
-                key={latestMessage.user_id}
-                className={`relative flex flex-col sm:flex-row sm:items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                  needsAgentAttentionInConversation ? "bg-yellow-50 dark:bg-yellow-900/20" : ""
-                }`}
-                onClick={() => handleOpenChat(latestMessage.user_id)}
-              >
-                <div className="relative flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold">
-                    <User className="w-6 h-6" />
-                  </div>
-                  {isUnread && unreadCount > 0 && (
-                    <span
-                      onClick={(e) => handleBadgeClick(e, latestMessage.user_id)}
-                      className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full cursor-pointer transition-transform duration-200 hover:scale-110"
-                    >
-                      {unreadCount}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-1">
-                    <Text className="font-semibold truncate pr-2">{userDisplay}</Text>
-                    <Text size="small" className="text-gray-400 flex-shrink-0">
-                      {formattedDate}
-                    </Text>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
-                    <Text className="text-sm text-gray-600 dark:text-gray-300 truncate">
-                      {latestMessage.message}
-                    </Text>
-                    {needsAgentAttentionInConversation && (
-                      <AlertTriangle className="w-4 h-4 text-orange-500 ml-2 flex-shrink-0" />
+              return (
+                <div
+                  key={latestMessage.user_id}
+                  className={`relative flex flex-col sm:flex-row sm:items-center gap-3 p-4 cursor-pointer transition-all duration-400 transform hover:scale-[1.005] z-10 ${
+                    needsAgentAttentionInConversation ? "bg-yellow-50 dark:bg-yellow-900/20" : ""
+                  } ${
+                    dropdownOpen === latestMessage.user_id ? "z-20" : ""
+                  }`}
+                  style={{ animationDelay: `${index * 0.02}s` }}
+                  onClick={() => handleOpenChat(latestMessage.user_id)}
+                >
+                  <div className="relative flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold transition-all duration-400 hover:scale-105">
+                      <User className="w-6 h-6" />
+                    </div>
+                    {isUnread && unreadCount > 0 && (
+                      <span
+                        onClick={(e) => handleBadgeClick(e, latestMessage.user_id)}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full cursor-pointer transition-all duration-400 hover:scale-105 animate-pulse-slow"
+                      >
+                        {unreadCount}
+                      </span>
                     )}
                   </div>
-
-                  <div className="flex gap-2 mt-1 flex-wrap items-center">
-                    <Badge size="small" color={latestMessage.status === "IA" ? "blue" : "purple"}>
-                      {latestMessage.status}
-                    </Badge>
-
-                    {uniqueDepartments.map((dept) => (
-                      <Badge
-                        key={dept}
-                        size="small"
-                        color={departmentColors[dept]}
-                        className="flex items-center gap-1"
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1">
+                      <Text className="font-semibold truncate pr-2 transition-all duration-400 hover:text-blue-500">{userDisplay}</Text>
+                      <Text size="small" className="text-gray-400 flex-shrink-0 transition-all duration-400 hover:text-gray-600">
+                        {formattedDate}
+                      </Text>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+                      <Text className="text-sm text-gray-600 dark:text-gray-300 truncate transition-all duration-400 hover:text-gray-800 dark:hover:text-gray-100">
+                        {latestMessage.message}
+                      </Text>
+                      {needsAgentAttentionInConversation && (
+                        <AlertTriangle className="w-4 h-4 text-orange-500 ml-2 flex-shrink-0 animate-pulse-slow" />
+                      )}
+                    </div>
+                    <div className="flex gap-2 mt-1 flex-wrap items-center">
+                      {/* Badge de estado del chat (inmutable) */}
+                      <Badge 
+                        size="small" 
+                        color={latestMessage.status === "IA" ? "blue" : "purple"}
+                        className="transition-all duration-400 hover:scale-[1.03]"
                       >
-                        {dept}
-                        <button
-                          onClick={(e) => handleRemoveClick(e, latestMessage.user_id, dept)}
-                          className="text-gray-400 hover:text-white transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
+                        {latestMessage.status}
                       </Badge>
-                    ))}
+                      
+                      {/* Badges de todos los departamentos (con botón de eliminar) */}
+                      {allAssignedDepartments
+                        .filter((dept) => dept && dept.trim() !== "") // 👈 evita badges vacíos
+                        .map((dept) => {
+                          const isAuto = dept === autoDepartment;
+                          const isDeletable = !isAuto && allAssignedDepartments.length > 1;
 
-                    <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDropdownOpen(dropdownOpen === latestMessage.user_id ? null : latestMessage.user_id);
-                        }}
-                        className="ml-1 text-gray-500 hover:text-gray-700"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                      {dropdownOpen === latestMessage.user_id && (
-                        <div
-                          className="absolute mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20 w-max origin-top-right animate-in fade-in-0 duration-200"
-                          onClick={(e) => e.stopPropagation()}
+                          return (
+                            <Badge
+                              key={dept}
+                              size="small"
+                              color={departmentColors[dept]}
+                              className="flex items-center gap-1 transition-all duration-400 hover:scale-[1.03]"
+                            >
+                              {dept}
+                              {isDeletable && (
+                                <button
+                                  onClick={(e) => handleRemoveClick(e, latestMessage.user_id, dept)}
+                                  className="text-gray-400 hover:text-white transition-all duration-400 hover:rotate-90"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </Badge>
+                          );
+                        })}
+
+                      
+                      <div className="relative z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDropdownOpen(dropdownOpen === latestMessage.user_id ? null : latestMessage.user_id);
+                          }}
+                          className="ml-1 text-gray-500 hover:text-gray-700 transition-all duration-400 hover:rotate-90"
                         >
-                          {allDepartments
-                            .filter((d) => !uniqueDepartments.includes(d))
-                            .map((dept) => (
+                          <Plus className="w-4 h-4" />
+                        </button>
+                        {dropdownOpen === latestMessage.user_id && remainingDepartments.length > 0 && (
+                          <div
+                            className="absolute mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50 w-max origin-top-right animate-in fade-in-0 duration-300"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {remainingDepartments.map((dept) => (
                               <div
                                 key={dept}
-                                className="px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+                                className="px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-all duration-400 hover:scale-[1.03]"
                                 onClick={(e) => handleAssignClick(e, latestMessage.user_id, dept)}
                               >
                                 <span
-                                  className={`w-2 h-2 rounded-full ${
+                                  className={`w-2 h-2 rounded-full transition-all duration-400 hover:scale-110 ${
                                     departmentColors[dept] === "blue"
                                       ? "bg-blue-500"
                                       : departmentColors[dept] === "green"
@@ -254,32 +240,33 @@ const ChatTable = ({
                                 <span>{dept}</span>
                               </div>
                             ))}
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
-        ) : (
-          <div className="flex items-center justify-center h-20">
-            <Text className="text-center text-gray-500">No se encontraron chats con esos filtros.</Text>
-          </div>
-        )}
+              );
+            })
+          ) : (
+            <div className="flex items-center justify-center h-20 animate-fade-in">
+              <Text className="text-center text-gray-500 transition-all duration-400 hover:text-gray-700">No se encontraron chats con esos filtros.</Text>
+            </div>
+          )}
+        </div>
       </div>
-
       {totalPages > 1 && (
-        <div className="flex justify-between items-center mt-4">
+        <div className="flex justify-between items-center mt-4 animate-fade-in-top">
           <Button
             variant="secondary"
             onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
             disabled={page === 0}
             size="small"
+            className="transition-all duration-400 hover:scale-[1.03] disabled:scale-100"
           >
-            <ChevronLeft className="w-4 h-4" /> Anterior
+            <ChevronLeft className="w-4 h-4 transition-transform duration-400 group-hover:-translate-x-1" /> Anterior
           </Button>
-          <Text size="small" className="text-gray-500">
+          <Text size="small" className="text-gray-500 transition-all duration-400 hover:text-gray-700">
             Página {page + 1} de {totalPages}
           </Text>
           <Button
@@ -287,8 +274,9 @@ const ChatTable = ({
             onClick={() => setPage((prev) => Math.min(prev + 1, totalPages - 1))}
             disabled={page === totalPages - 1}
             size="small"
+            className="transition-all duration-400 hover:scale-[1.03] disabled:scale-100"
           >
-            Siguiente <ChevronRight className="w-4 h-4" />
+            Siguiente <ChevronRight className="w-4 h-4 transition-transform duration-400 group-hover:translate-x-1" />
           </Button>
         </div>
       )}

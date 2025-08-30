@@ -34,13 +34,11 @@ const ChatDetailsPage = () => {
   
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
-  // ✅ 1. Usar useQuery para obtener el usuario admin logueado
   const { data: adminUserData } = useQuery({
     queryKey: ["admin-user-me"],
     queryFn: () => sdk.admin.user.me(),
   });
 
-  // ✅ 2. Extraer el nombre completo del usuario logueado
   const loggedInAgentName = useMemo(() => {
     const user = adminUserData?.user;
     if (!user) return "Agente";
@@ -155,7 +153,6 @@ const ChatDetailsPage = () => {
   const handleSendTemplate = async (userId: string, templateId: string) => {
     sendTemplateMutation.mutate({ userId, templateId });
   };
-  
 
   const deleteConversationMutation = useMutation({
     mutationFn: (userId: string) => {
@@ -253,19 +250,23 @@ const ChatDetailsPage = () => {
 
   if (!userid) {
     return (
-      <Container><Text>No se encontró un ID de chat.</Text></Container>
+      <Container className="animate-fade-in"><Text>No se encontró un ID de chat.</Text></Container>
     );
   }
 
   if (isLoading) {
     return (
-      <Container><Heading level="h2">Cargando Chat...</Heading></Container>
+      <Container className="animate-fade-in">
+        <Heading level="h2" className="animate-slide-in">Cargando Chat...</Heading>
+      </Container>
     );
   }
 
   if (error) {
     return (
-      <Container><Text className="text-red-500">Error al cargar el chat.</Text></Container>
+      <Container className="animate-fade-in">
+        <Text className="text-red-500 animate-pulse-slow">Error al cargar el chat.</Text>
+      </Container>
     );
   }
   
@@ -274,18 +275,18 @@ const ChatDetailsPage = () => {
     : "bg-blue-50 dark:bg-blue-950/30";
 
   return (
-    <Container className="flex flex-col h-full">
-      <div className="flex items-center justify-between gap-4 mb-4 flex-wrap sm:flex-nowrap">
+    <Container className="flex flex-col h-full animate-fade-in">
+      <div className="flex items-center justify-between gap-4 mb-4 flex-wrap sm:flex-nowrap animate-slide-in">
         <div className="flex items-center gap-4">
           <Button
             variant="secondary"
             size="small"
             onClick={() => navigate(-1)}
-            className="transition-all duration-200 hover:scale-105 active:scale-95"
+            className="transition-all duration-400 hover:scale-102 active:scale-98"
           >
-            <ChevronLeft className="w-4 h-4" /> Volver
+            <ChevronLeft className="w-4 h-4 transition-transform duration-400 group-hover:-translate-x-1" /> Volver
           </Button>
-          <Heading level="h2" className="truncate">Chat con {cleanUserId(userid)}</Heading>
+          <Heading level="h2" className="truncate transition-all duration-400 hover:text-blue-500">Chat con {cleanUserId(userid)}</Heading>
         </div>
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0">
           <Button
@@ -293,17 +294,20 @@ const ChatDetailsPage = () => {
             size="small"
             onClick={handleDeleteConversation}
             isLoading={deleteConversationMutation.isPending}
-            className="flex items-center gap-1"
+            className="flex items-center gap-1 transition-all duration-400 hover:scale-102"
           >
-            <Trash className="w-4 h-4" /> Eliminar
+            <Trash className="w-4 h-4 transition-transform duration-400 hover:rotate-12" /> Eliminar
           </Button>
-          <Badge color={currentStatus === "IA" ? "blue" : "purple"}>
+          <Badge 
+            color={currentStatus === "IA" ? "blue" : "purple"}
+            className="transition-all duration-400 hover:scale-102"
+          >
             {currentStatus}
           </Badge>
           <select
             value={currentStatus}
             onChange={(e) => updateStatusMutation.mutate(e.target.value as "IA" | "AGENTE")}
-            className="px-2 py-1 rounded-lg border-2 border-gray-200 text-sm transition-all duration-200"
+            className="px-2 py-1 rounded-lg border-2 border-gray-200 text-sm transition-all duration-400 hover:border-blue-500 hover:shadow-md"
           >
             <option value="IA">Modo IA</option>
             <option value="AGENTE">Modo AGENTE</option>
@@ -312,24 +316,26 @@ const ChatDetailsPage = () => {
       </div>
 
       {needsAgentAttention && (
-        <div className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 p-3 mb-4 rounded-lg border border-yellow-300">
-          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-          <Text className="font-semibold text-sm">
+        <div className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 p-3 mb-4 rounded-lg border border-yellow-300 animate-fade-in-up">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0 animate-pulse-slow" />
+          <Text className="font-semibold text-sm transition-all duration-400 hover:text-yellow-900">
             El usuario ha solicitado **ASISTENCIA PERSONAL**.
           </Text>
         </div>
       )}
 
-      <div className={`h-[70vh] overflow-y-auto space-y-4 p-4 border rounded-lg shadow-inner ${chatContainerBg}`}>
+      <div className={`h-[70vh] overflow-y-auto space-y-4 p-4 border rounded-lg shadow-inner ${chatContainerBg} transition-all duration-400 hover:shadow-md`}>
         {userMessages
           .sort(
             (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           )
-          .map((msg) => (
+          .map((msg, index) => (
             <ChatBubble 
               key={msg.id} 
               {...msg} 
-              agent_name={loggedInAgentName} // ✅ Pasa el nombre del agente como una prop
+              agent_name={loggedInAgentName}
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${index * 0.02}s` }}
             />
           ))}
         <div ref={chatEndRef} />
@@ -337,8 +343,8 @@ const ChatDetailsPage = () => {
 
       {currentStatus === "AGENTE" ? (
         <>
-          <div className="p-3 mt-4 bg-yellow-100 border border-yellow-300 rounded-lg text-center text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-900 dark:text-yellow-300">
-            <Text>El bot ha pausado su respuesta. Responde como agente.</Text>
+          <div className="p-3 mt-4 bg-yellow-100 border border-yellow-300 rounded-lg text-center text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-900 dark:text-yellow-300 animate-fade-in-up">
+            <Text className="transition-all duration-400 hover:text-yellow-900">El bot ha pausado su respuesta. Responde como agente.</Text>
           </div>
           <ChatControls
             agentMessage={agentMessage}
@@ -352,17 +358,20 @@ const ChatDetailsPage = () => {
           />
         </>
       ) : (
-        <div className="p-3 mt-4 bg-gray-100 rounded-lg text-center text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-          En modo IA, no se pueden enviar mensajes manuales.
+        <div className="p-3 mt-4 bg-gray-100 rounded-lg text-center text-gray-500 dark:bg-gray-800 dark:text-gray-400 animate-fade-in-up">
+          <Text className="transition-all duration-400 hover:text-gray-700">En modo IA, no se pueden enviar mensajes manuales.</Text>
         </div>
       )}
 
       {isNotificationOpen && (
-        <div className="fixed bottom-4 right-4 z-50 transition-all duration-500 ease-in-out transform translate-y-0 opacity-100">
-          <div className="flex items-center gap-3 rounded-lg bg-green-500 text-white p-4 shadow-xl">
-            <CheckCircle className="w-5 h-5 flex-shrink-0" />
-            <Text className="!text-white font-semibold">¡Template enviado con éxito!</Text>
-            <button onClick={() => setIsNotificationOpen(false)} className="text-white hover:text-gray-200">
+        <div className="fixed bottom-4 right-4 z-50 transition-all duration-500 ease-in-out transform translate-y-0 opacity-100 animate-slide-in-right">
+          <div className="flex items-center gap-3 rounded-lg bg-green-500 text-white p-4 shadow-xl transition-all duration-400 hover:shadow-2xl">
+            <CheckCircle className="w-5 h-5 flex-shrink-0 animate-pulse-slow" />
+            <Text className="!text-white font-semibold transition-all duration-400">¡Template enviado con éxito!</Text>
+            <button 
+              onClick={() => setIsNotificationOpen(false)} 
+              className="text-white hover:text-gray-200 transition-all duration-400 hover:rotate-90"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>

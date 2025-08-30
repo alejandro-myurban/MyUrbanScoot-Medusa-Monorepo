@@ -13,14 +13,11 @@ type ChatMessage = {
   conversation_id?: string;
 };
 
-// ✅ Se renombra la prop 'profile_name' a 'user_profile_name'
-// y se añade la nueva prop 'agent_name'
 type ChatBubbleProps = ChatMessage & {
   user_profile_name?: string;
   agent_name?: string;
 };
 
-// Se actualiza la prop a usar 'agent_name' en lugar de 'profile_name'
 export const ChatBubble = ({ message, role, status, created_at, user_profile_name, agent_name }: ChatBubbleProps) => {
   const isAssistant = role === "assistant";
   const isAgent = isAssistant && status === "AGENTE";
@@ -29,7 +26,6 @@ export const ChatBubble = ({ message, role, status, created_at, user_profile_nam
   let senderLabel = "Usuario";
   let icon = <User className="w-4 h-4 text-white" />;
   
-  // ✅ Lógica corregida para usar 'agent_name'
   if (isAgent) {
     icon = <Crown className="w-4 h-4 text-white" />;
     senderLabel = "Agente";
@@ -70,17 +66,17 @@ export const ChatBubble = ({ message, role, status, created_at, user_profile_nam
 
   return (
     <div
-      className={`flex items-start gap-3 ${
+      className={`flex items-start gap-3 animate-fade-in-up ${
         isAssistant ? "justify-end" : "justify-start"
       }`}
     >
       {!isAssistant && (
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-sm transition-all duration-400 hover:scale-105">
           <User className="w-4 h-4 text-white" />
         </div>
       )}
       <div
-        className={`max-w-[75%] rounded-lg p-3 shadow-md transition-all duration-300 ${
+        className={`max-w-[75%] rounded-lg p-3 shadow-md transition-all duration-400 hover:shadow-lg ${
           isAssistant
             ? "bg-gray-100 dark:bg-gray-700"
             : "bg-blue-500 text-white dark:bg-blue-600"
@@ -89,25 +85,29 @@ export const ChatBubble = ({ message, role, status, created_at, user_profile_nam
         <div className="flex items-center gap-2 mb-1">
           {isAssistant && (
             <div
-              className={`flex-shrink-0 w-6 h-6 rounded-full ${isAgent ? 'bg-purple-500' : 'bg-blue-500'} flex items-center justify-center shadow-sm`}
+              className={`flex-shrink-0 w-6 h-6 rounded-full ${isAgent ? 'bg-purple-500' : 'bg-blue-500'} flex items-center justify-center shadow-sm transition-all duration-400 hover:scale-105`}
             >
               {icon}
             </div>
           )}
-          <Text size="small" className={`font-bold ${isAssistant ? 'text-gray-900 dark:text-gray-100' : 'text-white'}`}>
+          <Text size="small" className={`font-bold transition-all duration-400 hover:text-blue-500 ${isAssistant ? 'text-gray-900 dark:text-gray-100' : 'text-white'}`}>
             {senderLabel}
           </Text>
         </div>
         
         {isOptionsMessage ? (
           <>
-            <Text className="mb-2 whitespace-pre-wrap">{messageLines[0]}</Text>
+            <Text className="mb-2 whitespace-pre-wrap transition-all duration-400 hover:text-gray-700 dark:hover:text-gray-300">{messageLines[0]}</Text>
             <div className="flex flex-col gap-2 mt-2">
               {messageLines.slice(1).map((line, index) => {
                 const optionText = line.trim();
                 if (!optionText) return null;
                 return (
-                  <Button key={index} variant="secondary" className="justify-start text-left w-full">
+                  <Button 
+                    key={index} 
+                    variant="secondary" 
+                    className="justify-start text-left w-full transition-all duration-400 hover:scale-102"
+                  >
                     {optionText}
                   </Button>
                 );
@@ -116,14 +116,19 @@ export const ChatBubble = ({ message, role, status, created_at, user_profile_nam
           </>
         ) : (
           <>
-            {textMessage && <Text className="whitespace-pre-wrap">{textMessage}</Text>}
+            {textMessage && <Text className="whitespace-pre-wrap transition-all duration-400 hover:text-gray-700 dark:hover:text-gray-300">{textMessage}</Text>}
             {isImageMessage && (
-              <div className="flex flex-col items-start gap-2 mt-2">
-                <a href={imageUrl!} target="_blank" rel="noopener noreferrer">
+              <div className="flex flex-col items-start gap-2 mt-2 animate-fade-in">
+                <a 
+                  href={imageUrl!} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="transition-all duration-400 hover:scale-105"
+                >
                   <img 
                     src={imageUrl!} 
                     alt="Imagen compartida en el chat" 
-                    className="max-w-full h-auto rounded-md shadow-md"
+                    className="max-w-full h-auto rounded-md shadow-md transition-all duration-400 hover:shadow-lg"
                     style={{ maxHeight: '250px' }}
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -131,26 +136,26 @@ export const ChatBubble = ({ message, role, status, created_at, user_profile_nam
                     }}
                   />
                 </a>
-                <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                  <ImageIcon className="w-4 h-4" />
+                <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 transition-all duration-400 hover:text-gray-700 dark:hover:text-gray-300">
+                  <ImageIcon className="w-4 h-4 transition-all duration-400 hover:scale-110" />
                   <Text size="small">Imagen enviada</Text>
                 </div>
               </div>
             )}
             {isFileMessage && (
-              <div className="flex flex-col items-start gap-2 mt-2">
+              <div className="flex flex-col items-start gap-2 mt-2 animate-fade-in">
                 <a 
                   href={fileUrl!} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-2 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                  className="flex items-center gap-2 p-2 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 transition-all duration-400 hover:scale-102"
                 >
-                  <FileText className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  <Text size="small" className="font-semibold">{fileUrl!.split('/').pop()}</Text>
-                  <Badge>{fileType}</Badge>
+                  <FileText className="w-5 h-5 text-gray-700 dark:text-gray-300 transition-all duration-400 hover:scale-110" />
+                  <Text size="small" className="font-semibold transition-all duration-400 hover:text-gray-900 dark:hover:text-gray-100">{fileUrl!.split('/').pop()}</Text>
+                  <Badge className="transition-all duration-400 hover:scale-105">{fileType}</Badge>
                 </a>
-                <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                  <Paperclip className="w-4 h-4" />
+                <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 transition-all duration-400 hover:text-gray-700 dark:hover:text-gray-300">
+                  <Paperclip className="w-4 h-4 transition-all duration-400 hover:rotate-45" />
                   <Text size="small">Archivo adjunto</Text>
                 </div>
               </div>
@@ -160,7 +165,7 @@ export const ChatBubble = ({ message, role, status, created_at, user_profile_nam
         
         <Text
           size="xsmall"
-          className={`mt-1 text-right ${
+          className={`mt-1 text-right transition-all duration-400 hover:text-gray-600 dark:hover:text-gray-400 ${
             isAssistant ? "text-gray-400" : "text-white/70"
           }`}
         >
