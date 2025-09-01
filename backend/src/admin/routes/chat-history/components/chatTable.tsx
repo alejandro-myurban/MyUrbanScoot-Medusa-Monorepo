@@ -180,7 +180,7 @@ const ChatTable = ({
                         .filter((dept) => dept && dept.trim() !== "") // 👈 evita badges vacíos
                         .map((dept) => {
                           const isAuto = dept === autoDepartment;
-                          const isDeletable = !isAuto && allAssignedDepartments.length > 1;
+                          const isDeletable = !isAuto && allAssignedDepartments.length > 1 || isAuto;
 
                           return (
                             <Badge
