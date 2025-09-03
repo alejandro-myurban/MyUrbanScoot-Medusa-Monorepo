@@ -91,6 +91,7 @@ export default function StockTransfersPage() {
             const productResponse = await sdk.client.fetch("/admin/products/prod_01JW8Q2AMT137NRGVSZVECKPM3", {
               method: "GET",
             });
+            //@ts-ignore
             thumbnail = productResponse.product?.thumbnail;
             console.log(`🖼️ Thumbnail obtenido:`, thumbnail);
           } catch (error) {

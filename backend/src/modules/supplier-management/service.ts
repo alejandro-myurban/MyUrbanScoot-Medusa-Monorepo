@@ -67,17 +67,55 @@ class SupplierManagementModuleService extends MedusaService({
   // =====================================================
 
   async createSupplierOrder(data: any): Promise<SupplierOrder> {
+    console.log("🔍 Creating supplier order with data:", data);
+    
+    // Extract order_lines from data to handle separately
+    const { order_lines, ...orderData } = data;
+    
     // Generar display_id si no se proporciona
-    if (!data.display_id) {
-      data.display_id = await this.generateOrderDisplayId(data.order_type || "supplier");
+    if (!orderData.display_id) {
+      orderData.display_id = await this.generateOrderDisplayId(orderData.order_type || "supplier");
     }
 
     // Establecer order_date si no se proporciona
-    if (!data.order_date) {
-      data.order_date = new Date();
+    if (!orderData.order_date) {
+      orderData.order_date = new Date();
     }
 
-    return await this.createSupplierOrders(data);
+    // Set initial totals to 0 (will be recalculated after lines are created)
+    orderData.subtotal = 0;
+    orderData.tax_total = 0;
+    orderData.total = 0;
+    orderData.discount_total = 0;
+    orderData.status = orderData.status || "draft";
+    orderData.currency_code = orderData.currency_code || "EUR";
+
+    // Create the order first
+    const order = await this.createSupplierOrders(orderData);
+    console.log("✅ Order created with ID:", order.id);
+
+    // Create order lines if provided
+    if (order_lines && order_lines.length > 0) {
+      console.log(`📦 Creating ${order_lines.length} order lines...`);
+      
+      for (const lineData of order_lines) {
+        const lineWithOrder = {
+          ...lineData,
+          supplier_order_id: order.id,
+        };
+        await this.createSupplierOrderLines(lineWithOrder);
+      }
+      
+      console.log("✅ All order lines created");
+      
+      // Recalculate order totals based on the created lines
+      await this.recalculateOrderTotals(order.id);
+      console.log("✅ Order totals recalculated");
+    }
+
+    // Return the updated order
+    const updatedOrder = await this.getSupplierOrderById(order.id);
+    return updatedOrder || order;
   }
 
   async getSupplierOrderById(id: string): Promise<SupplierOrder | null> {
@@ -91,6 +129,12 @@ class SupplierManagementModuleService extends MedusaService({
     
     // Resolver nombres de usuarios
     try {
+      // Check if container is available
+      if (!this.container_) {
+        console.warn("Container not available, skipping user name resolution");
+        return order;
+      }
+      
       // @ts-ignore
       const userModuleService = this.container_.resolve("userModuleService");
       
@@ -142,10 +186,10 @@ class SupplierManagementModuleService extends MedusaService({
   // Validación de transiciones de estado permitidas
   private validateStatusTransition(currentStatus: string, newStatus: string): boolean {
     const allowedTransitions: Record<string, string[]> = {
-      draft: ['pending', 'cancelled'],
-      pending: ['confirmed', 'cancelled'],
-      confirmed: ['shipped', 'cancelled'],
-      shipped: ['partially_received', 'incident', 'cancelled'],
+      draft: ['pending', 'confirmed', 'received', 'cancelled'],
+      pending: ['confirmed', 'received', 'cancelled'],
+      confirmed: ['shipped', 'received', 'cancelled'],
+      shipped: ['partially_received', 'received', 'incident', 'cancelled'],
       partially_received: ['received', 'incident'],
       received: [], // Estado final, no se puede cambiar
       incident: ['received', 'cancelled'], // Solo se puede resolver o cancelar
@@ -158,10 +202,10 @@ class SupplierManagementModuleService extends MedusaService({
   // Obtener estados válidos siguientes
   getValidNextStatuses(currentStatus: string): string[] {
     const allowedTransitions: Record<string, string[]> = {
-      draft: ['pending', 'cancelled'],
-      pending: ['confirmed', 'cancelled'],
-      confirmed: ['shipped', 'cancelled'],
-      shipped: ['partially_received', 'incident', 'cancelled'],
+      draft: ['pending', 'confirmed', 'received', 'cancelled'],
+      pending: ['confirmed', 'received', 'cancelled'],
+      confirmed: ['shipped', 'received', 'cancelled'],
+      shipped: ['partially_received', 'received', 'incident', 'cancelled'],
       partially_received: ['received', 'incident'],
       received: [], 
       incident: ['received', 'cancelled'],
@@ -248,10 +292,17 @@ class SupplierManagementModuleService extends MedusaService({
     
     if (!order) return;
 
-    // Si hay líneas con incidencia y el pedido no está en incident
-    if (hasIncidentLines && order.status !== 'incident') {
+    // Solo cambiar estado del pedido si NO está en estado final (received, cancelled)
+    const finalStates = ['received', 'cancelled'];
+    
+    // Si hay líneas con incidencia y el pedido no está en incident y no está en estado final
+    if (hasIncidentLines && order.status !== 'incident' && !finalStates.includes(order.status)) {
       console.log(`🚨 Cambiando pedido ${orderId} a estado 'incident' debido a líneas con incidencias`);
       await this.updateSupplierOrderStatus(orderId, 'incident');
+    }
+    // Si el pedido está en estado final, solo loggear pero no cambiar estado
+    else if (hasIncidentLines && finalStates.includes(order.status)) {
+      console.log(`⚠️ Pedido ${orderId} en estado final '${order.status}', manteniendo estado del pedido pero marcando línea con incidencia`);
     }
     // Si no hay líneas con incidencia y el pedido está en incident, podría volver a su estado anterior
     else if (!hasIncidentLines && order.status === 'incident') {
@@ -296,6 +347,7 @@ class SupplierManagementModuleService extends MedusaService({
     switch (status) {
       case "confirmed":
         updateData.confirmed_at = new Date();
+        updateData.shipped_at = new Date(); // Auto-activar enviado cuando se confirma
         break;
       case "shipped":
         updateData.shipped_at = new Date();
@@ -943,27 +995,8 @@ class SupplierManagementModuleService extends MedusaService({
       return; 
     }
     
-    // Determinar el estado objetivo basado en la cantidad recibida
-    const targetStatus = totalQuantityReceived >= totalQuantityOrdered ? "received" : "partially_received";
-    
-    // Manejar transiciones especiales desde estados tempranos
-    if (currentOrder.status === "draft" && totalQuantityReceived > 0) {
-      // Desde draft, avanzar progresivamente: draft → pending → confirmed → shipped → partially_received/received
-      newStatus = "pending";
-    } else if (currentOrder.status === "pending" && totalQuantityReceived > 0) {
-      newStatus = "confirmed";
-    } else if (currentOrder.status === "confirmed" && totalQuantityReceived > 0) {
-      newStatus = "shipped";
-    } else if (currentOrder.status === "shipped") {
-      // Desde shipped, primero ir a partially_received
-      newStatus = "partially_received";
-    } else if (currentOrder.status === "partially_received") {
-      // Desde partially_received podemos ir a received si todo está recibido
-      newStatus = targetStatus;
-    } else {
-      // Para otros estados, usar el estado objetivo si es una transición válida
-      newStatus = targetStatus;
-    }
+    // Si se ha recibido algo, ir directamente a "received" 
+    newStatus = "received";
 
     // Actualizar el estado del pedido si es diferente y es una transición válida
     if (currentOrder.status !== newStatus && this.validateStatusTransition(currentOrder.status, newStatus)) {
@@ -1060,8 +1093,15 @@ class SupplierManagementModuleService extends MedusaService({
   }
 
   private async recalculateOrderTotals(orderId: string): Promise<void> {
+    console.log(`🔢 Recalculating totals for order ${orderId}...`);
+    
     const lines = await this.listSupplierOrderLines({
       supplier_order_id: orderId,
+    });
+    
+    console.log(`📦 Found ${lines.length} lines for total calculation`);
+    lines.forEach((line, index) => {
+      console.log(`   Line ${index + 1}: total_price = ${line.total_price}`);
     });
 
     const subtotal = lines.reduce((sum, line) => sum + line.total_price, 0);
@@ -1069,14 +1109,18 @@ class SupplierManagementModuleService extends MedusaService({
     const taxTotal = 0;
     const total = subtotal + taxTotal;
 
+    console.log(`💰 Calculated totals: subtotal=${subtotal}, tax=${taxTotal}, total=${total}`);
+
     // Usar el método auto-generado singular como financing_data
     //@ts-ignore
-    await this.updateSupplierOrders({
+    const updateResult = await this.updateSupplierOrders({
       id: orderId,
       subtotal,
       tax_total: taxTotal,
       total,
     });
+    
+    console.log(`✅ Order totals updated successfully:`, updateResult);
   }
 
   // Obtener último precio pagado por un producto a un proveedor específico
@@ -1320,6 +1364,125 @@ class SupplierManagementModuleService extends MedusaService({
         ? { id: order.destination_location_id, name: order.destination_location_name || "Ubicación destino" }
         : null
     };
+  }
+
+  // Comparar precios del producto entre todos los proveedores
+  async compareProductPricesAcrossSuppliers(productId: string, currentSupplierId: string): Promise<{
+    cheapest_option?: {
+      supplier_id: string;
+      supplier_name: string;
+      last_price: number;
+      savings: number;
+      last_order_date: string;
+    }
+  }> {
+    console.log(`💰 Comparando precios para producto ${productId}, proveedor actual ${currentSupplierId}`);
+    
+    try {
+      // Obtener último precio del proveedor actual para referencia
+      const currentPriceInfo = await this.getLastPriceForProduct(currentSupplierId, productId);
+      if (!currentPriceInfo?.last_price) {
+        console.log(`ℹ️ No hay precio de referencia del proveedor actual`);
+        return {};
+      }
+
+      const currentPrice = currentPriceInfo.last_price;
+      console.log(`💰 Precio actual de referencia: ${currentPrice}€`);
+
+      // TEMPORALMENTE: Buscar todos los pedidos (sin límite de tiempo para debug)
+      console.log(`🔍 [DEBUG] Buscando TODOS los pedidos de otros proveedores`);
+      console.log(`🚫 Excluyendo proveedor actual: ${currentSupplierId}`);
+
+      const ordersQuery = await this.listSupplierOrders({
+        status: { $in: ["draft", "confirmed", "shipped", "partially_received", "received"] }, // Incluir draft para debug
+        supplier_id: { $ne: currentSupplierId } // Excluir proveedor actual
+      }, {
+        relations: ["supplier"] // ✅ Incluir relación para obtener supplier.name
+      });
+
+      console.log(`📦 Pedidos encontrados para comparar: ${ordersQuery.length}`);
+
+      let cheapestOption: any = null;
+
+      // Buscar en las líneas de todos los pedidos
+      for (const order of ordersQuery) {
+        console.log(`🔍 Revisando pedido ${order.display_id} de proveedor ${order.supplier?.name} (${order.supplier_id})`);
+        console.log(`🔍 [DEBUG] order.supplier:`, order.supplier);
+        console.log(`🔍 [DEBUG] order.supplier_id:`, order.supplier_id);
+        
+        const orderLinesQuery = await this.listSupplierOrderLines({
+          supplier_order_id: order.id,
+          product_id: productId
+        });
+
+        console.log(`📋 Líneas encontradas en pedido ${order.display_id}: ${orderLinesQuery.length}`);
+
+        for (const line of orderLinesQuery) {
+          console.log(`💰 Línea encontrada - Producto: ${line.product_id}, Precio: ${line.unit_price}€`);
+          
+          if (line.unit_price && line.unit_price > 0) {
+            const potentialSavings = currentPrice - line.unit_price;
+            const savingsPercentage = (potentialSavings / currentPrice) * 100;
+
+            console.log(`💡 Comparación - Precio actual: ${currentPrice}€, Precio línea: ${line.unit_price}€, Ahorro: ${potentialSavings.toFixed(2)}€ (${savingsPercentage.toFixed(1)}%)`);
+
+            // TEMPORALMENTE: Solo considerar si hay algún ahorro (para debug)
+            if (potentialSavings > 0) {
+              console.log(`✅ Ahorro significativo detectado!`);
+              if (!cheapestOption || line.unit_price < cheapestOption.last_price) {
+                console.log(`🔍 [DEBUG] INICIANDO búsqueda de proveedor...`);
+                
+                // Buscar el proveedor directamente siempre (la relación no funciona)
+                let supplierName = "Proveedor desconocido";
+                
+                if (order.supplier_id) {
+                  console.log(`🔍 [DEBUG] Buscando proveedor con ID: ${order.supplier_id}`);
+                  try {
+                    const supplier = await this.getSupplierById(order.supplier_id);
+                    console.log(`🔍 [DEBUG] Resultado de getSupplierById:`, supplier);
+                    if (supplier && supplier.name) {
+                      supplierName = supplier.name;
+                      console.log(`✅ [DEBUG] Proveedor encontrado: "${supplierName}"`);
+                    } else {
+                      console.log(`❌ [DEBUG] Proveedor no encontrado o sin nombre`);
+                    }
+                  } catch (error) {
+                    console.error(`❌ [DEBUG] Error obteniendo proveedor:`, error);
+                  }
+                }
+                
+                console.log(`🏆 [DEBUG] Nombre final: "${supplierName}"`);
+                
+                cheapestOption = {
+                  supplier_id: order.supplier_id,
+                  supplier_name: supplierName,
+                  last_price: line.unit_price,
+                  savings: potentialSavings,
+                  last_order_date: order.order_date
+                };
+                console.log(`🏆 Nueva mejor opción: ${cheapestOption.supplier_name} - ${cheapestOption.last_price}€`);
+              }
+            } else {
+              console.log(`❌ No hay ahorro (precio línea >= precio actual)`);
+            }
+          } else {
+            console.log(`❌ Precio de línea inválido: ${line.unit_price}`);
+          }
+        }
+      }
+
+      if (cheapestOption) {
+        console.log(`✅ Opción más barata encontrada: ${cheapestOption.supplier_name} - ${cheapestOption.last_price}€ (Ahorro: ${cheapestOption.savings.toFixed(2)}€)`);
+        return { cheapest_option: cheapestOption };
+      } else {
+        console.log(`ℹ️ No se encontraron opciones más baratas significativas`);
+        return {};
+      }
+
+    } catch (error: any) {
+      console.error(`❌ Error comparando precios entre proveedores:`, error.message);
+      return {};
+    }
   }
 }
 

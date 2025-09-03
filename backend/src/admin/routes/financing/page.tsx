@@ -738,16 +738,17 @@ const FinancingPage = () => {
       (filterByContacted === "contacted" && item.contacted === true) ||
       (filterByContacted === "not_contacted" && item.contacted !== true);
 
-    // Filtro para canceladas/entregadas (por defecto ocultas)
+    // Filtro para canceladas/entregadas/denegadas (por defecto ocultas)
     const status = item.status || "pending";
-    const isCancelledOrDelivered = status === "cancelled" || status === "delivered";
-    const matchesCancelledDeliveredFilter = showCancelledDelivered || !isCancelledOrDelivered;
+    const isCancelledOrDeliveredOrDenied = status === "cancelled" || status === "delivered" || status === "denied";
+    const matchesCancelledDeliveredFilter = showCancelledDelivered || !isCancelledOrDeliveredOrDenied;
 
-    // Filtro por término de búsqueda (teléfono, nombre o número de DNI)
+    // Filtro por término de búsqueda (teléfono, email, nombre o número de DNI)
     let matchesSearch = true;
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
       const phoneMatch = item.phone_mumber.toLowerCase().includes(searchLower);
+      const emailMatch = item.email.toLowerCase().includes(searchLower);
 
       // Buscar en los datos extraídos del DNI
       const dniInfo = extractDniInfo(item);
@@ -756,7 +757,7 @@ const FinancingPage = () => {
       const dniNumberMatch = 
         dniInfo.documentNumber?.toLowerCase().includes(searchLower) || false;
 
-      matchesSearch = phoneMatch || nameMatch || dniNumberMatch;
+      matchesSearch = phoneMatch || emailMatch || nameMatch || dniNumberMatch;
     }
 
     return matchesContract && matchesStatus && matchesContacted && matchesSearch && matchesCancelledDeliveredFilter;
@@ -1786,17 +1787,17 @@ const FinancingPage = () => {
               className="w-4 h-4 text-blue-500 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
             />
             <span className="text-gray-700 dark:text-gray-300">
-              Mostrar canceladas/entregadas
+              Mostrar canceladas/entregadas/denegadas
             </span>
           </label>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por teléfono o DNI"
+              placeholder="Buscar por teléfono, email o DNI"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm min-w-[200px]"
+              className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm min-w-[270px]"
             />
           </div>
           {(filterByContractType || searchTerm || filterByStatus || filterByContacted || showCancelledDelivered) && (
@@ -1821,7 +1822,7 @@ const FinancingPage = () => {
         {paginatedFinancing.length === 0 && filteredFinancing.length === 0 ? (
           <Text className="text-gray-500">
             {filterByContractType || searchTerm || filterByStatus || filterByContacted || !showCancelledDelivered
-              ? `No se encontraron solicitudes que coincidan con los filtros aplicados${!showCancelledDelivered ? ' (canceladas/entregadas ocultas)' : ''}`
+              ? `No se encontraron solicitudes que coincidan con los filtros aplicados${!showCancelledDelivered ? ' (canceladas/entregadas/denegadas ocultas)' : ''}`
               : `No hay solicitudes de financiación todavía`}
           </Text>
         ) : (

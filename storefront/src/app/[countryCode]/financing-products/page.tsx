@@ -1172,9 +1172,10 @@ export default function FinancingPage() {
                         required
                         value={formData.phone_mumber}
                         onChange={handleInputChange}
-                        onBlur={handlePhoneBlur}
+                        onBlur={handlePhoneBlur}  
                         placeholder="+34 600 000 000"
                       />
+                      <p className="pt-2 text-gray-400">Por favor, comprueba que <span className="underline font-bold text-black/90">tu número de teléfono sea correcto</span> para que podamos comunicarnos contigo.</p>
                       {/* Estado de validación del teléfono */}
                       {formData.phone_mumber && formData.phone_mumber.trim().length >= 1 && (
                         <div className="mt-2">
