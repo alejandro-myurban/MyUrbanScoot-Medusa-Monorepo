@@ -44,9 +44,10 @@ type FinancingData = {
 
 type Props = {
   userId: string; 
+  onBadgeClick?: () => void; // ← Prop opcional
 };
 
-const FinancingVisualization = ({ userId }: Props) => {
+const FinancingVisualization = ({ userId, onBadgeClick }: Props) => {
   const [userFinancing, setUserFinancing] = useState<FinancingData | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const navigate = useNavigate(); 
@@ -163,12 +164,15 @@ const FinancingVisualization = ({ userId }: Props) => {
         return status;
     }
   };
-
-  const handleBadgeClick = () => {
-    if (userFinancing) {
-      navigate(`/financing?id=${userFinancing.id}`);
-    }
-  };
+    const handleBadgeClick = () => {
+        if (userFinancing) {
+            if (onBadgeClick) {
+                onBadgeClick();
+            } else {
+                navigate(`/financing?id=${userFinancing.id}`);
+            }
+        }
+    };
 
   console.log(`✅ [FinancingVisualization] Renderizando badge para usuario ${userId} - Financiación: ${userFinancing.status}`);
 
@@ -193,6 +197,7 @@ const FinancingVisualization = ({ userId }: Props) => {
         💳 Financiación: {getStatusText(userFinancing.status)}
         {userFinancing.contacted && ' ✓'}
       </Badge>
+
     </div>
   );
 };
