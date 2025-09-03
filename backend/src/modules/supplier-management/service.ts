@@ -130,13 +130,13 @@ class SupplierManagementModuleService extends MedusaService({
     // Resolver nombres de usuarios
     try {
       // Check if container is available
-      if (!this.container_) {
+      if (!this.container) {
         console.warn("Container not available, skipping user name resolution");
         return order;
       }
       
       // @ts-ignore
-      const userModuleService = this.container_.resolve("userModuleService");
+      const userModuleService = this.container.resolve("userModuleService");
       
       // Resolver created_by (solo si parece ser un ID)
       if (order.created_by) {
@@ -1006,9 +1006,9 @@ class SupplierManagementModuleService extends MedusaService({
       // Si hemos hecho una transición desde estados tempranos y aún no hemos llegado al objetivo final,
       // hacer transiciones adicionales progresivamente
       const updatedOrder = await this.getSupplierOrderById(orderId);
-      if (updatedOrder && updatedOrder.status !== targetStatus) {
+      if (updatedOrder && updatedOrder.status !== newStatus) {
         // Llamar recursivamente para continuar las transiciones
-        console.log(`🔄 Continuando transiciones hacia ${targetStatus}`);
+        console.log(`🔄 Continuando transiciones hacia ${newStatus}`);
         setTimeout(() => this.updateOrderStatusBasedOnLines(orderId, userId), 100);
         setTimeout(async () => {
           await this.updateSupplierOrderStatus(orderId, "received", userId);

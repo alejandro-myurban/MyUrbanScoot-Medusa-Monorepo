@@ -61,7 +61,15 @@ export const POST = async (
       notes,
       created_by,
       order_lines
-    } = req.body;
+    } = req.body as {
+      supplier_id: string;
+      expected_delivery_date?: string;
+      destination_location_id?: string;
+      reference?: string;
+      notes?: string;
+      created_by?: string;
+      order_lines?: any[];
+    };
 
     // Create the supplier order
     const order = await supplierService.createSupplierOrder({
