@@ -2,6 +2,7 @@ import { Container, Heading, Table, Badge, Text, Button } from "@medusajs/ui";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { defineRouteConfig } from "@medusajs/admin-sdk";
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Eye,
   Download,
@@ -55,6 +56,8 @@ type FinancingData = {
 };
 
 const FinancingPage = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedRequest, setSelectedRequest] = useState<FinancingData | null>(
     null
   );
@@ -82,6 +85,31 @@ const FinancingPage = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [filterByContractType, searchTerm, filterByStatus, filterByContacted, showCancelledDelivered]);
+
+  // Revisar URL parameters para abrir solicitud específica
+  useEffect(() => {
+    const requestId = searchParams.get('id');
+    if (requestId && !selectedRequest) {
+      // Si hay un ID en la URL, buscar y abrir esa solicitud
+      loadSpecificRequest(requestId);
+    }
+  }, [searchParams]);
+
+  const loadSpecificRequest = async (requestId: string) => {
+    try {
+      const response = await sdk.client.fetch(`/admin/financing-data/${requestId}`, {
+        method: "GET",
+      });
+      
+      if (response && response.data) {
+        setSelectedRequest(response.data);
+        // Opcional: limpiar el parámetro de la URL después de cargar
+        // setSearchParams({});
+      }
+    } catch (error) {
+      console.error("Error cargando solicitud específica:", error);
+    }
+  };
 
   // Cargar las notas cuando se selecciona una solicitud
   useEffect(() => {
@@ -778,7 +806,10 @@ const FinancingPage = () => {
             <Button
               variant="secondary"
               size="small"
-              onClick={() => setSelectedRequest(null)}
+              onClick={() => {
+                setSelectedRequest(null);
+                setSearchParams({});
+              }}
             >
               ← Volver
             </Button>
@@ -1977,7 +2008,11 @@ const FinancingPage = () => {
                         <Button
                           variant="secondary"
                           size="small"
-                          onClick={() => setSelectedRequest(item)}
+                          onClick={() => {
+                            setSearchParams({ id: item.id });
+                            setSelectedRequest(item);
+                          }}
+                          title="Ver solicitud (URL compartible)"
                         >
                           <Eye className="w-4 h-4" />
                           Ver
