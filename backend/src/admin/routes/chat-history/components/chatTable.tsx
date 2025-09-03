@@ -1,6 +1,6 @@
 import { Text, Badge, Button } from "@medusajs/ui";
 import { AlertTriangle, ChevronLeft, ChevronRight, User, Plus, X } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ChatMessage, Department } from "../types/chat";
 import { cleanUserId } from "../utils/chat-helpers";
 import { departmentColors } from "../utils/department";
@@ -28,25 +28,35 @@ const ChatTable = ({
 }: Props) => {
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const [readChats, setReadChats] = useState<string[]>([]);
-  const [unreadChats, setUnreadChats] = useState<string[]>([]);
   const allDepartments = Object.keys(departmentColors) as Department[];
+  const prevUnreadCountRef = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    // 1. Cargar chats leídos del localStorage
     const saved = localStorage.getItem("readChats");
     if (saved) {
-      const parsedSaved = JSON.parse(saved);
-      setReadChats(parsedSaved);
+      setReadChats(JSON.parse(saved));
     }
+
+    // 2. Deshabilitado: Solicitar permiso para notificaciones
+    // if ("Notification" in window && Notification.permission !== "denied") {
+    //   Notification.requestPermission();
+    // }
   }, []);
 
   useEffect(() => {
+    // Sincronizar chats leídos con localStorage
     localStorage.setItem("readChats", JSON.stringify(readChats));
   }, [readChats]);
 
-  const getUnreadChats = () => {
+  // Se mueve la lógica de unreadChats a un useMemo para optimizar
+  const unreadChats = React.useMemo(() => {
     return paginatedChats
       .filter(({ latestMessage }) => {
+        // Solo notifica chats en modo 'AGENTE'
         if (latestMessage.status !== "AGENTE") return false;
+
         const messages = grouped[latestMessage.user_id] || [];
         const lastAgentMessage = messages
           .filter((msg) => msg.role === "assistant" && msg.status === "AGENTE")
@@ -58,14 +68,53 @@ const ChatTable = ({
         );
         return pendingMessages.length > 0;
       })
-      .map(({ latestMessage }) => latestMessage.user_id);
-  };
-
-  useEffect(() => {
-    const currentUnread = getUnreadChats();
-    const activeUnread = currentUnread.filter((id) => !readChats.includes(id));
-    setUnreadChats(activeUnread);
+      .map(({ latestMessage }) => latestMessage.user_id)
+      .filter((id) => !readChats.includes(id));
   }, [paginatedChats, grouped, readChats]);
+
+  // Deshabilitado: useEffect para manejar las notificaciones y el sonido
+  // useEffect(() => {
+  //   if (unreadChats.length > prevUnreadCountRef.current && unreadChats.length > 0) {
+  //     // Si hay chats nuevos sin leer, emite la notificación y el sonido
+  //     const newChatId = unreadChats.find(id => !readChats.includes(id));
+  //     if (newChatId) {
+  //       const chat = paginatedChats.find(c => c.latestMessage.user_id === newChatId);
+  //       if (chat) {
+  //         showNotification(chat.latestMessage.profile_name || cleanUserId(chat.latestMessage.user_id), chat.latestMessage.message);
+  //       }
+  //     }
+  //     playSound();
+  //   }
+  //   prevUnreadCountRef.current = unreadChats.length;
+  // }, [unreadChats, paginatedChats, readChats]);
+
+  // Deshabilitado: Inicializar el objeto de audio una sola vez
+  // useEffect(() => {
+  //   audioRef.current = new Audio("../../../../../public/notification.mp3");
+  //   audioRef.current.preload = "auto";
+  // }, []);
+
+  // Deshabilitado: Funciones para manejar sonido y notificaciones
+  // const playSound = () => {
+  //   if (audioRef.current) {
+  //     audioRef.current.play().catch((err) => {
+  //       console.error("⚠️ Error al reproducir el sonido:", err);
+  //     });
+  //   }
+  // };
+
+  // const showNotification = (title: string, body: string) => {
+  //   if ("Notification" in window && Notification.permission === "granted") {
+  //     const notification = new Notification(`Nuevo mensaje de ${title}`, {
+  //       body: body,
+  //       icon: "/logo.png", // Asegúrate de tener una imagen de logo en la carpeta `public`
+  //     });
+  //     notification.onclick = () => {
+  //       window.focus();
+  //       handleRowClick(unreadChats[0]); // Abre el primer chat no leído
+  //     };
+  //   }
+  // };
 
   const handleAssignClick = (e: React.MouseEvent, userId: string, dept: Department) => {
     e.stopPropagation();
@@ -131,9 +180,7 @@ const ChatTable = ({
                   key={latestMessage.user_id}
                   className={`relative flex flex-col sm:flex-row sm:items-center gap-3 p-4 cursor-pointer transition-all duration-400 transform hover:scale-[1.005] z-10 ${
                     needsAgentAttentionInConversation ? "bg-yellow-50 dark:bg-yellow-900/20" : ""
-                  } ${
-                    dropdownOpen === latestMessage.user_id ? "z-20" : ""
-                  }`}
+                  } ${dropdownOpen === latestMessage.user_id ? "z-20" : ""}`}
                   style={{ animationDelay: `${index * 0.02}s` }}
                   onClick={() => handleOpenChat(latestMessage.user_id)}
                 >
@@ -166,21 +213,18 @@ const ChatTable = ({
                       )}
                     </div>
                     <div className="flex gap-2 mt-1 flex-wrap items-center">
-                      {/* Badge de estado del chat (inmutable) */}
-                      <Badge 
-                        size="small" 
+                      <Badge
+                        size="small"
                         color={latestMessage.status === "IA" ? "blue" : "purple"}
                         className="transition-all duration-400 hover:scale-[1.03]"
                       >
                         {latestMessage.status}
                       </Badge>
-                      
-                      {/* Badges de todos los departamentos (con botón de eliminar) */}
                       {allAssignedDepartments
-                        .filter((dept) => dept && dept.trim() !== "") // 👈 evita badges vacíos
+                        .filter((dept) => dept && dept.trim() !== "")
                         .map((dept) => {
                           const isAuto = dept === autoDepartment;
-                          const isDeletable = !isAuto && allAssignedDepartments.length > 1 || isAuto;
+                          const isDeletable = !isAuto || allAssignedDepartments.length > 1;
 
                           return (
                             <Badge
@@ -201,8 +245,6 @@ const ChatTable = ({
                             </Badge>
                           );
                         })}
-
-                      
                       <div className="relative z-10">
                         <button
                           onClick={(e) => {
