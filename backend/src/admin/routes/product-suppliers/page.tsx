@@ -307,10 +307,6 @@ const ProductSuppliersPage = () => {
     );
   }
 
-  const relations: ProductSupplier[] = relationsData?.product_suppliers || [];
-  const suppliers: Supplier[] = suppliersData?.suppliers || [];
-  const products: any[] = productsData?.products || [];
-
   // Función para obtener el nombre del producto por ID
   const getProductName = (productId: string) => {
     const product = products.find(p => p.id === productId);
