@@ -2,6 +2,7 @@ import { Container, Heading, Table, Badge, Text, Button } from "@medusajs/ui";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { defineRouteConfig } from "@medusajs/admin-sdk";
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Eye,
   Download,
@@ -55,6 +56,8 @@ type FinancingData = {
 };
 
 const FinancingPage = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedRequest, setSelectedRequest] = useState<FinancingData | null>(
     null
   );
@@ -78,6 +81,46 @@ const FinancingPage = () => {
     setShowExtractedData(false);
   }, [selectedRequest?.id]);
 
+  // Reset página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterByContractType, searchTerm, filterByStatus, filterByContacted, showCancelledDelivered]);
+
+  // Revisar URL parameters para abrir solicitud específica
+  useEffect(() => {
+    const requestId = searchParams.get('id');
+    if (requestId && !selectedRequest) {
+      // Si hay un ID en la URL, buscar y abrir esa solicitud
+      loadSpecificRequest(requestId);
+    }
+  }, [searchParams]);
+
+  const loadSpecificRequest = async (requestId: string) => {
+    try {
+      const response = await sdk.client.fetch(`/admin/financing-data/${requestId}`, {
+        method: "GET",
+      });
+      
+      //@ts-ignore
+      if (response && response.data) {
+      //@ts-ignore
+
+        setSelectedRequest(response.data);
+        // Opcional: limpiar el parámetro de la URL después de cargar
+        // setSearchParams({});
+      }
+    } catch (error) {
+      console.error("Error cargando solicitud específica:", error);
+    }
+  };
+
+  // Cargar las notas cuando se selecciona una solicitud
+  useEffect(() => {
+    if (selectedRequest) {
+      setAdminNotes(selectedRequest.admin_notes || "");
+    }
+  }, [selectedRequest]);
+
   const {
     data: financingData,
     isLoading,
@@ -92,6 +135,18 @@ const FinancingPage = () => {
       return response as { financing_data: FinancingData[] };
     },
   });
+
+  // Sincronizar selectedRequest cuando se actualizan los datos
+  useEffect(() => {
+    if (selectedRequest && financingData?.financing_data) {
+      const updatedRequest = financingData.financing_data.find(
+        item => item.id === selectedRequest.id
+      );
+      if (updatedRequest) {
+        setSelectedRequest(updatedRequest);
+      }
+    }
+  }, [financingData?.financing_data]);
 
   const downloadAllDocuments = async (request: FinancingData) => {
     console.log("🍎 Iniciando descarga en:", navigator.platform || "Plataforma desconocida");
@@ -635,24 +690,6 @@ const FinancingPage = () => {
     }
   };
 
-  // Cargar las notas cuando se selecciona una solicitud
-  useEffect(() => {
-    if (selectedRequest) {
-      setAdminNotes(selectedRequest.admin_notes || "");
-    }
-  }, [selectedRequest]);
-
-  // Sincronizar selectedRequest cuando se actualizan los datos
-  useEffect(() => {
-    if (selectedRequest && financingData?.financing_data) {
-      const updatedRequest = financingData.financing_data.find(
-        item => item.id === selectedRequest.id
-      );
-      if (updatedRequest) {
-        setSelectedRequest(updatedRequest);
-      }
-    }
-  }, [financingData?.financing_data]);
 
   const hasDocuments = (request: FinancingData) => {
     let count = 0;
@@ -732,16 +769,17 @@ const FinancingPage = () => {
       (filterByContacted === "contacted" && item.contacted === true) ||
       (filterByContacted === "not_contacted" && item.contacted !== true);
 
-    // Filtro para canceladas/entregadas (por defecto ocultas)
+    // Filtro para canceladas/entregadas/denegadas (por defecto ocultas)
     const status = item.status || "pending";
-    const isCancelledOrDelivered = status === "cancelled" || status === "delivered";
-    const matchesCancelledDeliveredFilter = showCancelledDelivered || !isCancelledOrDelivered;
+    const isCancelledOrDeliveredOrDenied = status === "cancelled" || status === "delivered" || status === "denied";
+    const matchesCancelledDeliveredFilter = showCancelledDelivered || !isCancelledOrDeliveredOrDenied;
 
-    // Filtro por término de búsqueda (teléfono, nombre o número de DNI)
+    // Filtro por término de búsqueda (teléfono, email, nombre o número de DNI)
     let matchesSearch = true;
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
       const phoneMatch = item.phone_mumber.toLowerCase().includes(searchLower);
+      const emailMatch = item.email.toLowerCase().includes(searchLower);
 
       // Buscar en los datos extraídos del DNI
       const dniInfo = extractDniInfo(item);
@@ -750,7 +788,7 @@ const FinancingPage = () => {
       const dniNumberMatch = 
         dniInfo.documentNumber?.toLowerCase().includes(searchLower) || false;
 
-      matchesSearch = phoneMatch || nameMatch || dniNumberMatch;
+      matchesSearch = phoneMatch || emailMatch || nameMatch || dniNumberMatch;
     }
 
     return matchesContract && matchesStatus && matchesContacted && matchesSearch && matchesCancelledDeliveredFilter;
@@ -762,10 +800,6 @@ const FinancingPage = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedFinancing = filteredFinancing.slice(startIndex, endIndex);
 
-  // Reset página cuando cambian los filtros
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filterByContractType, searchTerm, filterByStatus, filterByContacted, showCancelledDelivered]);
 
   if (selectedRequest) {
     return (
@@ -775,7 +809,10 @@ const FinancingPage = () => {
             <Button
               variant="secondary"
               size="small"
-              onClick={() => setSelectedRequest(null)}
+              onClick={() => {
+                setSelectedRequest(null);
+                setSearchParams({});
+              }}
             >
               ← Volver
             </Button>
@@ -1784,17 +1821,17 @@ const FinancingPage = () => {
               className="w-4 h-4 text-blue-500 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
             />
             <span className="text-gray-700 dark:text-gray-300">
-              Mostrar canceladas/entregadas
+              Mostrar canceladas/entregadas/denegadas
             </span>
           </label>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por teléfono o DNI"
+              placeholder="Buscar por teléfono, email o DNI"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm min-w-[200px]"
+              className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm min-w-[270px]"
             />
           </div>
           {(filterByContractType || searchTerm || filterByStatus || filterByContacted || showCancelledDelivered) && (
@@ -1819,7 +1856,7 @@ const FinancingPage = () => {
         {paginatedFinancing.length === 0 && filteredFinancing.length === 0 ? (
           <Text className="text-gray-500">
             {filterByContractType || searchTerm || filterByStatus || filterByContacted || !showCancelledDelivered
-              ? `No se encontraron solicitudes que coincidan con los filtros aplicados${!showCancelledDelivered ? ' (canceladas/entregadas ocultas)' : ''}`
+              ? `No se encontraron solicitudes que coincidan con los filtros aplicados${!showCancelledDelivered ? ' (canceladas/entregadas/denegadas ocultas)' : ''}`
               : `No hay solicitudes de financiación todavía`}
           </Text>
         ) : (
@@ -1974,7 +2011,11 @@ const FinancingPage = () => {
                         <Button
                           variant="secondary"
                           size="small"
-                          onClick={() => setSelectedRequest(item)}
+                          onClick={() => {
+                            setSearchParams({ id: item.id });
+                            setSelectedRequest(item);
+                          }}
+                          title="Ver solicitud (URL compartible)"
                         >
                           <Eye className="w-4 h-4" />
                           Ver
