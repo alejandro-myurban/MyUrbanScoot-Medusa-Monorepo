@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@medusajs/ui";
 import { Edit3, Check, X, Loader2, Copy } from "lucide-react";
 
-type FieldType = 'text' | 'email' | 'textarea' | 'select' | 'date' | 'boolean' | 'readonly' | 'json-object';
+type FieldType = 'text' | 'email' | 'textarea' | 'select' | 'date' | 'boolean' | 'readonly' | 'json-object' | 'tel';
 
 interface EditableFieldProps {
   label: string;
@@ -337,7 +337,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
               </button>
             )}
             {/* Botón de editar - solo si no está deshabilitado */}
-            {!disabled && type !== 'readonly' && (
+            {!disabled && (
               <button
                 onClick={handleEdit}
                 className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
