@@ -162,9 +162,13 @@ export default async function PaginatedProducts({
         className="grid grid-cols-1 xsmall:grid-cols-2 msmall:grid-cols-2  w-full -z-20 small:grid-cols-2 medium:grid-cols-3 gap-x-6 gap-y-8"
         data-testid="products-list"
       >
-        {paginatedProducts.map((p) => (
+        {paginatedProducts.map((p, index) => (
           <li key={p.id}>
-            <ProductPreview product={p} region={region} />
+            <ProductPreview 
+              product={p} 
+              region={region} 
+              priority={index < 6} // Las primeras 6 imágenes tienen prioridad
+            />
           </li>
         ))}
       </ul>

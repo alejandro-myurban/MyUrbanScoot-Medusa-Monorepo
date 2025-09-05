@@ -1,4 +1,4 @@
-'use client'
+"use client"
 import { HttpTypes } from "@medusajs/types"
 import { Heading, Text } from "@medusajs/ui"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
@@ -74,21 +74,16 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
           typeof amount === "number" && !isNaN(amount)
       ) ?? []
 
-  // 2. Calcular precio mínimo y máximo (en la misma unidad).
+  // 2. Calcular precio mínimo y máximo (convertir de céntimos a euros si es necesario).
   const minAmount = rawPrices.length > 0 ? Math.min(...rawPrices) : 0
   const maxAmount = rawPrices.length > 0 ? Math.max(...rawPrices) : 0
-
-  // 3. Convertir a “euros” (aquí asumimos que calculated_amount ya está en la unidad final;
-  //    si viene en céntimos, habría que dividir entre 100).
-  const minPrice = minAmount.toFixed(2)
-  const maxPrice = maxAmount.toFixed(2)
 
   const priceText =
     rawPrices.length === 0
       ? "Precio no disponible"
       : minAmount === maxAmount
-      ? `${minPrice} €`
-      : `${minPrice} € - ${maxPrice} €`
+      ? `${minAmount.toFixed(2)} €`
+      : `${minAmount.toFixed(2)} € - ${maxAmount.toFixed(2)} €`
 
   return (
     <div id="product-info">

@@ -12,6 +12,7 @@ type ThumbnailProps = {
   isFeatured?: boolean
   className?: string
   "data-testid"?: string
+  priority?: boolean // Nueva prop para controlar prioridad de carga
 }
 
 const Thumbnail: React.FC<ThumbnailProps> = ({
@@ -21,6 +22,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
   isFeatured,
   className,
   "data-testid": dataTestid,
+  priority = false,
 }) => {
   const initialImage = thumbnail || images?.[0]?.url
 
@@ -43,7 +45,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       )}
       data-testid={dataTestid}
     >
-      <ImageOrPlaceholder image={initialImage} size={size} />
+      <ImageOrPlaceholder image={initialImage} size={size} priority={priority} />
     </Container>
   )
 }
@@ -51,15 +53,17 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
 const ImageOrPlaceholder = ({
   image,
   size,
-}: Pick<ThumbnailProps, "size"> & { image?: string }) => {
+  priority = false,
+}: Pick<ThumbnailProps, "size"> & { image?: string; priority?: boolean }) => {
   return image ? (
     <Image
       src={image}
       alt="Thumbnail"
       className="absolute inset-0 object-cover object-center"
       draggable={false}
-      quality={75} // Aumenté la calidad de 50 a 75
-      sizes="(max-width: 576px) 380px, (max-width: 768px) 500px, (max-width: 992px) 650px, 1000px" // Ajusté para los nuevos tamaños más grandes
+      quality={85} // Aumenté la calidad de 75 a 85 para mejor nitidez
+      sizes="(max-width: 576px) 380px, (max-width: 768px) 500px, (max-width: 992px) 650px, 1000px"
+      priority={priority} // Prioridad para imágenes above-the-fold
       fill
     />
   ) : (

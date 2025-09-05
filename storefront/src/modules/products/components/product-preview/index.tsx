@@ -14,11 +14,13 @@ export default async function ProductPreview({
   isFeatured,
   region,
   discount,
+  priority = false,
 }: {
   product: HttpTypes.StoreProduct
   isFeatured?: boolean
   region: HttpTypes.StoreRegion
   discount?: string | number
+  priority?: boolean
 }) {
   const [pricedProduct] = await getProductsById({
     ids: [product.id!],
@@ -117,7 +119,8 @@ export default async function ProductPreview({
             images={product.images}
             size="full"
             isFeatured={isFeatured}
-            className="!p-0 !bg-gray-50 !rounded-none" 
+            className="!p-0 !bg-gray-50 !rounded-none"
+            priority={priority} // Pasa la prioridad al thumbnail
           />
 
           {/* Contenido de la tarjeta */}
