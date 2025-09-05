@@ -4,8 +4,10 @@ import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faPhone, faBook, faCheckCircle, faTimes } from "@fortawesome/free-solid-svg-icons";
 import LocalizedClientLink from "@modules/common/components/localized-client-link";
+import { useTranslation } from "react-i18next";
 
 const CTACards: React.FC = () => {
+  const { t } = useTranslation();
   const phoneNumber = "+312312412";
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
@@ -17,8 +19,8 @@ const CTACards: React.FC = () => {
     el.select();
     document.execCommand('copy');
     document.body.removeChild(el);
-    
-    setModalMessage('¡Número copiado al portapapeles!');
+
+    setModalMessage(t('cta.modal.message'));
     setShowModal(true);
   };
 
@@ -38,16 +40,16 @@ const CTACards: React.FC = () => {
           />
         </div>
         <h3 className="text-xl font-semibold font-archivoBlack text-gray-800 mb-2 uppercase transition-colors duration-300 group-hover:text-gray-500">
-          Contactar al soporte
+          {t("cta.support.title")}
         </h3>
         <p className="text-gray-600 font-archivo mb-4 transition-colors duration-300 group-hover:text-gray-700">
-          ¿No encuentras lo que buscas?
+          {t("cta.support.description")}
         </p>
         <LocalizedClientLink
           href="/contact"
           className="bg-gray-800 font-archivo text-white px-6 py-2 rounded-full transition-colors duration-300"
         >
-          Enviar Mensaje
+          {t("cta.support.button")}
         </LocalizedClientLink>
       </div>
 
@@ -60,10 +62,10 @@ const CTACards: React.FC = () => {
           />
         </div>
         <h3 className="text-xl font-semibold font-archivoBlack uppercase text-gray-800 mb-2 transition-colors duration-300 group-hover:text-gray-500">
-          Llamar Ahora
+          {t("cta.call.title")}
         </h3>
         <p className="text-gray-600 font-archivo mb-4 transition-colors duration-300 group-hover:text-gray-700">
-          Habla directamente con nosotros
+          {t("cta.call.description")}
         </p>
         <button
           onClick={copyToClipboard}
@@ -82,16 +84,16 @@ const CTACards: React.FC = () => {
           />
         </div>
         <h3 className="text-xl font-semibold font-archivoBlack uppercase text-gray-800 mb-2 transition-colors duration-300 group-hover:text-gray-500">
-          Guías y Tutoriales
+          {t("cta.guides.title")}
         </h3>
         <p className="text-gray-600 font-archivo mb-4 transition-colors duration-300 group-hover:text-gray-700">
-          Aprende paso a paso
+          {t("cta.guides.description")}
         </p>
         <LocalizedClientLink
           href="/guides"
           className="bg-gray-800 font-archivo text-white px-6 py-2 rounded-full transition-colors duration-300"
         >
-          Ver Guías
+          {t("cta.guides.button")}
         </LocalizedClientLink>
       </div>
 
@@ -113,7 +115,7 @@ const CTACards: React.FC = () => {
               onClick={closeModal}
               className="bg-mysGreen-100 text-gray-900 px-6 py-2 rounded-full hover:bg-mysGreen-200 transition-all duration-200 transform hover:scale-105"
             >
-              Cerrar
+              {t("cta.modal.close")}
             </button>
           </div>
         </div>

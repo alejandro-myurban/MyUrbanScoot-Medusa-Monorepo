@@ -84,5 +84,203 @@
     "register_link": "Non hai un account?",
     "register_button": "Registrati",
     "google": "Accedi con Google"
+  },
+    "contact_page": {
+    "title": "Contattaci",
+    "subtitle": "Hai domande sui nostri monopattini elettrici? Siamo qui per aiutarti.",
+    "unknown_error": "Si è verificato un errore sconosciuto durante l'invio del messaggio."
+  },
+  "submission_status": {
+    "loading_message": "Invio del tuo messaggio...",
+    "success_title": "Messaggio inviato! 🎉",
+    "success_message": "Grazie per averci contattato. Ti risponderemo a breve.",
+    "error_title": "Errore durante l'invio del messaggio",
+    "retry_button": "Riprova"
+  },
+  "contact_form": {
+    "title": "INVIACI UN MESSAGGIO",
+    "full_name_label": "Nome completo",
+    "email_label": "Email",
+    "subject_label": "Oggetto",
+    "phone_label": "Telefono",
+    "message_placeholder": "Scrivi qui il tuo messaggio...",
+    "sending_button": "Invio in corso...",
+    "send_button": "Invia"
+  },
+  "contact_info": {
+    "title": "INFORMAZIONI DI CONTATTO",
+    "address_label": "Indirizzo",
+    "phone_label": "Telefono",
+    "email_label": "Email",
+    "hours_label": "Orari"
+  },
+    "stores_map": {
+    "loading_error_title": "Errore nel caricamento delle mappe",
+    "loading_error_message": "Per favore, controlla la tua connessione e riprova.",
+    "main_title": "I nostri negozi",
+    "main_subtitle": "Vieni a trovarci in una delle nostre sedi. Ogni negozio ha esperti che ti aiuteranno a trovare il monopattino perfetto.",
+    "call_button": "Chiamare",
+    "info_title": "Non trovi quello che cerchi?",
+    "info_message": "Contatta uno dei nostri negozi e ti aiuteremo a trovare il monopattino elettrico che meglio si adatta alle tue esigenze.",
+    "stores_status_open": "Tutti i negozi aperti",
+    "stores_status_advice": "Consulenza gratuita",
+    "stores_status_test_drives": "Prove in loco"
+  },
+    "hero": {
+    "title": "Centro assistenza",
+    "subtitle": "Trova risposte rapide alle tue domande più frequenti",
+    "searchPlaceholder": "Cerca la tua domanda qui..."
+  },
+  "cta": {
+    "support": {
+      "title": "Contatta il supporto",
+      "description": "Non trovi quello che cerchi?",
+      "button": "Invia messaggio"
+    },
+    "call": {
+      "title": "Chiama ora",
+      "description": "Parla direttamente con noi"
+    },
+    "guides": {
+      "title": "Guide e tutorial",
+      "description": "Impara passo dopo passo",
+      "button": "Vedi le guide"
+    },
+    "modal": {
+      "message": "Numero copiato negli appunti!",
+      "close": "Chiudi"
+    }
+  },
+  "sidebar": {
+    "categories": {
+      "title": "Categorie"
+    },
+    "popular": {
+      "title": "Più popolari"
+    },
+    "filter": "Filtri",
+    "allCategories": "Tutte"
+  },
+  "faqs": {
+    "title": "Tutte le domande",
+    "loading": "Caricamento...",
+    "resultsCount_one": "{{count}} domanda trovata",
+    "resultsCount_other": "{{count}} domande trovate",
+    "noResults": "Nessuna domanda trovata per la tua ricerca.",
+    "error": "Errore: {{message}}",
+    "loadingMessage": "Caricamento delle domande frequenti..."
+  },
+    "blog": {
+    "header": {
+      "title": "Il Nostro Blog",
+      "titleHighlight": "Blog",
+      "subtitle": "Scopri i migliori consigli, tutorial e recensioni sui monopattini elettrici"
+    },
+    "search": {
+      "placeholder": "Cerca articoli...",
+      "noResultsTitle": "Nessun articolo trovato",
+      "noResultsText": "Prova a modificare la ricerca o i filtri"
+    },
+    "filters": {
+      "allCategories": "Tutte le categorie",
+      "categoryLabel": "Categoria",
+      "filterLabel": "Filtro"
+    },
+    "posts": {
+      "allArticles": "Tutti gli articoli",
+      "featured": "In evidenza",
+      "featuredTitle": "Articoli principali",
+      "readTime": "{{minutes}} min",
+      "readMore": "Leggi di più",
+      "noCategory": "Nessuna categoria",
+      "authorDefault": "MyUrbanScoot",
+      "resultsCount_one": "{{count}} articolo trovato",
+      "resultsCount_other": "{{count}} articoli trovati"
+    }
+  },
+  "filters": {
+    "dgt": {
+      "title": "Omologazione DGT",
+      "options": {
+        "dgt": "DGT",
+        "noDgt": "NO DGT"
+      }
+    },
+    "motorType": {
+      "title": "Tipo di motore",
+      "options": {
+        "single": "single",
+        "dual": "dual"
+      }
+    },
+    "hydraulicBrakes": {
+      "title": "Freni idraulici",
+      "options": {
+        "yes": "Sì",
+        "no": "No"
+      }
+    },
+    "tireSizes": {
+      "title": "Dimensione pneumatico"
+    },
+    "gripTypes": {
+      "title": "Tipo di impugnatura"
+    },
+    "tireTypes": {
+      "title": "Tipo di pneumatico"
+    },
+    "autonomy": {
+      "title": "Autonomia (km)",
+      "label": "Autonomia (km)"
+    },
+    "power": {
+      "title": "Potenza motore (W)",
+      "label": "Potenza motore (W)"
+    },
+    "voltage": {
+      "title": "Voltaggio batteria (V)",
+      "label": "Voltaggio batteria (V)"
+    },
+    "weight": {
+      "title": "Peso (kg)",
+      "label": "Peso (kg)"
+    },
+    "speed": {
+      "title": "Velocità massima (km/h)",
+      "label": "Velocità massima (km/h)"
+    }
+  },
+  "confirmation": {
+    "title_processing": "Conferma del pagamento",
+    "title_success": "Conferma riuscita!",
+    "title_error": "Errore di conferma",
+    "processing_message": "Stiamo elaborando la conferma del tuo pagamento...",
+    "success_message": "Pagamento confermato con successo! Il tuo ordine è in fase di elaborazione.",
+    "error_no_token": "Token non fornito",
+    "error_generic": "Si è verificato un errore durante la conferma del pagamento",
+    "error_server_communication": "Si è verificato un errore durante la comunicazione con il server",
+    "back_to_shop_button": "Torna al negozio",
+    "contact_support_button": "Contatta l'assistenza"
+  },
+  "ProductInfo": {
+    "compatibleModels": "MODELLI COMPATIBILI",
+    "viewDetails": "VEDI DETTAGLI",
+    "shippingAndReturns": "SPEDIZIONE E RESI",
+    "shippingInformation": "Informazioni sulla spedizione",
+    "freeShipping": "Spedizione gratuita per ordini superiori a 50€",
+    "deliveryTime": "Consegna in 24-48h",
+    "freeReturns": "Resi gratuiti fino a 30 giorni",
+    "warranty": "2 anni di garanzia",
+    "priceNotAvailable": "Prezzo non disponibile",
+    "singlePrice": "€ {price}",
+    "priceRange": "€ {minPrice} - € {maxPrice}"
+  },
+  "SortProducts": {
+    "filterBy": "Ordina per",
+    "latestArrivals": "Ultimi arrivi",
+    "lowestPrice": "Prezzo più basso",
+    "highestPrice": "Prezzo più alto"
   }
+
+
 }

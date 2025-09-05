@@ -1,151 +1,91 @@
-// src/api/whatsapp.ts
-
-import OpenAI from "openai";
-import twilio from "twilio";
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
+import ChatHistoryService from "modules/chat-history/service";
+import { TwilioService } from "./services/twilio.service";
+import { OpenAIService } from "./services/openai.service";
+import { WhatsAppService } from "./services/whatsapp.service";
+import { TwilioWebhookBody } from "./types";
 
-// Mapa simple para asociar usuarios con sus threads de conversación
-const userThreads: Record<string, string> = {};
+// Instancias de servicios para manejar las comunicaciones
+const twilioService = new TwilioService();
+const openaiService = new OpenAIService();
+const whatsappService = new WhatsAppService(twilioService, openaiService);
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+// Funciones exportadas para enviar mensajes de WhatsApp
+export const sendWhatsApp = (to: string, body: string, mediaUrl?: string) => 
+    whatsappService.sendMessage(to, body, mediaUrl);
 
-const assistantId = "asst_WHExxIFiHSzghOVeFvJmuON5";
+export const sendWhatsAppTemplate = (to: string, templateName: string, fallbackMessage: string) => 
+    whatsappService.sendTemplate(to, templateName, fallbackMessage);
 
-// Inicializar el cliente de Twilio para enviar respuestas más tarde
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-// CORRECCIÓN 1: Usar el nombre de la variable de entorno correcto que tenías
-const twilioNumber = process.env.TWILIO_NUMBER;
-
-const twilioClient = twilio(accountSid, authToken);
-
-type TwilioRequestBody = {
-  Body: string;
-  From: string;
-};
-
-// Esta es la nueva función asíncrona que contendrá toda la lógica de OpenAI.
-// La llamaremos después de responder a Twilio.
-const processWhatsAppMessage = async (
-  userId: string,
-  incomingMsg: string
-) => {
-  let threadId = userThreads[userId];
-
-  try {
-    if (!threadId) {
-      const thread = await openai.beta.threads.create();
-      threadId = thread.id;
-      userThreads[userId] = threadId;
-      console.log(`➕ Creando nuevo thread para ${userId}: ${threadId}`);
-    } else {
-      console.log(`🔗 Usando thread existente para ${userId}: ${threadId}`);
-    }
-
-    await openai.beta.threads.messages.create(threadId, {
-      role: "user",
-      content: incomingMsg,
-    });
-    console.log(`💬 Mensaje añadido al thread: "${incomingMsg}"`);
-
-    const productKeywords = ['vinilo', 'repuesto', 'batería', 'recambio', 'producto', 'rueda'];
-    const shouldForceFileSearch = productKeywords.some(keyword => incomingMsg.includes(keyword));
-
-    let runOptions: OpenAI.Beta.Threads.Runs.RunCreateParams = {
-      assistant_id: assistantId,
-    };
-
-    if (shouldForceFileSearch) {
-      runOptions.tool_choice = { type: 'file_search' };
-      console.log("🔎 Forzando el uso de la herramienta 'file_search' para la búsqueda de productos.");
-    }
-
-    let run = await openai.beta.threads.runs.create(threadId, runOptions);
-    console.log("🤖 Ejecutando asistente...");
-
-    while (run.status !== "completed") {
-      if (run.status === "failed") {
-        const errorMessage = run.last_error?.message || "Error desconocido";
-        throw new Error(`❌ Run fallido: ${errorMessage}`);
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      run = await openai.beta.threads.runs.retrieve(run.id, {
-        thread_id: threadId,
-      });
-    }
-
-    console.log("✅ Run completado.");
-
-    const messages = await openai.beta.threads.messages.list(threadId, {
-      order: "desc",
-      limit: 1,
-    });
-
-    let aiMessage = "Lo siento, no pude encontrar una respuesta.";
-    const lastMessage = messages.data[0];
-
-    if (lastMessage && lastMessage.content?.[0]?.type === "text") {
-      aiMessage = lastMessage.content[0].text.value;
-    }
-
-    console.log("➡️ Enviando respuesta de OpenAI a Twilio REST API.");
-
-    // CORRECCIÓN 2: Asegurarse de que el número de origen tenga el prefijo 'whatsapp:'
-    await twilioClient.messages.create({
-      to: userId,
-      from: 'whatsapp:' + twilioNumber,
-      body: aiMessage,
-    });
-  } catch (err) {
-    console.error("❌ ERROR en proceso asíncrono:", err);
-    // En caso de error, es buena práctica notificar al usuario.
-    // También puedes borrar el thread si el error es grave.
-    // El prefijo 'whatsapp:' también es necesario aquí.
-    await twilioClient.messages.create({
-      to: userId,
-      from: 'whatsapp:' + twilioNumber,
-      body: "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, inténtalo de nuevo más tarde.",
-    });
-  }
-};
-
-// --- EL ENDPOINT PRINCIPAL AHORA RESPONDE RÁPIDO ---
+// Handler principal para el webhook de Twilio
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
-  console.log("📩 Llega POST a /whatsapp");
+    try {
+        console.log("Incoming Twilio Webhook Body:", req.body);
+        
+        // Validación inicial del cuerpo del webhook
+        if (!req.body || typeof req.body !== "object" || !("From" in req.body) || typeof req.body.From !== "string") {
+            console.warn("⚠️ [VALIDACIÓN] Cuerpo inválido o faltan campos obligatorios");
+            return res.status(400).send("<Response></Response>");
+        }
 
-  // Verificación de la solicitud, igual que antes.
-  try {
-    if (
-      !req.body ||
-      typeof req.body !== "object" ||
-      !("Body" in req.body) ||
-      !("From" in req.body) ||
-      typeof req.body.Body !== "string" ||
-      typeof req.body.From !== "string"
-    ) {
-      return res.status(400).send({
-        code: "invalid_request",
-        message: "Cuerpo de la solicitud no válido o faltan campos obligatorios.",
-      });
-    }
+        // Extracción de datos del mensaje
+        const { Body, From, NumMedia, MediaUrl0, ProfileName } = req.body as TwilioWebhookBody;
+        const userId = From;
+        const incomingMsg = Body ? Body.trim() : "";
+        const numMedia = parseInt(NumMedia || "0", 10);
+        const mediaUrl = numMedia > 0 ? MediaUrl0 : null;
+        
+        // Obtención de servicios y preparación de datos
+        const chatService = req.scope.resolve("chat_history") as ChatHistoryService;
+        const profileNameReceived = ProfileName || null;
+        const profileName = profileNameReceived || userId.replace("whatsapp:", "");
 
-    const { Body, From } = req.body as TwilioRequestBody;
-    const userId = From;
-    const incomingMsg = Body.trim().toLowerCase();
+        // Formateo del mensaje para guardar en el historial
+        let messageToSave;
+        if (incomingMsg.length > 0 && numMedia > 0) messageToSave = `${incomingMsg} [Imagen] - ${mediaUrl}`;
+        else if (numMedia > 0) messageToSave = `[Imagen] - ${mediaUrl}`;
+        else if (incomingMsg.length > 0) messageToSave = incomingMsg;
 
-    // Llama a la función de procesamiento, pero no la espera.
-    processWhatsAppMessage(userId, incomingMsg);
+        // Guardar mensaje del usuario en el historial
+        if (messageToSave) {
+            await chatService.saveMessage({
+                user_id: userId,
+                message: messageToSave,
+                role: "user",
+                status: await chatService.getConversationStatus(userId),
+                profile_name: profileName,
+            });
+        }
 
-    // Envía una respuesta inmediata a Twilio para evitar el timeout.
-    return res.status(200).send('<Response></Response>');
-  } catch (err) {
-    console.error("❌ ERROR en el webhook:", err);
-    // Devuelve un 500 para indicar que el webhook ha fallado
-    return res.status(500).send('<Response></Response>');
-  }
+        // Manejo de solicitudes de asistencia personal o mensajes con imágenes
+        const isPersonalAssistanceRequest = incomingMsg.toUpperCase().includes("ASISTENCIA PERSONAL");
+        if (numMedia > 0 || isPersonalAssistanceRequest) {
+            console.log(`💬 Mensaje de ${profileName} (${userId}) contiene una imagen o solicitud de AGENTE. Cambiando a modo AGENTE.`);
+            const confirmationMessage = "Gracias por tu mensaje. Un miembro de nuestro equipo de soporte se pondrá en contacto contigo en breve para ayudarte.";
+            await sendWhatsApp(userId, confirmationMessage);
+            await chatService.saveMessage({
+                user_id: userId,
+                message: confirmationMessage,
+                role: "assistant",
+                status: "AGENTE",
+                profile_name: "MyUrbanScoot Bot",
+            });
+            await chatService.updateConversationStatus(userId, "AGENTE");
+            return res.status(200).send("<Response></Response>");
+        }
+
+        // Procesamiento del mensaje según el modo de conversación
+        if (await chatService.getConversationStatus(userId) === "IA" || !await chatService.getConversationStatus(userId)) {
+            console.log(`💬 Mensaje de ${profileName} (${userId}) en modo IA. Procesando con el asistente de OpenAI.`);
+            await whatsappService.processMessage(userId, incomingMsg, chatService, mediaUrl);
+        } else {
+            console.log(`💬 Mensaje de ${profileName} (${userId}) en modo ${await chatService.getConversationStatus(userId)}. No se procesa con IA.`);
+        }
+
+        return res.status(200).send("<Response></Response>");
+    } catch (err: any) {
+        // Manejo de errores
+        console.error("❌ [ERROR] Ocurrió un error en el webhook:", err.message || err);
+        return res.status(500).send("<Response></Response>");
+    }
 };

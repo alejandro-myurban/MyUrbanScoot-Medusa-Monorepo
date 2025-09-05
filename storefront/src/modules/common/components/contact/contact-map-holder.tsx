@@ -9,6 +9,7 @@ import {
   faClock,
   faDirections,
 } from "@fortawesome/free-solid-svg-icons"
+import i18n from "@/i18n/config"
 
 const containerStyle = {
   width: "100%",
@@ -51,7 +52,7 @@ const stores = [
   {
     id: 4,
     name: "Murcia",
-    address: "Salón Ignacio, C. Virgen de la Esperanza, 5,  Murcia", 
+    address: "Salón Ignacio, C. Virgen de la Esperanza, 5,  Murcia",
     city: "30008, Murcia",
     coords: { lat: 37.99102696939283, lng: -1.1335271584618638 },
     phone: "+34 963 901 234",
@@ -172,7 +173,7 @@ const StoreMap: React.FC<StoreMapProps> = ({ store }) => {
           onClick={() => window.open(`tel:${store.phone}`, "_self")}
           className="w-full bg-black/80 text-white py-2 px-4 rounded-lg transition-all duration-200 uppercase font-bold font-archivoBlack hover:bg-gray-800 transform hover:scale-[1.02] active:scale-[0.98]"
         >
-          Llamar
+          {i18n.t("stores_map.call_button")}
         </button>
       </div>
     </div>
@@ -189,10 +190,10 @@ const StoresMapGrid: React.FC = () => {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 text-lg font-medium mb-2">
-          Error al cargar los mapas
+          {i18n.t("stores_map.loading_error_title")}
         </div>
         <p className="text-gray-600">
-          Por favor, verifica tu conexión e inténtalo de nuevo.
+          {i18n.t("stores_map.loading_error_message")}
         </p>
       </div>
     )
@@ -224,12 +225,10 @@ const StoresMapGrid: React.FC = () => {
       {/* Header Section */}
       <div className="text-center space-y-4">
         <h2 className="text-3xl font-bold font-archivoBlack uppercase text-gray-800">
-          Nuestras Tiendas
+          {i18n.t("stores_map.main_title")}
         </h2>
         <p className="text-gray-600 font-archivo max-w-2xl mx-auto">
-          Visítanos en cualquiera de nuestras ubicaciones. Cada
-          tienda cuenta con expertos que te ayudarán a encontrar el patinete
-          perfecto.
+          {i18n.t("stores_map.main_subtitle")}
         </p>
       </div>
 
@@ -243,24 +242,23 @@ const StoresMapGrid: React.FC = () => {
       {/* Info adicional */}
       <div className="bg-gray-50 rounded-2xl p-6 text-center">
         <h3 className="text-xl font-bold font-archivoBlack text-gray-800 mb-2">
-          ¿No encuentras lo que buscas?
+          {i18n.t("stores_map.info_title")}
         </h3>
         <p className="text-gray-600 font-archivo mb-4">
-          Contacta con cualquiera de nuestras tiendas y te ayudaremos a
-          encontrar el patinete eléctrico que mejor se adapte a tus necesidades.
+          {i18n.t("stores_map.info_message")}
         </p>
         <div className="flex flex-wrap justify-center gap-4">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-            Todas las tiendas abiertas
+            {i18n.t("stores_map.stores_status_open")}
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-            Asesoramiento gratuito
+            {i18n.t("stores_map.stores_status_advice")}
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-            Pruebas in-situ
+            {i18n.t("stores_map.stores_status_test_drives")}
           </div>
         </div>
       </div>

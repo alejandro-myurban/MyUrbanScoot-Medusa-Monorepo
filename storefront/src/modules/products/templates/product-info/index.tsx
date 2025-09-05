@@ -1,45 +1,51 @@
-"use client"
-import { HttpTypes } from "@medusajs/types"
-import { Heading, Text } from "@medusajs/ui"
-import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import { ProductAverageReview } from "@modules/product-reviews/components/ProductAverageReview"
-import ReviewButton from "@modules/product-reviews/components/ReviewButton"
-import Accordion from "@modules/products/components/product-info-accordion"
-import CompatibleScooters from "../../components/product-compatible/compatible-scooters"
+
+'use client'
+
+import { HttpTypes } from '@medusajs/types'
+import { Heading, Text } from '@medusajs/ui'
+import LocalizedClientLink from '@modules/common/components/localized-client-link'
+import { ProductAverageReview } from '@modules/product-reviews/components/ProductAverageReview'
+import ReviewButton from '@modules/product-reviews/components/ReviewButton'
+import Accordion from '@modules/products/components/product-info-accordion'
+import CompatibleScooters from '../../components/product-compatible/compatible-scooters'
+import { useTranslation } from 'react-i18next'
+
 
 type ProductInfoProps = {
   product: HttpTypes.StoreProduct
 }
 
 const ProductInfo = ({ product }: ProductInfoProps) => {
+  const { t } = useTranslation()
+  console.log('Traducción de deliveryTime:', t('ProductInfo.deliveryTime'));
+
   const hasCompatibleCategory = product.categories?.some(
-    (c) => c.handle === "vinilos" || c.handle === "modelos"
+    (c) => c.handle === 'vinilos' || c.handle === 'modelos'
   )
 
   const accordionItems = [
     ...(hasCompatibleCategory
       ? [
           {
-            id: "modelos-compatibles",
-            title: "MODELOS COMPATIBLES",
+            id: 'modelos-compatibles',
+            title: t('ProductInfo.compatibleModels'),
             content: <CompatibleScooters product={product} />,
           },
         ]
       : []),
     {
-      id: "ver-detalles",
-      title: "VER DETALLES",
+      id: 'ver-detalles',
+      title: t('ProductInfo.viewDetails'),
       content: (
         <div>
           <ul className="mt-2 space-y-1">
-            {/* Descripción rica */}
             <Text
               className="text-medium text-ui-fg-subtle font-dmSans py-2 max-h-32 overflow-y-auto transition-all duration-200 hover:max-h-48"
               data-testid="product-description"
               asChild
             >
               <div
-                dangerouslySetInnerHTML={{ __html: product.description || "" }}
+                dangerouslySetInnerHTML={{ __html: product.description || '' }}
                 className="whitespace-pre-line rich-text-content"
               />
             </Text>
@@ -48,18 +54,18 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
       ),
     },
     {
-      id: "envio-devoluciones",
-      title: "ENVÍO Y DEVOLUCIONES",
+      id: 'envio-devoluciones',
+      title: t('ProductInfo.shippingAndReturns'),
       content: (
         <div>
           <p>
-            <strong>Información de envío:</strong>
+            <strong>{t('ProductInfo.shippingInformation')}:</strong>
           </p>
           <ul className="mt-2 space-y-1">
-            <li>• Envío gratuito en pedidos superiores a 50€</li>
-            <li>• Entrega en 24-48h</li>
-            <li>• Devoluciones gratuitas hasta 30 días</li>
-            <li>• Garantía de 2 años</li>
+            <li>• {t('ProductInfo.freeShipping')}</li>
+            <li>• {t('ProductInfo.deliveryTime')}</li>
+            <li>• {t('ProductInfo.freeReturns')}</li>
+            <li>• {t('ProductInfo.warranty')}</li>
           </ul>
         </div>
       ),
@@ -71,7 +77,7 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
       ?.map((v) => v.calculated_price?.calculated_amount)
       .filter(
         (amount): amount is number =>
-          typeof amount === "number" && !isNaN(amount)
+          typeof amount === 'number' && !isNaN(amount)
       ) ?? []
 
   // 2. Calcular precio mínimo y máximo (convertir de céntimos a euros si es necesario).
@@ -80,10 +86,12 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
 
   const priceText =
     rawPrices.length === 0
-      ? "Precio no disponible"
+      ? t('ProductInfo.priceNotAvailable')
       : minAmount === maxAmount
       ? `${minAmount.toFixed(2)} €`
       : `${minAmount.toFixed(2)} € - ${maxAmount.toFixed(2)} €`
+
+
 
   return (
     <div id="product-info">
@@ -97,7 +105,6 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
           </LocalizedClientLink>
         )}
 
-        {/* Reseñas promedio */}
         <ProductAverageReview productId={product.id} />
 
         <Heading
@@ -108,7 +115,6 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
           {product.title}
         </Heading>
 
-        {/* Precio mínimo/máximo */}
         <Text
           className="text-2xl font-semibold font-archivoBlack text-ui-fg-base"
           data-testid="product-price"
@@ -127,7 +133,6 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
   )
 }
 
-// Estilos globales para contenido HTML enriquecido
 const RichTextStyles = `
   .rich-text-content {
     line-height: 1.6;
@@ -181,9 +186,8 @@ const RichTextStyles = `
   }
 `
 
-// Añade los estilos globales (solo si estamos en navegador)
-if (typeof window !== "undefined") {
-  const styleTag = document.createElement("style")
+if (typeof window !== 'undefined') {
+  const styleTag = document.createElement('style')
   styleTag.textContent = RichTextStyles
   document.head.appendChild(styleTag)
 }

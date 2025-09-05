@@ -20,7 +20,7 @@ import {
 import PriceFilterWrapper from "@modules/products/components/price-filter-wrapper"
 import { SubcategoryCardLight } from "../components/subcategory-card"
 
-import ScootersFiltersContainer from "../components/scootets-filters-container" 
+import ScootersFiltersContainer from "../components/filters/scootets-filters-container" 
 
 const applyScooterFilters = (
   products: HttpTypes.StoreProduct[],

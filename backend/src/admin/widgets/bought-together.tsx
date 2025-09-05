@@ -197,7 +197,7 @@ const BoughtTogetherWidget = ({ data }) => {
 
         {/* Inputs de descuentos individuales */}
         <div className="mb-6 space-y-3"> 
-          {selectedIds.length > 0 && productsData ? ( // Asegúrate de que haya IDs seleccionados y productsData cargado
+          {selectedIds.length > 0 && productsData ? (
             selectedIds.map((id) => {
               const prod = productsData.products?.find((p) => p.id === id); 
               return (

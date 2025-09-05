@@ -87,5 +87,201 @@
     "register_link": "¿No tienes una cuenta?",
     "register_button": "Regístrate",
     "google": "Continuar con Google"
+  },
+  "contact_page": {
+    "title": "Contacta con nosotros",
+    "subtitle": "¿Tienes alguna pregunta sobre nuestros patinetes eléctricos? Estamos aquí para ayudarte.",
+    "unknown_error": "Ocurrió un error desconocido al enviar el mensaje."
+  },
+  "submission_status": {
+    "loading_message": "Enviando tu mensaje...",
+    "success_title": "¡Mensaje enviado! 🎉",
+    "success_message": "Gracias por contactarnos. Te responderemos a la brevedad.",
+    "error_title": "Error al enviar el mensaje",
+    "retry_button": "Intentar nuevamente"
+  },
+  "contact_form": {
+    "title": "ENVÍANOS UN MENSAJE",
+    "full_name_label": "Nombre completo",
+    "email_label": "Email",
+    "subject_label": "Asunto",
+    "phone_label": "Teléfono",
+    "message_placeholder": "Escribe tu mensaje aquí...",
+    "sending_button": "Enviando...",
+    "send_button": "Enviar"
+  },
+  "contact_info": {
+    "title": "INFORMACIÓN DE CONTACTO",
+    "address_label": "Dirección",
+    "phone_label": "Teléfono",
+    "email_label": "Email",
+    "hours_label": "Horario"
+  },
+    "stores_map": {
+    "loading_error_title": "Error al cargar los mapas",
+    "loading_error_message": "Por favor, verifica tu conexión e inténtalo de nuevo.",
+    "main_title": "Nuestras Tiendas",
+    "main_subtitle": "Visítanos en cualquiera de nuestras ubicaciones. Cada tienda cuenta con expertos que te ayudarán a encontrar el patinete perfecto.",
+    "call_button": "Llamar",
+    "info_title": "¿No encuentras lo que buscas?",
+    "info_message": "Contacta con cualquiera de nuestras tiendas y te ayudaremos a encontrar el patinete eléctrico que mejor se adapte a tus necesidades.",
+    "stores_status_open": "Todas las tiendas abiertas",
+    "stores_status_advice": "Asesoramiento gratuito",
+    "stores_status_test_drives": "Pruebas in-situ"
+  },
+  "hero": {
+    "title": "Centro de Ayuda",
+    "subtitle": "Encuentra respuestas rápidas a tus preguntas más frecuentes",
+    "searchPlaceholder": "Busca tu pregunta aquí..."
+  },
+  "cta": {
+    "support": {
+      "title": "Contactar al soporte",
+      "description": "¿No encuentras lo que buscas?",
+      "button": "Enviar Mensaje"
+    },
+    "call": {
+      "title": "Llamar Ahora",
+      "description": "Habla directamente con nosotros"
+    },
+    "guides": {
+      "title": "Guías y Tutoriales",
+      "description": "Aprende paso a paso",
+      "button": "Ver Guías"
+    },
+    "modal": {
+      "message": "¡Número copiado al portapapeles!",
+      "close": "Cerrar"
+    }
+  },
+  "sidebar": {
+    "categories": {
+      "title": "Categorías"
+    },
+    "popular": {
+      "title": "Más Populares"
+    },
+    "filter": "Filtros",
+    "allCategories": "Todas"
+  },
+  "faqs": {
+    "title": "Todas las preguntas",
+    "loading": "Cargando...",
+    "resultsCount_one": "{{count}} pregunta encontrada",
+    "resultsCount_other": "{{count}} preguntas encontradas",
+    "noResults": "No se encontraron preguntas para tu búsqueda.",
+    "error": "Error: {{message}}",
+    "loadingMessage": "Cargando preguntas frecuentes..."
+  },
+    "blog": {
+      "header": {
+        "title": "Nuestro Blog",
+        "titleHighlight": "Blog",
+        "subtitle": "Descubre los mejores consejos, tutoriales y reviews sobre patinetes eléctricos"
+      },
+      "search": {
+        "placeholder": "Buscar artículos...",
+        "noResultsTitle": "No se encontraron artículos",
+        "noResultsText": "Intenta ajustar tu búsqueda o filtros"
+      },
+      "filters": {
+        "allCategories": "Todas las categorías",
+        "categoryLabel": "Categoría",
+        "filterLabel": "Filtrar"
+      },
+      "posts": {
+        "allArticles": "Todos los artículos",
+        "featured": "Destacados",
+        "featuredTitle": "Artículos principales",
+        "readTime": "{{minutes}} min",
+        "readMore": "Leer más",
+        "noCategory": "Sin categoría",
+        "authorDefault": "MyUrbanScoot",
+        "resultsCount_one": "{{count}} artículo encontrado",
+        "resultsCount_other": "{{count}} artículos encontrados"
+      }
+   },
+    "filters": {
+      "dgt": {
+        "title": "Homologación DGT",
+        "options": {
+          "dgt": "DGT",
+          "noDgt": "NO DGT"
+        }
+      },
+      "motorType": {
+        "title": "Tipo de motor",
+        "options": {
+          "single": "single",
+          "dual": "dual"
+        }
+      },
+      "hydraulicBrakes": {
+        "title": "Frenos hidráulicos",
+        "options": {
+          "yes": "Sí",
+          "no": "No"
+        }
+      },
+      "tireSizes": {
+        "title": "Tamaño de neumático"
+      },
+      "gripTypes": {
+        "title": "Tipo de agarre"
+      },
+      "tireTypes": {
+        "title": "Tipo de neumático"
+      },
+      "autonomy": {
+        "title": "Autonomía (km)",
+        "label": "Autonomía (km)"
+      },
+      "power": {
+        "title": "Potencia del motor (W)",
+        "label": "Potencia del motor (W)"
+      },
+      "voltage": {
+        "title": "Voltaje de la batería (V)",
+        "label": "Voltaje de la batería (V)"
+      },
+      "weight": {
+        "title": "Peso (kg)",
+        "label": "Peso (kg)"
+      },
+      "speed": {
+        "title": "Velocidad máxima (km/h)",
+        "label": "Velocidad máxima (km/h)"
+      }
+  },
+  "confirmation": {
+    "title_processing": "Confirmando pago",
+    "title_success": "¡Confirmación exitosa!",
+    "title_error": "Error en la confirmación",
+    "processing_message": "Procesando tu confirmación de pago...",
+    "success_message": "¡Pago confirmado con éxito! Tu pedido está siendo procesado.",
+    "error_no_token": "Token no proporcionado",
+    "error_generic": "Ha ocurrido un error al confirmar el pago",
+    "error_server_communication": "Ha ocurrido un error al comunicarse con el servidor",
+    "back_to_shop_button": "Volver a la tienda",
+    "contact_support_button": "Contactar soporte"
+  },
+    "ProductInfo": {
+    "compatibleModels": "MODELOS COMPATIBLES",
+    "viewDetails": "VER DETALLES",
+    "shippingAndReturns": "ENVÍO Y DEVOLUCIONES",
+    "shippingInformation": "Información de envío",
+    "freeShipping": "Envío gratuito en pedidos superiores a 50€",
+    "deliveryTime": "Entrega en 24-48h",
+    "freeReturns": "Devoluciones gratuitas hasta 30 días",
+    "warranty": "Garantía de 2 años",
+    "priceNotAvailable": "Precio no disponible",
+    "singlePrice": "{price} €",
+    "priceRange": "{minPrice} € - {maxPrice} €"
+  },
+  "SortProducts": {
+    "filterBy": "Filtrar por",
+    "latestArrivals": "Últimas novedades",
+    "lowestPrice": "Precio más bajo",
+    "highestPrice": "Precio más alto"
   }
 }

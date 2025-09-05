@@ -7,6 +7,7 @@ import SubmissionStatusDisplay from "@/modules/common/components/contact/contact
 import InteractiveMap from "@/modules/common/components/contact/contact-map-holder"
 import { sdk } from "@/lib/config"
 import { validateContactForm } from "@/lib/schemas/contact-form"
+import i18n from "@/i18n/config"
 
 // Define ContactFormData locally to ensure all fields are required strings
 type ContactFormData = {
@@ -107,7 +108,8 @@ export default function ContactPage() {
       if (error instanceof Error) {
         setErrorMessage(error.message)
       } else {
-        setErrorMessage("Ocurrió un error desconocido al enviar el mensaje.")
+        // 🟢 Usar i18n para el mensaje de error
+        setErrorMessage(i18n.t("contact_page.unknown_error"))
       }
     } finally {
       setLoading(false)
@@ -136,17 +138,18 @@ export default function ContactPage() {
               mx-auto 
               lg:after:content-['']
               lg:after:absolute
-               lg:after:left-0 after:bottom-0
-               lg:after:w-full 
-               lg:after:h-1
-               lg:after:bg-mysGreen-100
+                lg:after:left-0 after:bottom-0
+                lg:after:w-full 
+                lg:after:h-1
+                lg:after:bg-mysGreen-100
             "
           >
-            Contacta con nosotros
+            {/* 🟢 Reemplazar el texto fijo con la clave de traducción */}
+            {i18n.t("contact_page.title")}
           </h1>
           <p className="mt-4 text-lg sm:text-xl text-gray-700 font-archivo">
-            ¿Tienes alguna pregunta sobre nuestros patinetes eléctricos? Estamos
-            aquí para ayudarte.
+            {/* 🟢 Reemplazar el texto fijo con la clave de traducción */}
+            {i18n.t("contact_page.subtitle")}
           </p>
         </div>
 
@@ -157,7 +160,6 @@ export default function ContactPage() {
           errorMessage={errorMessage}
           onTryAgain={() => setSubmissionStatus("idle")}
         />
-
 
         {/* Formulario y datos de contacto */}
         {submissionStatus === "idle" && (

@@ -85,5 +85,203 @@
     "register_link": "Haben Sie noch kein Konto?",
     "register_button": "Registrieren",
     "google": "Mit Google anmelden"
+  },
+    "contact_page": {
+    "title": "Kontaktieren Sie uns",
+    "subtitle": "Haben Sie Fragen zu unseren E-Scootern? Wir sind für Sie da.",
+    "unknown_error": "Beim Senden der Nachricht ist ein unbekannter Fehler aufgetreten."
+  },
+  "submission_status": {
+    "loading_message": "Ihre Nachricht wird gesendet...",
+    "success_title": "Nachricht gesendet! 🎉",
+    "success_message": "Vielen Dank für Ihre Kontaktaufnahme. Wir werden uns in Kürze bei Ihnen melden.",
+    "error_title": "Fehler beim Senden der Nachricht",
+    "retry_button": "Erneut versuchen"
+  },
+  "contact_form": {
+    "title": "SENDEN SIE UNS EINE NACHRICHT",
+    "full_name_label": "Vollständiger Name",
+    "email_label": "E-Mail",
+    "subject_label": "Betreff",
+    "phone_label": "Telefon",
+    "message_placeholder": "Schreiben Sie hier Ihre Nachricht...",
+    "sending_button": "Senden...",
+    "send_button": "Senden"
+  },
+  "contact_info": {
+    "title": "KONTAKTINFORMATIONEN",
+    "address_label": "Adresse",
+    "phone_label": "Telefon",
+    "email_label": "E-Mail",
+    "hours_label": "Öffnungszeiten"
+  },
+  "stores_map": {
+    "loading_error_title": "Fehler beim Laden der Karten",
+    "loading_error_message": "Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "main_title": "Unsere Geschäfte",
+    "main_subtitle": "Besuchen Sie uns an einem unserer Standorte. In jedem Geschäft finden Sie Experten, die Ihnen helfen, den perfekten Scooter zu finden.",
+    "call_button": "Anrufen",
+    "info_title": "Sie finden nicht, was Sie suchen?",
+    "info_message": "Kontaktieren Sie eines unserer Geschäfte und wir helfen Ihnen, den E-Scooter zu finden, der am besten zu Ihren Bedürfnissen passt.",
+    "stores_status_open": "Alle Geschäfte geöffnet",
+    "stores_status_advice": "Kostenlose Beratung",
+    "stores_status_test_drives": "Probefahrten vor Ort"
+  },
+    "hero": {
+    "title": "Hilfezentrum",
+    "subtitle": "Finden Sie schnelle Antworten auf Ihre häufigsten Fragen",
+    "searchPlaceholder": "Suchen Sie hier nach Ihrer Frage..."
+  },
+  "cta": {
+    "support": {
+      "title": "Support kontaktieren",
+      "description": "Sie finden nicht, wonach Sie suchen?",
+      "button": "Nachricht senden"
+    },
+    "call": {
+      "title": "Jetzt anrufen",
+      "description": "Sprechen Sie direkt mit uns"
+    },
+    "guides": {
+      "title": "Anleitungen & Tutorials",
+      "description": "Lernen Sie Schritt für Schritt",
+      "button": "Anleitungen ansehen"
+    },
+    "modal": {
+      "message": "Nummer in die Zwischenablage kopiert!",
+      "close": "Schließen"
+    }
+  },
+  "sidebar": {
+    "categories": {
+      "title": "Kategorien"
+    },
+    "popular": {
+      "title": "Am beliebtesten"
+    },
+    "filter": "Filter",
+    "allCategories": "Alle"
+  },
+  "faqs": {
+    "title": "Alle Fragen",
+    "loading": "Wird geladen...",
+    "resultsCount_one": "{{count}} Frage gefunden",
+    "resultsCount_other": "{{count}} Fragen gefunden",
+    "noResults": "Es wurden keine Fragen für Ihre Suche gefunden.",
+    "error": "Fehler: {{message}}",
+    "loadingMessage": "Häufig gestellte Fragen werden geladen..."
+  },
+    "blog": {
+    "header": {
+      "title": "Unser Blog",
+      "titleHighlight": "Blog",
+      "subtitle": "Entdecken Sie die besten Tipps, Anleitungen und Testberichte über Elektroroller"
+    },
+    "search": {
+      "placeholder": "Artikel suchen...",
+      "noResultsTitle": "Keine Artikel gefunden",
+      "noResultsText": "Versuchen Sie, Ihre Suche oder Filter anzupassen"
+    },
+    "filters": {
+      "allCategories": "Alle Kategorien",
+      "categoryLabel": "Kategorie",
+      "filterLabel": "Filtern"
+    },
+    "posts": {
+      "allArticles": "Alle Artikel",
+      "featured": "Vorgestellt",
+      "featuredTitle": "Top-Artikel",
+      "readTime": "{{minutes}} min",
+      "readMore": "Mehr lesen",
+      "noCategory": "Keine Kategorie",
+      "authorDefault": "MyUrbanScoot",
+      "resultsCount_one": "{{count}} Artikel gefunden",
+      "resultsCount_other": "{{count}} Artikel gefunden"
+    }
+  },
+  "filters": {
+    "dgt": {
+      "title": "DGT-Zulassung",
+      "options": {
+        "dgt": "DGT",
+        "noDgt": "KEIN DGT"
+      }
+    },
+    "motorType": {
+      "title": "Motortyp",
+      "options": {
+        "single": "single",
+        "dual": "dual"
+      }
+    },
+    "hydraulicBrakes": {
+      "title": "Hydraulische Bremsen",
+      "options": {
+        "yes": "Ja",
+        "no": "Nein"
+      }
+    },
+    "tireSizes": {
+      "title": "Reifengröße"
+    },
+    "gripTypes": {
+      "title": "Grifftyp"
+    },
+    "tireTypes": {
+      "title": "Reifentyp"
+    },
+    "autonomy": {
+      "title": "Reichweite (km)",
+      "label": "Reichweite (km)"
+    },
+    "power": {
+      "title": "Motorleistung (W)",
+      "label": "Motorleistung (W)"
+    },
+    "voltage": {
+      "title": "Batteriespannung (V)",
+      "label": "Batteriespannung (V)"
+    },
+    "weight": {
+      "title": "Gewicht (kg)",
+      "label": "Gewicht (kg)"
+    },
+    "speed": {
+      "title": "Höchstgeschwindigkeit (km/h)",
+      "label": "Höchstgeschwindigkeit (km/h)"
+    }
+  },
+  "confirmation": {
+    "title_processing": "Zahlung wird bestätigt",
+    "title_success": "Bestätigung erfolgreich!",
+    "title_error": "Bestätigungsfehler",
+    "processing_message": "Ihre Zahlungsbestätigung wird verarbeitet...",
+    "success_message": "Zahlung erfolgreich bestätigt! Ihre Bestellung wird bearbeitet.",
+    "error_no_token": "Token nicht bereitgestellt",
+    "error_generic": "Bei der Bestätigung der Zahlung ist ein Fehler aufgetreten",
+    "error_server_communication": "Bei der Kommunikation mit dem Server ist ein Fehler aufgetreten",
+    "back_to_shop_button": "Zurück zum Shop",
+    "contact_support_button": "Support kontaktieren"
+  },
+  "ProductInfo": {
+    "compatibleModels": "KOMPATIBLE MODELLE",
+    "viewDetails": "DETAILS ANZEIGEN",
+    "shippingAndReturns": "VERSAND UND RÜCKSENDUNGEN",
+    "shippingInformation": "Versandinformationen",
+    "freeShipping": "Kostenloser Versand ab 50 €",
+    "deliveryTime": "Lieferung in 24-48 Stunden",
+    "freeReturns": "Kostenlose Rücksendungen bis zu 30 Tage",
+    "warranty": "2 Jahre Garantie",
+    "priceNotAvailable": "Preis nicht verfügbar",
+    "singlePrice": "{price} €",
+    "priceRange": "{minPrice} € - {maxPrice} €"
+  },
+  "SortProducts": {
+    "filterBy": "Filtern nach",
+    "latestArrivals": "Neueste Ankünfte",
+    "lowestPrice": "Niedrigster Preis",
+    "highestPrice": "Höchster Preis"
   }
+
+
 }

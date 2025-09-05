@@ -87,5 +87,203 @@
     "register_link": "Don't have an account?",
     "register_button": "Register",
     "google": "Sign in with Google"
+  },
+    "contact_page": {
+    "title": "Contact us",
+    "subtitle": "Do you have any questions about our electric scooters? We are here to help you.",
+    "unknown_error": "An unknown error occurred while sending the message."
+  },
+  "submission_status": {
+    "loading_message": "Sending your message...",
+    "success_title": "Message sent! 🎉",
+    "success_message": "Thank you for contacting us. We will respond shortly.",
+    "error_title": "Error sending the message",
+    "retry_button": "Try again"
+  },
+  "contact_form": {
+    "title": "SEND US A MESSAGE",
+    "full_name_label": "Full name",
+    "email_label": "Email",
+    "subject_label": "Subject",
+    "phone_label": "Phone",
+    "message_placeholder": "Write your message here...",
+    "sending_button": "Sending...",
+    "send_button": "Send"
+  },
+  "contact_info": {
+    "title": "CONTACT INFORMATION",
+    "address_label": "Address",
+    "phone_label": "Phone",
+    "email_label": "Email",
+    "hours_label": "Hours"
+  },
+    "stores_map": {
+    "loading_error_title": "Error loading maps",
+    "loading_error_message": "Please check your connection and try again.",
+    "main_title": "Our Stores",
+    "main_subtitle": "Visit us at any of our locations. Each store has experts who will help you find the perfect scooter.",
+    "call_button": "Call",
+    "info_title": "Can't find what you're looking for?",
+    "info_message": "Contact any of our stores and we will help you find the electric scooter that best suits your needs.",
+    "stores_status_open": "All stores open",
+    "stores_status_advice": "Free advice",
+    "stores_status_test_drives": "In-store test drives"
+  },
+    "hero": {
+    "title": "Help Center",
+    "subtitle": "Find quick answers to your most frequent questions",
+    "searchPlaceholder": "Search your question here..."
+  },
+  "cta": {
+    "support": {
+      "title": "Contact support",
+      "description": "Can't find what you're looking for?",
+      "button": "Send Message"
+    },
+    "call": {
+      "title": "Call Now",
+      "description": "Speak directly with us"
+    },
+    "guides": {
+      "title": "Guides and Tutorials",
+      "description": "Learn step by step",
+      "button": "View Guides"
+    },
+    "modal": {
+      "message": "Number copied to clipboard!",
+      "close": "Close"
+    }
+  },
+  "sidebar": {
+    "categories": {
+      "title": "Categories"
+    },
+    "popular": {
+      "title": "Most Popular"
+    },
+    "filter": "Filters",
+    "allCategories": "All"
+  },
+  "faqs": {
+    "title": "All questions",
+    "loading": "Loading...",
+    "resultsCount_one": "{{count}} question found",
+    "resultsCount_other": "{{count}} questions found",
+    "noResults": "No questions were found for your search.",
+    "error": "Error: {{message}}",
+    "loadingMessage": "Loading frequent questions..."
+  },
+    "blog": {
+    "header": {
+      "title": "Our Blog",
+      "titleHighlight": "Blog",
+      "subtitle": "Discover the best tips, tutorials, and reviews about electric scooters"
+    },
+    "search": {
+      "placeholder": "Search articles...",
+      "noResultsTitle": "No articles found",
+      "noResultsText": "Try adjusting your search or filters"
+    },
+    "filters": {
+      "allCategories": "All categories",
+      "categoryLabel": "Category",
+      "filterLabel": "Filter"
+    },
+    "posts": {
+      "allArticles": "All Articles",
+      "featured": "Featured",
+      "featuredTitle": "Top Articles",
+      "readTime": "{{minutes}} min",
+      "readMore": "Read more",
+      "noCategory": "No category",
+      "authorDefault": "MyUrbanScoot",
+      "resultsCount_one": "{{count}} article found",
+      "resultsCount_other": "{{count}} articles found"
+    }
+  },
+  "filters": {
+    "dgt": {
+      "title": "DGT Approval",
+      "options": {
+        "dgt": "DGT",
+        "noDgt": "NO DGT"
+      }
+    },
+    "motorType": {
+      "title": "Motor type",
+      "options": {
+        "single": "single",
+        "dual": "dual"
+      }
+    },
+    "hydraulicBrakes": {
+      "title": "Hydraulic brakes",
+      "options": {
+        "yes": "Yes",
+        "no": "No"
+      }
+    },
+    "tireSizes": {
+      "title": "Tire size"
+    },
+    "gripTypes": {
+      "title": "Grip type"
+    },
+    "tireTypes": {
+      "title": "Tire type"
+    },
+    "autonomy": {
+      "title": "Range (km)",
+      "label": "Range (km)"
+    },
+    "power": {
+      "title": "Motor power (W)",
+      "label": "Motor power (W)"
+    },
+    "voltage": {
+      "title": "Battery voltage (V)",
+      "label": "Battery voltage (V)"
+    },
+    "weight": {
+      "title": "Weight (kg)",
+      "label": "Weight (kg)"
+    },
+    "speed": {
+      "title": "Maximum speed (km/h)",
+      "label": "Maximum speed (km/h)"
+    }
+  },
+  "confirmation": {
+    "title_processing": "Confirming payment",
+    "title_success": "Confirmation successful!",
+    "title_error": "Confirmation error",
+    "processing_message": "Processing your payment confirmation...",
+    "success_message": "Payment confirmed successfully! Your order is being processed.",
+    "error_no_token": "Token not provided",
+    "error_generic": "An error occurred while confirming the payment",
+    "error_server_communication": "An error occurred while communicating with the server",
+    "back_to_shop_button": "Back to the store",
+    "contact_support_button": "Contact support"
+  },
+  "ProductInfo": {
+    "compatibleModels": "COMPATIBLE MODELS",
+    "viewDetails": "VIEW DETAILS",
+    "shippingAndReturns": "SHIPPING AND RETURNS",
+    "shippingInformation": "Shipping information",
+    "freeShipping": "Free shipping on orders over €50",
+    "deliveryTime": "Delivery in 24-48h",
+    "freeReturns": "Free returns up to 30 days",
+    "warranty": "2-year warranty",
+    "priceNotAvailable": "Price not available",
+    "singlePrice": "€ {price}",
+    "priceRange": "€ {minPrice} - € {maxPrice}"
+  },
+  "SortProducts": {
+    "filterBy": "Filter by",
+    "latestArrivals": "Latest arrivals",
+    "lowestPrice": "Lowest price",
+    "highestPrice": "Highest price"
   }
+
+
 }

@@ -3,15 +3,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { DetailWidgetProps, AdminProduct, Product } from '@medusajs/framework/types';
 import { sdk } from '../lib/sdk';
 import { defineWidgetConfig } from "@medusajs/admin-sdk";
-import {
-  Container,
-  Button,
-  Input,
-  toast,
-  Select,
-  Heading,
-  Label,
-} from "@medusajs/ui";
+import { Container, Button, Input, toast, Select, Heading, Label, Text } from "@medusajs/ui";
+import { ExclamationCircle } from '@medusajs/icons';
 
 interface ScooterMetadata {
   dgt?: string;
@@ -27,16 +20,32 @@ interface ScooterMetadata {
   max_speed_kmh?: number;
   warranty_months?: string;
   breakes_details?: string;
-  [key: string]: any;
 }
 
-const dgtOptions = ["DGT", "NO DGT"];
-const motorTypeOptions = ["single", "dual"];
-const hydraulicBrakesOptions = ["yes", "no"];
-const gripTypeOptions = ["offroad (Taco)", "smooth", "mixed"];
-const tireTypeOptions = ["Tubeless", "Tube", "Solid"];
+// Única fuente de verdad para toda la configuración del formulario 🚀
+const fieldsConfig = [
+  { key: 'dgt', label: 'Homologación DGT', type: 'select', options: ["DGT", "NO DGT"] },
+  { key: 'motor_type', label: 'Tipo de Motor', type: 'select', options: ["single", "dual"] },
+  { key: 'hydraulic_brakes', label: 'Frenos Hidráulicos', type: 'select', options: ["yes", "no"] },
+  { key: 'tire_grip_type', label: 'Tipo de Agarre Neumático', type: 'select', options: ["offroad (Taco)", "smooth", "mixed"] },
+  { key: 'tire_type', label: 'Tipo de Neumático', type: 'select', options: ["Tubeless", "Tube", "Solid"] },
+  { key: 'tire_size', label: 'Tamaño Neumático', type: 'text', placeholder: 'Ej: 10"x3', validate: (v: string) => !v.match(/\d/) ? 'Debe incluir números (ej. "10x3").' : null },
+  { key: 'warranty_months', label: 'Garantía', type: 'text', placeholder: 'Ej: 24 meses o 2 años', validate: (v: string) => /^\d+$/.test(v) ? 'No puede contener solo números. Agregue texto.' : null },
+  { key: 'breakes_details', label: 'Detalles de Frenado', type: 'text', placeholder: 'Ej: Disco delantero y trasero', validate: (v: string) => /^\d+$/.test(v) ? 'No puede contener solo números. Agregue texto.' : null },
+  { key: 'autonomy_km', label: 'Autonomía (km)', type: 'number', placeholder: '50' },
+  { key: 'motor_power_w', label: 'Potencia Motor (W)', type: 'number', placeholder: '1000' },
+  { key: 'battery_voltage_v', label: 'Voltaje Batería (V)', type: 'number', placeholder: '48' },
+  { key: 'weight_kg', label: 'Peso (kg)', type: 'number', placeholder: '15' },
+  { key: 'max_speed_kmh', label: 'Velocidad Máxima (km/h)', type: 'number', placeholder: '25' },
+] as const;
 
-const labelMap: Record<string, string> = {
+// Tipos inferidos del array de configuración
+type FieldKey = typeof fieldsConfig[number]['key'];
+type FieldMap = {
+  [K in FieldKey]?: K extends keyof ScooterMetadata ? ScooterMetadata[K] : never;
+};
+
+const labelMap: Record<FieldKey, string> = {
   tire_size: 'Tamaño Neumático',
   warranty_months: 'Garantía',
   breakes_details: 'Detalles de Frenado',
@@ -52,46 +61,35 @@ const labelMap: Record<string, string> = {
   max_speed_kmh: 'Velocidad Máxima (km/h)',
 };
 
+const getInitialMetadata = (data: AdminProduct): FieldMap => {
+  const metadata = data.metadata || {};
+  const initial: FieldMap = {};
+  fieldsConfig.forEach(field => {
+    const value = metadata[field.key as keyof ScooterMetadata];
+    if (field.type === 'number') {
+      initial[field.key] = typeof value === 'number' ? value : undefined;
+    } else {
+      initial[field.key] = value as string || '';
+    }
+  });
+  return initial;
+};
+
 const ScooterMetadataWidget: React.FC<DetailWidgetProps<AdminProduct>> = ({ data }) => {
-  const productId = data.id;
+  const isScooterCategory = useMemo(() => {
+    return data.categories?.some((category: Product['categories']) => category.handle === 'patinetes-electricos');
+  }, [data.categories]);
 
-  const getInitialMetadata = (): ScooterMetadata => {
-    const metadata = data.metadata || {};
-    const initial: ScooterMetadata = {
-      dgt: metadata.dgt as string || '',
-      motor_type: metadata.motor_type as string || '',
-      hydraulic_brakes: metadata.hydraulic_brakes as string || '',
-      tire_size: metadata.tire_size as string || '',
-      tire_grip_type: metadata.tire_grip_type as string || '',
-      tire_type: metadata.tire_type as string || '',
-      autonomy_km: typeof metadata.autonomy_km === 'number' ? metadata.autonomy_km : undefined,
-      motor_power_w: typeof metadata.motor_power_w === 'number' ? metadata.motor_power_w : undefined,
-      battery_voltage_v: typeof metadata.battery_voltage_v === 'number' ? metadata.battery_voltage_v : undefined,
-      weight_kg: typeof metadata.weight_kg === 'number' ? metadata.weight_kg : undefined,
-      max_speed_kmh: typeof metadata.max_speed_kmh === 'number' ? metadata.max_speed_kmh : undefined,
-      warranty_months: metadata.warranty_months as string || '',
-      breakes_details: metadata.breakes_details as string || '',
-    };
-    return initial;
-  };
-
-  const [metadata, setMetadata] = useState<ScooterMetadata>(getInitialMetadata());
+  const [metadata, setMetadata] = useState<FieldMap>(() => getInitialMetadata(data));
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
 
-  // Determine if the product belongs to the "patinetes-electricos" category
-  const isScooterCategory = useMemo(() => {
-    return data.categories?.some(
-      (category: Product['categories']) => category.handle === 'patinetes-electricos'
-    );
-  }, [data.categories]);
-
   useEffect(() => {
     if (isScooterCategory) {
-      setMetadata(getInitialMetadata());
+      setMetadata(getInitialMetadata(data));
       setErrors({});
     }
-  }, [data.metadata, productId, isScooterCategory]);
+  }, [data.id, data.metadata, isScooterCategory]);
 
   const validateField = (name: string, value: string | undefined): string | null => {
     const stringValue = String(value || '').trim();
@@ -99,69 +97,77 @@ const ScooterMetadataWidget: React.FC<DetailWidgetProps<AdminProduct>> = ({ data
     if ((name === 'warranty_months' || name === 'breakes_details') && stringValue !== '') {
       const isOnlyNumbers = /^[0-9]+$/.test(stringValue);
       if (isOnlyNumbers) {
-        return `El campo '${labelMap[name]}' no puede contener solo números. Por favor, agregue texto descriptivo.`;
+        return `El campo '${labelMap[name as FieldKey]}' no puede contener solo números. Por favor, agregue texto descriptivo.`;
       }
     } else if (name === 'tire_size' && stringValue !== '') {
       const isOnlyLetters = /^[a-zA-Z\s]+$/.test(stringValue);
       if (isOnlyLetters) {
-        return `El campo '${labelMap[name]}' no puede contener solo letras. Debe incluir números (ej. "10x3").`;
+        return `El campo '${labelMap[name as FieldKey]}' no puede contener solo letras. Debe incluir números (ej. "10x3").`;
       }
     }
     return null;
   };
 
-  const handleChange = (name: string, value: string | number | undefined, type?: string) => {
-    let newValue: string | number | undefined = value;
+  const validateAllFields = (): boolean => {
+    const newErrors: Record<string, string | null> = {};
+    let hasErrors = false;
+    fieldsConfig.forEach(field => {
+      if ('validate' in field) {
+        const value = metadata[field.key as keyof ScooterMetadata];
+        const error = value && field.validate(value as any);
+        if (error) {
+          newErrors[field.key] = error;
+          hasErrors = true;
+        } else {
+          newErrors[field.key] = null;
+        }
+      }
+    });
+    setErrors(newErrors);
+    return !hasErrors;
+  };
 
-    if (type === 'number') {
-      newValue = (value as string).trim() === '' ? undefined : (isNaN(Number(value)) ? undefined : Number(value));
+  const handleChange = (key: FieldKey, value: string) => {
+    const field = fieldsConfig.find(f => f.key === key);
+    if (!field) return;
+    
+    let newValue: any;
+    if (field.type === 'number') {
+      newValue = (value as string).trim() === '' ? undefined : Number(value);
+    } else {
+      newValue = value;
     }
-
-    setMetadata(prev => ({ ...prev, [name]: newValue }));
-    setErrors(prev => ({ ...prev, [name]: validateField(name, String(newValue)) }));
+    
+    setMetadata(prev => ({ ...prev, [key]: newValue }));
+    
+    // Validar el campo si tiene regla de validación
+    if ('validate' in field) {
+      const error = newValue && field.validate(newValue as any);
+      setErrors(prev => ({ ...prev, [key]: error }));
+    }
   };
 
   const handleSave = async () => {
-    let hasErrors = false;
-    const newErrors: Record<string, string | null> = {};
-
-    // Re-validate all fields before saving
-    for (const key in metadata) {
-      if (Object.prototype.hasOwnProperty.call(metadata, key)) {
-        const error = validateField(key, String(metadata[key as keyof ScooterMetadata]));
-        if (error) {
-          newErrors[key] = error;
-          hasErrors = true;
-        } else {
-          newErrors[key] = null;
-        }
-      }
-    }
-
-    setErrors(newErrors);
-    if (hasErrors) {
+    if (!validateAllFields()) {
       toast.error('Corrige los errores antes de guardar.');
       return;
     }
 
     setSaving(true);
     try {
-      const updatedProductMetadata: Record<string, any> = { ...data.metadata };
-
-      for (const key in metadata) {
-        const value = metadata[key as keyof ScooterMetadata];
-
-        // Remove if empty or undefined, otherwise set the value
-        if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
-          if (Object.prototype.hasOwnProperty.call(updatedProductMetadata, key)) {
-            delete updatedProductMetadata[key];
-          }
+      const updatedMetadata: Record<string, any> = { ...data.metadata };
+      
+      fieldsConfig.forEach(field => {
+        const value = metadata[field.key];
+        // Eliminar campos undefined, mantener los demás
+        if (value === undefined) {
+          delete updatedMetadata[field.key];
         } else {
-          updatedProductMetadata[key] = value;
+          updatedMetadata[field.key] = value;
         }
-      }
-
-      await sdk.admin.product.update(productId, { metadata: updatedProductMetadata });
+      });
+      
+      await sdk.admin.product.update(data.id, { metadata: updatedMetadata });
       toast.success('Metadatos guardados!');
     } catch (err: any) {
       console.error('ERROR: Fallo al guardar metadatos:', err);
@@ -172,83 +178,62 @@ const ScooterMetadataWidget: React.FC<DetailWidgetProps<AdminProduct>> = ({ data
   };
 
   if (!isScooterCategory) {
-    return null; // Don't render the widget if it's not a scooter product
+    return null;
   }
 
   return (
     <Container className="p-3 bg-ui-bg-base rounded-lg shadow-sm">
       <Heading level="h2" className="mb-3 text-ui-fg-base text-lg">Metadatos de Scooter</Heading>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 mb-4">
-        {[
-          { key: 'dgt', label: 'Homologación DGT', options: dgtOptions },
-          { key: 'motor_type', label: 'Tipo de Motor', options: motorTypeOptions },
-          { key: 'hydraulic_brakes', label: 'Frenos Hidráulicos', options: hydraulicBrakesOptions },
-          { key: 'tire_grip_type', label: 'Tipo de Agarre Neumático', options: gripTypeOptions },
-          { key: 'tire_type', label: 'Tipo de Neumático', options: tireTypeOptions },
-        ].map(({ key, label, options }) => (
-          <div key={key} className="flex flex-col gap-y-0.5">
-            <Label htmlFor={key} className="text-ui-fg-subtle text-xs">{label}</Label>
-            <Select
-              name={key}
-              value={String(metadata[key as keyof ScooterMetadata] || '')}
-              onValueChange={(value) => handleChange(key, value, 'text')}
-            >
-              <Select.Trigger id={key} className="h-8">
-                <Select.Value placeholder="Seleccionar" />
-              </Select.Trigger>
-              <Select.Content>
-                {options.map(option => <Select.Item key={option} value={option}>{option}</Select.Item>)}
-              </Select.Content>
-            </Select>
-          </div>
-        ))}
-
-        {[
-          { key: 'tire_size', label: 'Tamaño Neumático', placeholder: 'Ej: 10"x3' },
-          { key: 'warranty_months', label: 'Garantía (meses/texto)', placeholder: 'Ej: 24 meses o 2 años' },
-          { key: 'breakes_details', label: 'Detalles de Frenado', placeholder: 'Ej: Disco delantero y trasero' },
-        ].map(({ key, label, placeholder }) => (
-          <div key={key} className="flex flex-col gap-y-0.5">
-            <Label htmlFor={key} className="text-ui-fg-subtle text-xs">{label}</Label>
-            <Input
-              type="text"
-              id={key}
-              name={key}
-              value={metadata[key as keyof ScooterMetadata] || ''}
-              onChange={(e) => handleChange(key, e.target.value, 'text')}
-              placeholder={placeholder}
-              className="h-8"
-            />
-            {errors[key] && (
-              <p className="text-rose-500 text-xs mt-1">{errors[key]}</p>
-            )}
-          </div>
-        ))}
-
-        {[
-          { key: 'autonomy_km', label: 'Autonomía (km)', placeholder: '50' },
-          { key: 'motor_power_w', label: 'Potencia Motor (W)', placeholder: '1000' },
-          { key: 'battery_voltage_v', label: 'Voltaje Batería (V)', placeholder: '48' },
-          { key: 'weight_kg', label: 'Peso (kg)', placeholder: '15' },
-          { key: 'max_speed_kmh', label: 'Velocidad Máxima (km/h)', placeholder: '25' },
-        ].map(({ key, label, placeholder }) => (
-          <div key={key} className="flex flex-col gap-y-0.5">
-            <Label htmlFor={key} className="text-ui-fg-subtle text-xs">{label}</Label>
-            <Input
-              type="number" id={key} name={key}
-              value={metadata[key as keyof ScooterMetadata] !== undefined ? metadata[key as keyof ScooterMetadata] : ''}
-              onChange={(e) => handleChange(key, e.target.value, 'number')}
-              min={0} step={1}
-              placeholder={`Ej: ${placeholder}`}
-              className="h-8"
-            />
-          </div>
-        ))}
+        {fieldsConfig.map(field => {
+          const hasError = !!errors[field.key];
+          const value = metadata[field.key];
+          return (
+            <div key={field.key} className="flex flex-col gap-y-0.5">
+              <Label htmlFor={field.key} className="text-ui-fg-subtle text-xs">{field.label}</Label>
+              {field.type === 'select' ? (
+                <Select
+                  name={field.key}
+                  value={String(value || '')}
+                  onValueChange={(val) => handleChange(field.key, val)}
+                >
+                  <Select.Trigger id={field.key} className="h-8">
+                    <Select.Value placeholder="Seleccionar" />
+                  </Select.Trigger>
+                  <Select.Content>
+                    {field.options.map(option => <Select.Item key={option} value={option}>{option}</Select.Item>)}
+                  </Select.Content>
+                </Select>
+              ) : (
+                <Input
+                  type={field.type}
+                  id={field.key}
+                  name={field.key}
+                  value={field.type === 'number' ? (value as number ?? '') : (value as string ?? '')}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  className="h-8"
+                  min={field.type === 'number' ? 0 : undefined}
+                  step={field.type === 'number' ? 1 : undefined}
+                />
+              )}
+              {hasError && (
+                <div className="flex items-center gap-x-1 mt-1 text-rose-500">
+                  <ExclamationCircle />
+                  <Text size="small" leading="compact">{errors[field.key]}</Text>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
-
-      <Button onClick={handleSave} disabled={saving || Object.values(errors).some(e => e !== null)} className="w-full h-9 text-sm">
-        {saving ? 'Guardando...' : 'Guardar Metadatos'}
+      <Button
+        onClick={handleSave}
+        isLoading={saving}
+        disabled={saving || Object.values(errors).some(e => e !== null)}
+        className="w-full h-9 text-sm"
+      >
+        Guardar Metadatos
       </Button>
     </Container>
   );

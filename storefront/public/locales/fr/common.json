@@ -85,5 +85,201 @@
     "register_link": "Vous n'avez pas de compte ?",
     "register_button": "S'inscrire",
     "google": "Se connecter avec Google"
+  },
+    "contact_page": {
+    "title": "Contactez-nous",
+    "subtitle": "Vous avez des questions sur nos trottinettes électriques ? Nous sommes là pour vous aider.",
+    "unknown_error": "Une erreur inconnue est survenue lors de l'envoi du message."
+  },
+  "submission_status": {
+    "loading_message": "Envoi de votre message...",
+    "success_title": "Message envoyé ! 🎉",
+    "success_message": "Merci de nous avoir contactés. Nous vous répondrons sous peu.",
+    "error_title": "Erreur lors de l'envoi du message",
+    "retry_button": "Réessayer"
+  },
+  "contact_form": {
+    "title": "ENVOYEZ-NOUS UN MESSAGE",
+    "full_name_label": "Nom complet",
+    "email_label": "E-mail",
+    "subject_label": "Sujet",
+    "phone_label": "Téléphone",
+    "message_placeholder": "Écrivez votre message ici...",
+    "sending_button": "Envoi en cours...",
+    "send_button": "Envoyer"
+  },
+  "contact_info": {
+    "title": "INFORMATIONS DE CONTACT",
+    "address_label": "Adresse",
+    "phone_label": "Téléphone",
+    "email_label": "E-mail",
+    "hours_label": "Horaires"
+  },
+    "stores_map": {
+    "loading_error_title": "Erreur de chargement des cartes",
+    "loading_error_message": "Veuillez vérifier votre connexion et réessayer.",
+    "main_title": "Nos magasins",
+    "main_subtitle": "Venez nous rendre visite dans l'un de nos emplacements. Chaque magasin a des experts qui vous aideront à trouver la trottinette parfaite.",
+    "call_button": "Appeler",
+    "info_title": "Vous ne trouvez pas ce que vous cherchez ?",
+    "info_message": "Contactez l'un de nos magasins et nous vous aiderons à trouver la trottinette électrique qui correspond le mieux à vos besoins.",
+    "stores_status_open": "Tous les magasins sont ouverts",
+    "stores_status_advice": "Conseils gratuits",
+    "stores_status_test_drives": "Essais en magasin"
+  },
+    "hero": {
+    "title": "Centre d'aide",
+    "subtitle": "Trouvez des réponses rapides à vos questions les plus fréquentes",
+    "searchPlaceholder": "Recherchez votre question ici..."
+  },
+  "cta": {
+    "support": {
+      "title": "Contacter le support",
+      "description": "Vous ne trouvez pas ce que vous cherchez ?",
+      "button": "Envoyer un message"
+    },
+    "call": {
+      "title": "Appeler maintenant",
+      "description": "Parlez-nous directement"
+    },
+    "guides": {
+      "title": "Guides et tutoriels",
+      "description": "Apprenez étape par étape",
+      "button": "Voir les guides"
+    },
+    "modal": {
+      "message": "Numéro copié dans le presse-papiers !",
+      "close": "Fermer"
+    }
+  },
+  "sidebar": {
+    "categories": {
+      "title": "Catégories"
+    },
+    "popular": {
+      "title": "Les plus populaires"
+    },
+    "filter": "Filtres",
+    "allCategories": "Toutes"
+  },
+  "faqs": {
+    "title": "Toutes les questions",
+    "loading": "Chargement...",
+    "resultsCount_one": "{{count}} question trouvée",
+    "resultsCount_other": "{{count}} questions trouvées",
+    "noResults": "Aucune question n'a été trouvée pour votre recherche.",
+    "error": "Erreur : {{message}}",
+    "loadingMessage": "Chargement des questions fréquentes..."
+  },
+  "blog": {
+    "header": {
+      "title": "Notre Blog",
+      "titleHighlight": "Blog",
+      "subtitle": "Découvrez les meilleurs conseils, tutoriels et avis sur les trottinettes électriques"
+    },
+    "search": {
+      "placeholder": "Rechercher des articles...",
+      "noResultsTitle": "Aucun article trouvé",
+      "noResultsText": "Essayez d'ajuster votre recherche ou vos filtres"
+    },
+    "filters": {
+      "allCategories": "Toutes les catégories",
+      "categoryLabel": "Catégorie",
+      "filterLabel": "Filtrer"
+    },
+    "posts": {
+      "allArticles": "Tous les articles",
+      "featured": "En vedette",
+      "featuredTitle": "Articles principaux",
+      "readTime": "{{minutes}} min",
+      "readMore": "Lire la suite",
+      "noCategory": "Sans catégorie",
+      "authorDefault": "MyUrbanScoot",
+      "resultsCount_one": "{{count}} article trouvé",
+      "resultsCount_other": "{{count}} articles trouvés"
+    }
+  },
+  "filters": {
+    "dgt": {
+      "title": "Homologation DGT",
+      "options": {
+        "dgt": "DGT",
+        "noDgt": "NON DGT"
+      }
+    },
+    "motorType": {
+      "title": "Type de moteur",
+      "options": {
+        "single": "single",
+        "dual": "dual"
+      }
+    },
+    "hydraulicBrakes": {
+      "title": "Freins hydrauliques",
+      "options": {
+        "yes": "Oui",
+        "no": "Non"
+      }
+    },
+    "tireSizes": {
+      "title": "Taille du pneu"
+    },
+    "gripTypes": {
+      "title": "Type de poignée"
+    },
+    "tireTypes": {
+      "title": "Type de pneu"
+    },
+    "autonomy": {
+      "title": "Autonomie (km)",
+      "label": "Autonomie (km)"
+    },
+    "power": {
+      "title": "Puissance du moteur (W)",
+      "label": "Puissance du moteur (W)"
+    },
+    "voltage": {
+      "title": "Voltage de la batterie (V)",
+      "label": "Voltage de la batterie (V)"
+    },
+    "weight": {
+      "title": "Poids (kg)",
+      "label": "Poids (kg)"
+    },
+    "speed": {
+      "title": "Vitesse maximale (km/h)",
+      "label": "Vitesse maximale (km/h)"
+    }
+  },
+  "confirmation": {
+    "title_processing": "Confirmation du paiement",
+    "title_success": "Confirmation réussie !",
+    "title_error": "Erreur de confirmation",
+    "processing_message": "Traitement de votre confirmation de paiement...",
+    "success_message": "Paiement confirmé avec succès ! Votre commande est en cours de traitement.",
+    "error_no_token": "Jeton non fourni",
+    "error_generic": "Une erreur est survenue lors de la confirmation du paiement",
+    "error_server_communication": "Une erreur est survenue lors de la communication avec le serveur",
+    "back_to_shop_button": "Retourner à la boutique",
+    "contact_support_button": "Contacter le support"
+  },
+  "ProductInfo": {
+    "compatibleModels": "MODÈLES COMPATIBLES",
+    "viewDetails": "VOIR LES DÉTAILS",
+    "shippingAndReturns": "EXPÉDITION ET RETOURS",
+    "shippingInformation": "Informations sur l'expédition",
+    "freeShipping": "Livraison gratuite pour les commandes de plus de 50 €",
+    "deliveryTime": "Livraison en 24-48h",
+    "freeReturns": "Retours gratuits jusqu'à 30 jours",
+    "warranty": "Garantie de 2 ans",
+    "priceNotAvailable": "Prix non disponible",
+    "singlePrice": "{price} €",
+    "priceRange": "{minPrice} € - {maxPrice} €"
+  },
+  "SortProducts": {
+    "filterBy": "Trier par",
+    "latestArrivals": "Dernières nouveautés",
+    "lowestPrice": "Prix le plus bas",
+    "highestPrice": "Prix le plus élevé"
   }
 }

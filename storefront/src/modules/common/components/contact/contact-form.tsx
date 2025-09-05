@@ -3,6 +3,7 @@
 import React from "react"
 import { SubmitButton } from "@/modules/checkout/components/submit-button"
 import Input from "../input"
+import i18n from "@/i18n/config"
 
 interface ContactFormProps {
   formData: {
@@ -56,20 +57,20 @@ const ContactForm: React.FC<ContactFormProps> = ({
   return (
     <div className="lg:bg-gray-50 text-black lg:p-6 sm:p-8 rounded-2xl lg:shadow-md lg:border border-gray-200">
       <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 font-archivoBlack uppercase">
-        ENVÍANOS UN MENSAJE
+        {i18n.t("contact_form.title")} {/* Título traducido */}
       </h2>
 
       <form className="space-y-5" onSubmit={handleSubmit}>
         {/* Nombre completo */}
         <div>
           <label htmlFor="fullName" className="sr-only">
-            Nombre completo
+            {i18n.t("contact_form.full_name_label")}
           </label>
           <Input
             type="text"
             id="fullName"
             name="fullName"
-            label="Nombre completo"
+            label={i18n.t("contact_form.full_name_label")}
             value={formData.fullName}
             onChange={handleChange}
             errors={errors}
@@ -80,13 +81,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
         {/* Email */}
         <div>
           <label htmlFor="email" className="sr-only">
-            Email
+            {i18n.t("contact_form.email_label")}
           </label>
           <Input
             type="email"
             id="email"
             name="email"
-            label="Email"
+            label={i18n.t("contact_form.email_label")}
             value={formData.email}
             onChange={handleChange}
             required
@@ -98,13 +99,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
         {/* Asunto */}
         <div>
           <label htmlFor="subject" className="sr-only">
-            Asunto
+            {i18n.t("contact_form.subject_label")}
           </label>
           <Input
             type="text"
             id="subject"
             name="subject"
-            label="Asunto"
+            label={i18n.t("contact_form.subject_label")} 
             value={formData.subject}
             onChange={handleChange}
             errors={errors}
@@ -115,13 +116,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
         {/* Teléfono */}
         <div>
           <label htmlFor="phone" className="sr-only">
-            Teléfono
+            {i18n.t("contact_form.phone_label")}
           </label>
           <Input
             type="tel"
             id="phone"
             name="phone"
-            label="Teléfono"
+            label={i18n.t("contact_form.phone_label")} 
             value={formData.phone}
             onChange={handleChange}
             errors={errors}
@@ -132,13 +133,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
         {/* Mensaje */}
         <div>
           <label htmlFor="message" className="sr-only">
-            Escribe tu mensaje aquí...
+            {i18n.t("contact_form.message_placeholder")} 
           </label>
           <textarea
             id="message"
             name="message"
             rows={4}
-            placeholder="Escribe tu mensaje aquí..."
+            placeholder={i18n.t("contact_form.message_placeholder")} 
             value={formData.message}
             onChange={handleChange}
             className={`w-full px-5 py-3 border rounded-xl ring-0 transition duration-200 hover:bg-gray-100 resize-y text-gray-800 focus:ring-0 focus:outline-none active:ring-0 ${
@@ -159,7 +160,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
           data-testid="send-mail"
           className="w-full bg-gradient-to-r bg-black/90 text-white py-3 px-6 rounded-xl font-bold uppercase font-archivoBlack text-lg hover:from-gray-700 hover:to-gray-600 transition duration-300 shadow-lg"
         >
-          {loading ? "Enviando..." : "Enviar"}
+          {loading ? i18n.t("contact_form.sending_button") : i18n.t("contact_form.send_button")} 
         </SubmitButton>
       </form>
     </div>
