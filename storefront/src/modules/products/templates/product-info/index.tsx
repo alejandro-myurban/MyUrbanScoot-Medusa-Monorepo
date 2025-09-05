@@ -1,3 +1,4 @@
+
 'use client'
 
 import { HttpTypes } from '@medusajs/types'
@@ -8,6 +9,7 @@ import ReviewButton from '@modules/product-reviews/components/ReviewButton'
 import Accordion from '@modules/products/components/product-info-accordion'
 import CompatibleScooters from '../../components/product-compatible/compatible-scooters'
 import { useTranslation } from 'react-i18next'
+
 
 type ProductInfoProps = {
   product: HttpTypes.StoreProduct
@@ -78,18 +80,18 @@ const ProductInfo = ({ product }: ProductInfoProps) => {
           typeof amount === 'number' && !isNaN(amount)
       ) ?? []
 
+  // 2. Calcular precio mínimo y máximo (convertir de céntimos a euros si es necesario).
   const minAmount = rawPrices.length > 0 ? Math.min(...rawPrices) : 0
   const maxAmount = rawPrices.length > 0 ? Math.max(...rawPrices) : 0
-
-  const minPrice = (minAmount / 100).toFixed(2)
-  const maxPrice = (maxAmount / 100).toFixed(2)
 
   const priceText =
     rawPrices.length === 0
       ? t('ProductInfo.priceNotAvailable')
       : minAmount === maxAmount
-      ? t('ProductInfo.singlePrice', { price: minPrice })
-      : t('ProductInfo.priceRange', { minPrice, maxPrice })
+      ? `${minAmount.toFixed(2)} €`
+      : `${minAmount.toFixed(2)} € - ${maxAmount.toFixed(2)} €`
+
+
 
   return (
     <div id="product-info">

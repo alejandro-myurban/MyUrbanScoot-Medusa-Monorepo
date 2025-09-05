@@ -16,10 +16,9 @@
     "incremental": true,
     "baseUrl": "./src",
     "paths": {
-      // ✅ Atajo principal para todo
       "@/*": ["./*"],
-      
-      // ✅ Atajos específicos más comunes
+
+      "@/modules/financing/*": ["modules/financing/*"],
       "@/components/*": ["components/*"],
       "@/pages/*": ["pages/*"],
       "@/lib/*": ["lib/*"],
@@ -31,7 +30,6 @@
       "@/store/*": ["store/*"],
       "@/context/*": ["context/*"],
       
-      // ✅ Mantener los que ya tienes (si los usas)
       "@lib/*": ["lib/*"],
       "@modules/*": ["modules/*"],
       "@pages/*": ["pages/*"]
