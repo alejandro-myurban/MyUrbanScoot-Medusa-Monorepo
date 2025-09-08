@@ -46,12 +46,40 @@ export const useFinancingData = () => {
       });
       return response;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financing-data"] });
+    onMutate: async ({ id, field, value }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["financing-data"] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(["financing-data"]);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData(["financing-data"], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          financing_data: oldData.financing_data.map((item: FinancingData) => 
+            item.id === id 
+              ? { ...item, [field]: value }
+              : item
+          )
+        };
+      });
+      
+      return { previousData };
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
       console.error("Error updating field:", error);
       alert("Error al actualizar el campo: " + error.message);
+      
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(["financing-data"], context.previousData);
+      }
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ["financing-data"] });
     }
   });
 
@@ -67,12 +95,34 @@ export const useFinancingData = () => {
       });
       return response;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financing-data"] });
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ["financing-data"] });
+      const previousData = queryClient.getQueryData(["financing-data"]);
+      
+      queryClient.setQueryData(["financing-data"], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          financing_data: oldData.financing_data.map((item: FinancingData) => 
+            item.id === id 
+              ? { ...item, status }
+              : item
+          )
+        };
+      });
+      
+      return { previousData };
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
       console.error("Error updating status:", error);
       alert("Error al actualizar el estado: " + error.message);
+      
+      if (context?.previousData) {
+        queryClient.setQueryData(["financing-data"], context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["financing-data"] });
     }
   });
 
@@ -88,12 +138,34 @@ export const useFinancingData = () => {
       });
       return response;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financing-data"] });
+    onMutate: async ({ id, contacted }) => {
+      await queryClient.cancelQueries({ queryKey: ["financing-data"] });
+      const previousData = queryClient.getQueryData(["financing-data"]);
+      
+      queryClient.setQueryData(["financing-data"], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          financing_data: oldData.financing_data.map((item: FinancingData) => 
+            item.id === id 
+              ? { ...item, contacted }
+              : item
+          )
+        };
+      });
+      
+      return { previousData };
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
       console.error("Error updating contacted status:", error);
       alert("Error al actualizar el estado de contacto: " + error.message);
+      
+      if (context?.previousData) {
+        queryClient.setQueryData(["financing-data"], context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["financing-data"] });
     }
   });
 
@@ -109,12 +181,34 @@ export const useFinancingData = () => {
       });
       return response;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financing-data"] });
+    onMutate: async ({ id, notes }) => {
+      await queryClient.cancelQueries({ queryKey: ["financing-data"] });
+      const previousData = queryClient.getQueryData(["financing-data"]);
+      
+      queryClient.setQueryData(["financing-data"], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          financing_data: oldData.financing_data.map((item: FinancingData) => 
+            item.id === id 
+              ? { ...item, admin_notes: notes }
+              : item
+          )
+        };
+      });
+      
+      return { previousData };
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context) => {
       console.error("Error updating admin notes:", error);
       alert("Error al actualizar las notas: " + error.message);
+      
+      if (context?.previousData) {
+        queryClient.setQueryData(["financing-data"], context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["financing-data"] });
     }
   });
 

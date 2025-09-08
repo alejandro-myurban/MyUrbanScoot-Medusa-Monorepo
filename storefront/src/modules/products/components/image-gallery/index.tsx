@@ -88,7 +88,7 @@ const ImageGallery = ({ images }: ImageGalleryProps) => {
   }
 
   return (
-    <div className="flex items-start pt-20 relative">
+    <div className="flex items-start sm:pt-20 relative">
       <div className="flex flex-col flex-1 small:mx-16 gap-y-4">
         {/* Imagen principal */}
         <div className="relative group">

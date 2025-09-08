@@ -9,6 +9,7 @@ import {
   StoreProductOptionValueWithTranslations,
   hasTranslations
 } from "../../../../../types/medusa-extend"
+import JsonLd, { generateProductSchema, generateBreadcrumbSchema } from "@/components/seo/json-ld"
 
 // SSG PURO - Comentado ISR para prueba
 // export const revalidate = 86400
@@ -87,12 +88,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : product.description || product.title
 
   return {
-    title: `${title} | MyUrbanScoot`,
+    title: `${title}`,
     description: `${description}`,
     openGraph: {
       title: `${title} | MyUrbanScoot`,
       description: `${description}`,
+      type: 'website',
+      url: `https://myurbanscoot.com/producto/${handle}`,
+      images: product.thumbnail ? [
+        {
+          url: product.thumbnail,
+          width: 800,
+          height: 600,
+          alt: title
+        }
+      ] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title} | MyUrbanScoot`,
+      description: `${description}`,
       images: product.thumbnail ? [product.thumbnail] : [],
+    },
+    alternates: {
+      canonical: `https://myurbanscoot.com/producto/${handle}`,
     },
   }
 }
@@ -155,8 +174,24 @@ export default async function ProductPage({ params }: Props) {
     options: translatedOptions || null,
   }
 
+  // Generate structured data
+  const productSchema = generateProductSchema(translatedProduct, region)
+  
+  // Generate breadcrumb data
+  const breadcrumbs = [
+    { name: "Inicio", url: "https://myurbanscoot.com" },
+    ...(translatedProduct.categories?.map(cat => ({
+      name: cat.name,
+      url: `https://myurbanscoot.com/categories/${cat.handle}`
+    })) || []),
+    { name: translatedProduct.title, url: `https://myurbanscoot.com/producto/${params.handle}` }
+  ]
+  const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs)
+
   return (
     <>
+      <JsonLd data={productSchema} />
+      <JsonLd data={breadcrumbSchema} />
       <ProductTemplate
         product={translatedProduct}
         region={region}

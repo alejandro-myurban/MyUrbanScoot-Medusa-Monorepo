@@ -16,7 +16,7 @@ const ShowCancelledFilter = ({ checked, onChange, className = "" }: ShowCancelle
         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
       />
       <Text size="small" className="text-gray-700">
-        Mostrar canceladas/entregadas
+        Mostrar canceladas/entregadas/denegadas
       </Text>
     </label>
   );

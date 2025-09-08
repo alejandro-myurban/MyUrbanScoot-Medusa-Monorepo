@@ -67,10 +67,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       `${title} category.`
 
     return {
-      title: `${title} | MyUrbanScoot`,
+      title: `${title}`,
       description,
+      openGraph: {
+        title: `${title} | MyUrbanScoot`,
+        description: description,
+        type: 'website',
+        url: `https://myurbanscoot.com/categories/${params.category.join("/")}`,
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `${title} | MyUrbanScoot`,
+        description: description,
+      },
       alternates: {
-        canonical: `${params.category.join("/")}`,
+        canonical: `https://myurbanscoot.com/categories/${params.category.join("/")}`,
       },
     }
   } catch (error) {
