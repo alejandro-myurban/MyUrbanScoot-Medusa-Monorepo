@@ -33,7 +33,7 @@ const FIELD_CONFIG = {
   housing_type: { 
     type: 'select', 
     required: true,
-    options: ['own', 'rent', 'family', 'other']
+    options: ['own', 'rent', 'family', 'other', 'partner', 'leasing', 'usufruct']
   },
   civil_status: { 
     type: 'select', 
