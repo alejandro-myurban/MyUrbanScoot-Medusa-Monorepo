@@ -11,8 +11,11 @@ const PersonalInfoSection = ({
   showExtractedData,
   onToggleExtractedData,
   manualMode,
-  onToggleManualMode
-}: PersonalInfoSectionProps & { manualMode: boolean; onToggleManualMode: () => void }) => {
+  onToggleManualMode,
+}: PersonalInfoSectionProps & {
+  manualMode: boolean;
+  onToggleManualMode: () => void;
+}) => {
   return (
     <div className="space-y-6">
       {/* Extracted Data Accordion */}
@@ -28,7 +31,7 @@ const PersonalInfoSection = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <Text className="text-lg font-semibold">Información Personal</Text>
-          
+
           <EditableField
             label="Email"
             value={request.email}
@@ -50,49 +53,56 @@ const PersonalInfoSection = ({
             value={request.civil_status}
             type="select"
             options={[
-              { value: 'single', label: 'Soltero/a' },
-              { value: 'married', label: 'Casado/a' },
-              { value: 'divorced', label: 'Divorciado/a' },
-              { value: 'widowed', label: 'Viudo/a' },
-              { value: 'separated', label: 'Separado/a' }
+              { value: "single", label: "Soltero/a" },
+              { value: "married", label: "Casado/a" },
+              { value: "divorced", label: "Divorciado/a" },
+              { value: "widowed", label: "Viudo/a" },
+              { value: "separated", label: "Separado/a" },
             ]}
             required={true}
             onSave={async (value) => onFieldUpdate("civil_status", value)}
           />
 
-          {request.civil_status === 'married' && (
+          {request.civil_status === "married" && (
             <EditableField
               label="Detalles Estado Civil"
-              value={request.marital_status_details || ''}
+              value={request.marital_status_details || ""}
               type="text"
-              onSave={async (value) => onFieldUpdate("marital_status_details", value)}
+              onSave={async (value) =>
+                onFieldUpdate("marital_status_details", value)
+              }
             />
           )}
         </div>
 
         <div className="space-y-4">
           <Text className="text-lg font-semibold">Información de Vivienda</Text>
-          
+
           <EditableField
             label="Tipo de Vivienda"
             value={request.housing_type}
             type="select"
             options={[
-              { value: 'own', label: 'Vivienda propia' },
-              { value: 'rent', label: 'Alquiler' },
-              { value: 'family', label: 'Familiar' },
-              { value: 'other', label: 'Otro' }
+              { value: "rent", label: "Alquiler" },
+              { value: "owned", label: "Propiedad" },
+              { value: "partner", label: "Cónyuge" },
+              { value: "family", label: "Padres" },
+              { value: "leasing", label: "Leasing" },
+              { value: "usufruct", label: "Usufructo" },
+              { value: "other", label: "Otra" },
             ]}
             required={true}
             onSave={async (value) => onFieldUpdate("housing_type", value)}
           />
 
-          {request.housing_type === 'other' && (
+          {request.housing_type === "other" && (
             <EditableField
               label="Detalles de Vivienda"
-              value={request.housing_type_details || ''}
+              value={request.housing_type_details || ""}
               type="text"
-              onSave={async (value) => onFieldUpdate("housing_type_details", value)}
+              onSave={async (value) =>
+                onFieldUpdate("housing_type_details", value)
+              }
             />
           )}
 
@@ -135,7 +145,9 @@ const PersonalInfoSection = ({
       {/* Additional Information */}
       {request.doubts && (
         <div className="mt-6">
-          <Text className="text-lg font-semibold mb-3">Dudas/Comentarios del Cliente</Text>
+          <Text className="text-lg font-semibold mb-3">
+            Dudas/Comentarios del Cliente
+          </Text>
           <div className="p-4 bg-gray-50 rounded-lg">
             <Text className="whitespace-pre-wrap">{request.doubts}</Text>
           </div>
