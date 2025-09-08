@@ -2,6 +2,7 @@ import { sdk } from "@lib/config"
 import { HttpTypes } from "@medusajs/types"
 import { cache } from "react"
 import { getRegion } from "./regions"
+// Removed getAuthHeaders import to avoid server-only issues
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 import { sortProducts } from "@lib/util/sort-products"
 import { StoreProductListResponse } from "@medusajs/types"
@@ -24,6 +25,23 @@ export const getProductsByTagName = cache(async function ({
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// Helper function to get customer info for debugging
+const getCustomerForDebug = async () => {
+  try {
+    const { getCustomer } = await import("./customer")
+    const customer = await getCustomer()
+    console.log("🔍 PRICING DEBUG - Customer info:", {
+      isLoggedIn: !!customer,
+      customerId: customer?.id,
+      customerEmail: customer?.email,
+    })
+    return customer
+  } catch (error) {
+    console.log("🔍 PRICING DEBUG - Customer fetch error:", error.message)
+    return null
+  }
+}
+
 export const getProductsById = cache(async function ({
   ids,
   regionId,
@@ -40,6 +58,18 @@ export const getProductsById = cache(async function ({
   // Agregar delay antes de la request
   await delay(100) // 100ms de delay
 
+  // Debug customer context for pricing
+  const customer = await getCustomerForDebug()
+  
+  console.log('🔍 PRICING DEBUG - getProductsById called with:', {
+    ids: ids.slice(0, 3), // Log first 3 IDs only
+    regionId,
+    countryCode,
+    customerDetected: !!customer,
+    customerId: customer?.id,
+  })
+
+  // SDK automatically includes customer context from cookies for pricing
   return sdk.store.product
     .list(
       {
@@ -49,8 +79,19 @@ export const getProductsById = cache(async function ({
       },
       { next: { tags: ["products"] } }
     )
-    .then(({ products }) =>
-      products.map((product) => ({
+    .then(({ products }) => {
+      console.log('🔍 PRICING DEBUG - getProductsById response:', {
+        productCount: products.length,
+        firstProductPricing: products[0]?.variants?.[0]?.calculated_price ? {
+          calculatedAmount: products[0].variants[0].calculated_price.calculated_amount,
+          originalAmount: products[0].variants[0].calculated_price.original_amount,
+          currencyCode: products[0].variants[0].calculated_price.currency_code,
+          priceListType: products[0].variants[0].calculated_price.calculated_price?.price_list_type,
+        } : 'No pricing data',
+        customerId: customer?.id || 'No customer',
+      })
+
+      return products.map((product) => ({
         ...product,
         // assign the translations for the desired language directly to the product
         // so that the country code is not needed anymore
@@ -72,7 +113,7 @@ export const getProductsById = cache(async function ({
           ? product.translations?.[countryCode]
           : undefined,
       }))
-    )
+    })
 })
 
 export const getProductByHandle = cache(async function (
@@ -87,6 +128,18 @@ export const getProductByHandle = cache(async function (
   // Agregar delay antes de la request
   await delay(100) // 100ms de delay
 
+  // Debug customer context for pricing
+  const customer = await getCustomerForDebug()
+  
+  console.log('🔍 PRICING DEBUG - getProductByHandle called with:', {
+    handle,
+    regionId,
+    countryCode,
+    customerDetected: !!customer,
+    customerId: customer?.id,
+  })
+
+  // SDK automatically includes customer context from cookies for pricing  
   return sdk.store.product
     .list(
       {
@@ -98,6 +151,20 @@ export const getProductByHandle = cache(async function (
     )
     .then(({ products }) => {
       const product = products[0]
+      
+      console.log('🔍 PRICING DEBUG - getProductByHandle response:', {
+        productFound: !!product,
+        productId: product?.id,
+        variantCount: product?.variants?.length || 0,
+        firstVariantPricing: product?.variants?.[0]?.calculated_price ? {
+          calculatedAmount: product.variants[0].calculated_price.calculated_amount,
+          originalAmount: product.variants[0].calculated_price.original_amount,
+          currencyCode: product.variants[0].calculated_price.currency_code,
+          priceListType: product.variants[0].calculated_price.calculated_price?.price_list_type,
+        } : 'No pricing data',
+        customerId: customer?.id || 'No customer',
+      })
+      
       if (product && countryCode) {
         return {
           ...product,
@@ -151,6 +218,21 @@ export const getProductsList = cache(async function ({
       nextPage: null,
     }
   }
+
+  // Debug customer context for pricing
+  const customer = await getCustomerForDebug()
+  
+  console.log('🔍 PRICING DEBUG - getProductsList called with:', {
+    pageParam,
+    limit,
+    offset,
+    regionId: region.id,
+    countryCode,
+    customerDetected: !!customer,
+    customerId: customer?.id,
+  })
+  
+  // SDK automatically includes customer context from cookies for pricing
   return sdk.store.product
     .list(
       {
@@ -164,6 +246,18 @@ export const getProductsList = cache(async function ({
     )
     .then(({ products, count }) => {
       const nextPage = count > offset + limit ? pageParam + 1 : null
+
+      console.log('🔍 PRICING DEBUG - getProductsList response:', {
+        productCount: products.length,
+        totalCount: count,
+        firstProductPricing: products[0]?.variants?.[0]?.calculated_price ? {
+          calculatedAmount: products[0].variants[0].calculated_price.calculated_amount,
+          originalAmount: products[0].variants[0].calculated_price.original_amount,
+          currencyCode: products[0].variants[0].calculated_price.currency_code,
+          priceListType: products[0].variants[0].calculated_price.calculated_price?.price_list_type,
+        } : 'No pricing data',
+        customerId: customer?.id || 'No customer',
+      })
 
       return {
         response: {
