@@ -171,7 +171,21 @@
     "resultsCount_other": "{{count}} preguntas encontradas",
     "noResults": "No se encontraron preguntas para tu búsqueda.",
     "error": "Error: {{message}}",
-    "loadingMessage": "Cargando preguntas frecuentes..."
+    "loadingMessage": "Cargando preguntas frecuentes...",
+    "categories": {
+      "general": "General",
+      "orders": "Pedidos",
+      "shipping": "Envíos",
+      "returns": "Devoluciones",
+      "warranty": "Garantía",
+      "scooters": "Patinetes",
+      "accessories": "Accesorios"
+    },
+    "questions": {
+      "cancel_order": "¿Cómo se cancela un pedido?",
+      "get_refund": "¿Cómo se consigue un reembolso?",
+      "contact": "¿Cómo contactar con MYURBANSCOOT?"
+    }
   },
     "blog": {
       "header": {

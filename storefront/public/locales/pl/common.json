@@ -85,5 +85,28 @@
     "register_link": "Nie masz konta?",
     "register_button": "Zarejestruj się",
     "google": "Zaloguj się przez Google"
-  }
+  },
+  "faqs": {
+    "title": "Wszystkie pytania",
+    "loading": "Ładowanie...",
+    "resultsCount_one": "Znaleziono {{count}} pytanie",
+    "resultsCount_other": "Znaleziono {{count}} pytań",
+    "noResults": "Nie znaleziono pytań dla Twojego wyszukiwania.",
+    "error": "Błąd: {{message}}",
+    "loadingMessage": "Ładowanie często zadawanych pytań...",
+    "categories": {
+      "general": "Ogólne",
+      "orders": "Zamówienia",
+      "shipping": "Wysyłka",
+      "returns": "Zwroty",
+      "warranty": "Gwarancja",
+      "scooters": "Hulajnogi",
+      "accessories": "Akcesoria"
+    },
+    "questions": {
+      "cancel_order": "Jak anulować zamówienie?",
+      "get_refund": "Jak uzyskać zwrot pieniędzy?",
+      "contact": "Jak skontaktować się z MYURBANSCOOT?"
+    }
+}
 }

@@ -4,28 +4,28 @@ import CTACards from "@/modules/common/components/faq/cta-cards";
 import FAQsSection from "@/modules/common/components/faq/faq-section";
 import HeroSection from "@/modules/common/components/faq/hero-section";
 import SidebarFAQ from "@/modules/common/components/faq/side-bar";
-
 import React, { useState } from "react";
-
-// Ahora los objetos tienen nombre y cantidad
-const categories = [
-  { name: "General", count: 3 },
-  { name: "Pedidos", count: 5 },
-  { name: "Envíos", count: 4 },
-  { name: "Devoluciones", count: 2 },
-  { name: "Garantía", count: 1 },
-  { name: "Patinetes", count: 6 },
-  { name: "Accesorios", count: 3 },
-];
-
-const popularQuestions = [
-  { id: "p1", question: "¿Cómo se cancela un pedido?" },
-  { id: "p2", question: "¿Cómo se consigue un reembolso?" },
-  { id: "p3", question: "¿Cómo contactar con MYURBANSCOOT?" },
-];
+import { useTranslation } from "react-i18next";
 
 export default function HelpCenterPage() {
+  const t = useTranslation().t;
   const [searchTerm, setSearchTerm] = useState("");
+
+  const categories = [
+    { name: t("faqs.categories.general"), count: 3 },
+    { name: t("faqs.categories.orders"), count: 5 },
+    { name: t("faqs.categories.shipping"), count: 4 },
+    { name: t("faqs.categories.returns"), count: 2 },
+    { name: t("faqs.categories.warranty"), count: 1 },
+    { name: t("faqs.categories.scooters"), count: 6 },
+    { name: t("faqs.categories.accessories"), count: 3 },
+  ];
+
+  const popularQuestions = [
+    { id: "p1", question: t("faqs.questions.cancel_order") },
+    { id: "p2", question: t("faqs.questions.get_refund") },
+    { id: "p3", question: t("faqs.questions.contact") },
+  ];
 
   return (
     <div className="min-h-screen max-w-screen-large mx-auto px-6 bg-white text-gray-800 font-inter">

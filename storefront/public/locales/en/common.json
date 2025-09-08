@@ -171,7 +171,22 @@
     "resultsCount_other": "{{count}} questions found",
     "noResults": "No questions were found for your search.",
     "error": "Error: {{message}}",
-    "loadingMessage": "Loading frequent questions..."
+    "loadingMessage": "Loading frequent questions...",
+    "categories": {
+      "general": "General",
+      "orders": "Orders",
+      "shipping": "Shipping",
+      "returns": "Returns",
+      "warranty": "Warranty",
+      "scooters": "Scooters",
+      "accessories": "Accessories"
+    },
+    "questions": {
+      "cancel_order": "How to cancel an order?",
+      "get_refund": "How to get a refund?",
+      "contact": "How to contact MYURBANSCOOT?"
+    }
+
   },
     "blog": {
     "header": {

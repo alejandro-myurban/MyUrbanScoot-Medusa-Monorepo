@@ -4,6 +4,7 @@ import { TwilioService } from "./services/twilio.service";
 import { OpenAIService } from "./services/openai.service";
 import { WhatsAppService } from "./services/whatsapp.service";
 import { TwilioWebhookBody } from "./types";
+import { TWILIO_TEMPLATES } from "./config/templates";
 
 // Instancias de servicios para manejar las comunicaciones
 const twilioService = new TwilioService();
@@ -14,8 +15,8 @@ const whatsappService = new WhatsAppService(twilioService, openaiService);
 export const sendWhatsApp = (to: string, body: string, mediaUrl?: string) => 
     whatsappService.sendMessage(to, body, mediaUrl);
 
-export const sendWhatsAppTemplate = (to: string, templateName: string, fallbackMessage: string) => 
-    whatsappService.sendTemplate(to, templateName, fallbackMessage);
+export const sendWhatsAppTemplate = (to: string, templateSid: string, fallbackMessage: string, variables?: any) => 
+    whatsappService.sendTemplate(to, templateSid, fallbackMessage, variables);
 
 // Handler principal para el webhook de Twilio
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
@@ -25,11 +26,11 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
         // Validación inicial del cuerpo del webhook
         if (!req.body || typeof req.body !== "object" || !("From" in req.body) || typeof req.body.From !== "string") {
             console.warn("⚠️ [VALIDACIÓN] Cuerpo inválido o faltan campos obligatorios");
-            return res.status(400).send("<Response></Response>");
+            return res.status(200).send("<Response></Response>");
         }
 
         // Extracción de datos del mensaje
-        const { Body, From, NumMedia, MediaUrl0, ProfileName } = req.body as TwilioWebhookBody;
+        const { Body, From, NumMedia, MediaUrl0, ProfileName, ButtonPayload } = req.body as TwilioWebhookBody & { ButtonPayload?: string };
         const userId = From;
         const incomingMsg = Body ? Body.trim() : "";
         const numMedia = parseInt(NumMedia || "0", 10);
@@ -37,16 +38,15 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
         
         // Obtención de servicios y preparación de datos
         const chatService = req.scope.resolve("chat_history") as ChatHistoryService;
+        const appointmentsService = req.scope.resolve("appointments") as any;
         const profileNameReceived = ProfileName || null;
         const profileName = profileNameReceived || userId.replace("whatsapp:", "");
 
-        // Formateo del mensaje para guardar en el historial
         let messageToSave;
         if (incomingMsg.length > 0 && numMedia > 0) messageToSave = `${incomingMsg} [Imagen] - ${mediaUrl}`;
         else if (numMedia > 0) messageToSave = `[Imagen] - ${mediaUrl}`;
         else if (incomingMsg.length > 0) messageToSave = incomingMsg;
 
-        // Guardar mensaje del usuario en el historial
         if (messageToSave) {
             await chatService.saveMessage({
                 user_id: userId,
@@ -57,7 +57,6 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
             });
         }
 
-        // Manejo de solicitudes de asistencia personal o mensajes con imágenes
         const isPersonalAssistanceRequest = incomingMsg.toUpperCase().includes("ASISTENCIA PERSONAL");
         if (numMedia > 0 || isPersonalAssistanceRequest) {
             console.log(`💬 Mensaje de ${profileName} (${userId}) contiene una imagen o solicitud de AGENTE. Cambiando a modo AGENTE.`);
@@ -74,7 +73,6 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
             return res.status(200).send("<Response></Response>");
         }
 
-        // Procesamiento del mensaje según el modo de conversación
         if (await chatService.getConversationStatus(userId) === "IA" || !await chatService.getConversationStatus(userId)) {
             console.log(`💬 Mensaje de ${profileName} (${userId}) en modo IA. Procesando con el asistente de OpenAI.`);
             await whatsappService.processMessage(userId, incomingMsg, chatService, mediaUrl);
@@ -84,7 +82,6 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
         return res.status(200).send("<Response></Response>");
     } catch (err: any) {
-        // Manejo de errores
         console.error("❌ [ERROR] Ocurrió un error en el webhook:", err.message || err);
         return res.status(500).send("<Response></Response>");
     }

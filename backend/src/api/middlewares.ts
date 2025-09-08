@@ -24,7 +24,6 @@ const upload = multer({
     });
 
     // Solo permitir imágenes
-
     if (
       file.mimetype.startsWith("image/") ||
       file.mimetype.startsWith("application/pdf")
@@ -56,8 +55,57 @@ const uploadMiddleware = (req, res, next) => {
   });
 };
 
+// 🔥 NUEVO: Middleware CORS para rutas públicas - CORREGIDO
+const corsMiddleware = (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
+  const allowedOrigins = [
+    "http://localhost:8000",
+    "http://localhost:3000",
+    "http://localhost:9000"
+  ];
+  
+  const origin = req.headers.origin;
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    // Para desarrollo, puedes permitir todos los orígenes
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+  
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  
+  // 🔥 CORRECIÓN: Agregar x-publishable-api-key a los headers permitidos
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-publishable-api-key");
+  
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  
+  // Manejar preflight requests
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+  
+  next();
+};
+
 export default defineMiddlewares({
   routes: [
+    // 🔥 AGREGAR CORS A TUS RUTAS PÚBLICAS
+    {
+      matcher: "/appointments*",
+      method: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      middlewares: [corsMiddleware],
+    },
+    {
+      matcher: "/workshops*", 
+      method: ["GET", "POST", "OPTIONS"],
+      middlewares: [corsMiddleware],
+    },
+    {
+      matcher: "/workshops/*/slots*",
+      method: ["GET", "OPTIONS"],
+      middlewares: [corsMiddleware],
+    },
     {
       matcher: "/store/products/search",
       method: ["POST"],
@@ -69,7 +117,7 @@ export default defineMiddlewares({
       middlewares: [uploadMiddleware],
     },
     {
-      matcher: "/store/document-verification", // Cambia esto por la ruta que necesites
+      matcher: "/store/document-verification",
       method: ["POST"],
       bodyParser: { sizeLimit: "5mb" },
     },
