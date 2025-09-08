@@ -7,14 +7,49 @@ export const useFinancingFilters = (data: FinancingData[]) => {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
+  // Pre-calculate sorted data and sequential ID mapping
+  const sortedDataWithSequentialIds = useMemo(() => {
+    const sortedData = [...data].sort((a, b) => 
+      new Date(a.requested_at).getTime() - new Date(b.requested_at).getTime()
+    );
+    
+    const sequentialIdMap = new Map<string, string>();
+    sortedData.forEach((item, index) => {
+      sequentialIdMap.set(item.id, (index + 1).toString().padStart(4, '0'));
+    });
+    
+    return sequentialIdMap;
+  }, [data]);
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filters.contractType, filters.searchTerm, filters.status, filters.contacted, filters.showCancelledDelivered]);
 
+  // Memoize search results separately to avoid expensive recalculation
+  const searchFilteredData = useMemo(() => {
+    if (!filters.searchTerm.trim()) return data;
+    
+    const searchLower = filters.searchTerm.toLowerCase();
+    return data.filter((item) => {
+      const emailMatch = item.email.toLowerCase().includes(searchLower);
+      const phoneMatch = item.phone_mumber.toLowerCase().includes(searchLower);
+      const addressMatch = item.address && item.address.toLowerCase().includes(searchLower);
+      const cityMatch = item.city && item.city.toLowerCase().includes(searchLower);
+      const notesMatch = item.admin_notes && item.admin_notes.toLowerCase().includes(searchLower);
+      
+      // Buscar en los datos extraídos del DNI
+      const dniInfo = extractionHelpers.extractDniInfo(item);
+      const fullNameMatch = dniInfo.fullName && dniInfo.fullName.toLowerCase().includes(searchLower);
+      const documentNumberMatch = dniInfo.documentNumber && dniInfo.documentNumber.toLowerCase().includes(searchLower);
+      
+      return emailMatch || phoneMatch || addressMatch || cityMatch || notesMatch || fullNameMatch || documentNumberMatch;
+    });
+  }, [data, filters.searchTerm]);
+
   // Filter data based on current filters
   const filteredData = useMemo(() => {
-    return data.filter((item) => {
+    return searchFilteredData.filter((item) => {
       // Contract type filter
       const matchesContractType = !filters.contractType || item.contract_type === filters.contractType;
       
@@ -28,34 +63,16 @@ export const useFinancingFilters = (data: FinancingData[]) => {
       } else if (filters.contacted === 'not_contacted') {
         matchesContacted = item.contacted !== true;
       }
-      
-      // Search term filter - includes DNI information
-      let matchesSearch = true;
-      if (filters.searchTerm.trim()) {
-        const searchLower = filters.searchTerm.toLowerCase();
-        const emailMatch = item.email.toLowerCase().includes(searchLower);
-        const phoneMatch = item.phone_mumber.toLowerCase().includes(searchLower);
-        const addressMatch = item.address && item.address.toLowerCase().includes(searchLower);
-        const cityMatch = item.city && item.city.toLowerCase().includes(searchLower);
-        const notesMatch = item.admin_notes && item.admin_notes.toLowerCase().includes(searchLower);
-        
-        // Buscar en los datos extraídos del DNI
-        const dniInfo = extractionHelpers.extractDniInfo(item);
-        const fullNameMatch = dniInfo.fullName && dniInfo.fullName.toLowerCase().includes(searchLower);
-        const documentNumberMatch = dniInfo.documentNumber && dniInfo.documentNumber.toLowerCase().includes(searchLower);
-        
-        matchesSearch = emailMatch || phoneMatch || addressMatch || cityMatch || notesMatch || fullNameMatch || documentNumberMatch;
-      }
 
-      // Show cancelled/delivered filter
+      // Show cancelled/delivered/denied filter
       let matchesShowCancelled = true;
       if (!filters.showCancelledDelivered) {
-        matchesShowCancelled = item.status !== 'cancelled' && item.status !== 'delivered';
+        matchesShowCancelled = item.status !== 'cancelled' && item.status !== 'delivered' && item.status !== 'denied';
       }
 
-      return matchesContractType && matchesStatus && matchesContacted && matchesSearch && matchesShowCancelled;
+      return matchesContractType && matchesStatus && matchesContacted && matchesShowCancelled;
     });
-  }, [data, filters]);
+  }, [searchFilteredData, filters.contractType, filters.status, filters.contacted, filters.showCancelledDelivered]);
 
   // Pagination calculations
   const pagination = useMemo<PaginationState>(() => {
@@ -74,20 +91,15 @@ export const useFinancingFilters = (data: FinancingData[]) => {
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredData.slice(startIndex, endIndex).map((item, index) => {
-      // Calculate sequential ID from the original sorted data
-      const sortedData = [...data].sort((a, b) => 
-        new Date(a.requested_at).getTime() - new Date(b.requested_at).getTime()
-      );
-      const globalIndex = sortedData.findIndex(d => d.id === item.id);
-      const sequentialId = (globalIndex + 1).toString().padStart(4, '0');
+    return filteredData.slice(startIndex, endIndex).map((item) => {
+      const sequentialId = sortedDataWithSequentialIds.get(item.id) || '0000';
       
       return {
         ...item,
         sequentialId
       };
     });
-  }, [filteredData, currentPage, data]);
+  }, [filteredData, currentPage, sortedDataWithSequentialIds]);
 
   // Update filters
   const updateFilters = (newFilters: Partial<FilterState>) => {
@@ -148,7 +160,7 @@ export const useFinancingFilters = (data: FinancingData[]) => {
     if (filters.status) activeFilters.push('Estado');
     if (filters.contacted) activeFilters.push('Contactado');
     if (filters.searchTerm) activeFilters.push('Búsqueda');
-    if (!filters.showCancelledDelivered) activeFilters.push('Ocultar cancelados/entregados');
+    if (!filters.showCancelledDelivered) activeFilters.push('Ocultar cancelados/entregados/denegados');
 
     return {
       hasActiveFilters: activeFilters.length > 0,

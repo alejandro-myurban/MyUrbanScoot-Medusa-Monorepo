@@ -19,6 +19,7 @@ import {
 } from "../../../src/components/ui/breadcrumb"
 import PriceFilterWrapper from "@modules/products/components/price-filter-wrapper"
 import { SubcategoryCardLight } from "../components/subcategory-card"
+import JsonLd, { generateCategorySchema, generateBreadcrumbSchema } from "@/components/seo/json-ld"
 
 import ScootersFiltersContainer from "../components/filters/scootets-filters-container" 
 
@@ -196,11 +197,28 @@ export default async function CategoryTemplate({
       ? sortSubcategories(category.category_children)
       : category.category_children
 
+  // Generate structured data for category
+  const categorySchema = generateCategorySchema(category, allCategoryProducts)
+  
+  // Generate breadcrumb data
+  const breadcrumbs = [
+    { name: "Inicio", url: "https://myurbanscoot.com" },
+    ...parents.map(parent => ({
+      name: parent.name,
+      url: `https://myurbanscoot.com/categories/${parent.handle}`
+    })),
+    { name: category.name, url: `https://myurbanscoot.com/categories/${category.handle}` }
+  ]
+  const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs)
+
   return (
-    <div
-      className="flex gap-4 flex-col small:items-start py-6 content-container"
-      data-testid="category-container"
-    >
+    <>
+      <JsonLd data={categorySchema} />
+      <JsonLd data={breadcrumbSchema} />
+      <div
+        className="flex gap-4 flex-col small:items-start py-6 content-container"
+        data-testid="category-container"
+      >
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -303,5 +321,6 @@ export default async function CategoryTemplate({
         )}
       </div>
     </div>
+    </>
   )
 }

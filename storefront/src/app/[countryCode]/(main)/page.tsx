@@ -4,6 +4,7 @@ import FeaturedProducts from "@modules/home/components/featured-products"
 import Hero from "@modules/home/components/hero"
 import { getCollectionsWithProducts } from "@lib/data/collections"
 import { getRegion } from "@lib/data/regions"
+import JsonLd, { generateOrganizationSchema, generateWebsiteSchema } from "@/components/seo/json-ld"
 
 export const metadata: Metadata = {
   title: "MyUrbanScoot | Todo para tu patinete eléctrico",
@@ -40,8 +41,14 @@ export default async function Home({
     return null
   }
 
+  // Generate structured data for home page
+  const organizationSchema = generateOrganizationSchema()
+  const websiteSchema = generateWebsiteSchema()
+
   return (
     <>
+      <JsonLd data={organizationSchema} />
+      <JsonLd data={websiteSchema} />
       <Hero />
       <div className="py-12">
         <ul className="flex flex-col gap-x-6">
