@@ -13,6 +13,7 @@ interface Workshop {
   phone: string
   email?: string
 }
+const API_URL = "https://backend-production-9e9f.up.railway.app"
 
 export default function AppointmentsPage() {
   const [selectedWorkshopId, setSelectedWorkshopId] = useState("")
@@ -50,7 +51,7 @@ export default function AppointmentsPage() {
       setWorkshopsLoading(true)
       setWorkshopsError(null)
       try {
-        const response = await fetch("http://localhost:9000/workshops", {
+        const response = await fetch(`${API_URL}/workshops`, {
           headers: {
             "Content-Type": "application/json",
           },
@@ -84,7 +85,7 @@ export default function AppointmentsPage() {
       setSlotsError(null)
       try {
         const response = await fetch(
-          `http://localhost:9000/workshops/${selectedWorkshopId}/slots?date=${selectedDate}`,
+          `${API_URL}/workshops/${selectedWorkshopId}/slots?date=${selectedDate}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -179,7 +180,7 @@ export default function AppointmentsPage() {
         workshop_id: selectedWorkshopId,
       }
 
-      const response = await fetch("http://localhost:9000/appointments", {
+      const response = await fetch(`${API_URL}/appointments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
