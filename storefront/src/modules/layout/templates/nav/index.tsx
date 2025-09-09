@@ -29,7 +29,7 @@ export default async function Nav() {
     <header className="relative h-16 w-full bg-white/95 backdrop-blur-md shadow-sm z-50 ">
       <nav className="w-full max-w-screen-large mx-auto px-4 sm:px-6 flex items-center justify-between h-full lg:justify-between">
         {/* En móvil: hamburguesa a la izquierda */}
-        <div className="lg:hidden">
+        <div className="nav:hidden">
           <MobileMenu categories={product_categories} isDark={false} />
         </div>
 
@@ -55,7 +55,7 @@ export default async function Nav() {
         </div>
 
         {/* CENTRO: NavigationMenu - Solo visible en desktop */}
-        <div className="hidden lg:flex flex-1 justify-center">
+        <div className="hidden nav:flex flex-1 justify-center">
           <NavigationMenu>
             <NavigationMenuList className="flex gap-6">
               <NavigationMenuItem>
@@ -148,7 +148,7 @@ export default async function Nav() {
     <header className="relative h-16 w-full bg-black/90 backdrop-blur-md z-50 shadow-lg">
       <nav className="w-full max-w-screen-large mx-auto px-4 sm:px-6 flex items-center justify-between h-full lg:justify-between">
         {/* En móvil: hamburguesa a la izquierda */}
-        <div className="lg:hidden">
+        <div className="nav:hidden">
           <MobileMenu categories={product_categories} isDark={true} />
         </div>
 
@@ -174,7 +174,7 @@ export default async function Nav() {
         </div>
 
         {/* CENTRO: NavigationMenu (dark) - Solo visible en desktop */}
-        <div className="hidden lg:flex flex-1 justify-center">
+        <div className="hidden nav:flex flex-1 justify-center">
           <NavigationMenu>
             <NavigationMenuList className="flex gap-6">
               <NavigationMenuItem>

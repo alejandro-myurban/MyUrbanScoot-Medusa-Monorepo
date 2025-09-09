@@ -112,10 +112,16 @@ export interface UseFinancingFormReturn {
   setFiles: (files: FileStates | ((prev: FileStates) => FileStates)) => void
   setIsUnemployed: (value: boolean) => void
   setDocumentVerifications: (verifications: DocumentVerifications | ((prev: DocumentVerifications) => DocumentVerifications)) => void
+  setSubmitting: (value: boolean) => void
+  setSubmitted: (value: boolean) => void
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   removeFile: (fileName: keyof FileStates) => void
   handleVerificationComplete: (type: "front" | "back" | "payroll" | "payroll_2" | "bank", result: any) => void
+  // Métodos de control de submit (anti-double-submit)
+  lockSubmit: () => void
+  unlockSubmit: () => void
+  canSubmit: () => { allowed: boolean; reason?: string }
 }
 
 export interface UseFormValidationReturn {

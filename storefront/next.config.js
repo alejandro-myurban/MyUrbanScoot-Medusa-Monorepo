@@ -14,6 +14,9 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    // Solo optimizaciones básicas que no causen problemas
+    formats: ['image/webp'],
+    minimumCacheTTL: 86400, // 24 horas de cache (más agresivo para prod)
     remotePatterns: [
       {
         protocol: "http",

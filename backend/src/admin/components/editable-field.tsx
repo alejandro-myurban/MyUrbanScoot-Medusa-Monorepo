@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@medusajs/ui";
 import { Edit3, Check, X, Loader2, Copy } from "lucide-react";
 
-type FieldType = 'text' | 'email' | 'textarea' | 'select' | 'date' | 'boolean' | 'readonly' | 'json-object' | 'tel';
+type FieldType = 'text' | 'email' | 'textarea' | 'select' | 'select-input' | 'date' | 'boolean' | 'readonly' | 'json-object' | 'tel';
 
 interface EditableFieldProps {
   label: string;
@@ -13,6 +13,8 @@ interface EditableFieldProps {
   onSave: (value: any) => Promise<void>;
   disabled?: boolean;
   placeholder?: string;
+  minValue?: number;
+  maxValue?: number;
 }
 
 const EditableField: React.FC<EditableFieldProps> = ({
@@ -23,19 +25,30 @@ const EditableField: React.FC<EditableFieldProps> = ({
   required = false,
   onSave,
   disabled = false,
-  placeholder = ""
+  placeholder = "",
+  minValue,
+  maxValue
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentValue, setCurrentValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string>("");
   const [showCopyFeedback, setShowCopyFeedback] = useState(false);
+  const [isCustomInput, setIsCustomInput] = useState(false);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
 
   // Sincronizar valor cuando cambie externamente
   useEffect(() => {
     setCurrentValue(value);
-  }, [value]);
+    
+    // Para select-input, determinar si el valor actual requiere input personalizado
+    if (type === 'select-input' && value) {
+      const isPredefineOption = options.some(opt => 
+        typeof opt === 'string' ? opt === value : opt.value === value
+      );
+      setIsCustomInput(!isPredefineOption);
+    }
+  }, [value, type, options]);
 
   // Focus automático cuando se entra en modo edición
   useEffect(() => {
@@ -49,6 +62,16 @@ const EditableField: React.FC<EditableFieldProps> = ({
     setIsEditing(true);
     setCurrentValue(value);
     setError("");
+    
+    // Inicializar estado para select-input
+    if (type === 'select-input' && value) {
+      const isPredefineOption = options.some(opt => 
+        typeof opt === 'string' ? opt === value : opt.value === value
+      );
+      setIsCustomInput(!isPredefineOption);
+    } else {
+      setIsCustomInput(false);
+    }
   };
 
   const handleCopy = async () => {
@@ -76,6 +99,16 @@ const EditableField: React.FC<EditableFieldProps> = ({
     setIsEditing(false);
     setCurrentValue(value);
     setError("");
+    
+    // Reset custom input state para select-input
+    if (type === 'select-input' && value) {
+      const isPredefineOption = options.some(opt => 
+        typeof opt === 'string' ? opt === value : opt.value === value
+      );
+      setIsCustomInput(!isPredefineOption);
+    } else {
+      setIsCustomInput(false);
+    }
   };
 
   const handleSave = async () => {
@@ -83,6 +116,32 @@ const EditableField: React.FC<EditableFieldProps> = ({
     if (required && (!currentValue || currentValue.toString().trim() === '')) {
       setError(`${label} es requerido`);
       return;
+    }
+
+    // Validación especial para select-input
+    if (type === 'select-input' && currentValue) {
+      // Si no es una de las opciones predefinidas, validar como número
+      const isPredefineOption = options.some(opt => 
+        typeof opt === 'string' ? opt === currentValue : opt.value === currentValue
+      );
+      
+      if (!isPredefineOption) {
+        const numValue = parseInt(currentValue);
+        if (isNaN(numValue)) {
+          setError('El valor debe ser un número válido');
+          return;
+        }
+        
+        if (minValue !== undefined && numValue < minValue) {
+          setError(`El valor debe ser mayor o igual a ${minValue}`);
+          return;
+        }
+        
+        if (maxValue !== undefined && numValue > maxValue) {
+          setError(`El valor debe ser menor o igual a ${maxValue}`);
+          return;
+        }
+      }
     }
 
     // Validación especial para JSON
@@ -136,12 +195,16 @@ const EditableField: React.FC<EditableFieldProps> = ({
     }
 
     // Para selects con opciones de objeto, mostrar la etiqueta correspondiente
-    if (type === 'select' && options.length > 0) {
+    if ((type === 'select' || type === 'select-input') && options.length > 0) {
       const option = options.find(opt => 
         typeof opt === 'string' ? opt === val : opt.value === val
       );
       if (option && typeof option === 'object') {
         return option.label;
+      }
+      // Para select-input, agregar "meses" al final si es un número
+      if (type === 'select-input') {
+        return `${val} meses`;
       }
     }
 
@@ -202,6 +265,63 @@ const EditableField: React.FC<EditableFieldProps> = ({
               }
             })}
           </select>
+        );
+
+      case 'select-input':
+        return (
+          <div className="space-y-2">
+            {/* Select con opciones predefinidas + opción personalizar */}
+            <select 
+              {...baseProps}
+              onChange={(e) => {
+                const selectedValue = e.target.value;
+                if (selectedValue === 'custom') {
+                  setIsCustomInput(true);
+                  setCurrentValue('');
+                } else {
+                  setIsCustomInput(false);
+                  setCurrentValue(selectedValue);
+                }
+              }}
+              value={isCustomInput ? 'custom' : currentValue || ''}
+            >
+              <option value="">Seleccionar...</option>
+              {options.map((option, index) => {
+                if (typeof option === 'string') {
+                  return (
+                    <option key={option} value={option}>
+                      {option} meses
+                    </option>
+                  );
+                } else {
+                  return (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  );
+                }
+              })}
+              <option value="custom">✏️ Personalizar (12-60 meses)</option>
+            </select>
+            
+            {/* Input personalizado que aparece cuando se selecciona "Personalizar" */}
+            {isCustomInput && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={minValue || 12}
+                  max={maxValue || 60}
+                  value={currentValue || ''}
+                  onChange={(e) => setCurrentValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder={`Ingrese número entre ${minValue || 12} y ${maxValue || 60}`}
+                  disabled={isSaving}
+                />
+                <span className="text-sm text-gray-500">meses</span>
+              </div>
+            )}
+          </div>
         );
 
       case 'date':

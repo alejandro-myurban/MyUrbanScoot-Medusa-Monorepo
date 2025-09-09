@@ -41,9 +41,11 @@ const FIELD_CONFIG = {
     options: ['single', 'married', 'divorced', 'widowed', 'domestic_partnership']
   },
   financing_installment_count: { 
-    type: 'select', 
+    type: 'select-input', 
     required: true,
-    options: ['6', '12', '18', '24', '36', '48']
+    options: ['12', '18', '24', '36', '48', '60'],
+    minValue: 12,
+    maxValue: 60
   },
   status: { 
     type: 'select', 
@@ -103,6 +105,30 @@ const validateField = (field: string, value: any) => {
     case 'select':
       if (value && 'options' in config && !config.options.includes(value)) {
         return { valid: false, error: `Valor inválido. Opciones válidas: ${config.options.join(', ')}` };
+      }
+      break;
+
+    case 'select-input':
+      if (value) {
+        // Si es una de las opciones predefinidas, validar que esté en la lista
+        if ('options' in config && config.options.includes(value)) {
+          // Valor válido de la lista
+          break;
+        }
+        
+        // Si no está en la lista, validar como número dentro del rango
+        const numValue = parseInt(value);
+        if (isNaN(numValue)) {
+          return { valid: false, error: 'El valor debe ser un número válido' };
+        }
+        
+        if ('minValue' in config && numValue < config.minValue) {
+          return { valid: false, error: `El valor debe ser mayor o igual a ${config.minValue}` };
+        }
+        
+        if ('maxValue' in config && numValue > config.maxValue) {
+          return { valid: false, error: `El valor debe ser menor o igual a ${config.maxValue}` };
+        }
       }
       break;
 

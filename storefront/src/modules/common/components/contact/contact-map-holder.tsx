@@ -31,8 +31,7 @@ const stores = [
   {
     id: 2,
     name: "Valencia Av Del Cid",
-    address:
-      "C/ de St. Josep de Calassanç, 28, Extramurs",
+    address: "C/ de St. Josep de Calassanç, 28, Extramurs",
     city: "46008, València",
     coords: { lat: 39.46725313340095, lng: -0.3894495288354332 },
     phone: "+34 963 789 012",
@@ -52,7 +51,7 @@ const stores = [
   {
     id: 4,
     name: "Murcia",
-    address: "Salón Ignacio, C. Virgen de la Esperanza, 5,  Murcia",
+    address: "Rda. de Garay, 29.",
     city: "30008, Murcia",
     coords: { lat: 37.99102696939283, lng: -1.1335271584618638 },
     phone: "+34 963 901 234",
@@ -94,23 +93,23 @@ const StoreMap: React.FC<StoreMapProps> = ({ store }) => {
   return (
     <div className="group bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
       {/* Header de la tienda */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-gray-100 min-h-[140px] sm:min-h-[133px] md:min-h-[145px] lg:min-h-[133px] xl:min-h-[150px] flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-bold font-archivoBlack uppercase text-gray-800">
+          <h3 className="text-lg font-bold font-archivoBlack uppercase text-gray-800 leading-tight">
             {store.name}
           </h3>
           <div
-            className="w-3 h-3 rounded-full"
+            className="w-3 h-3 rounded-full flex-shrink-0"
             style={{ backgroundColor: store.color }}
           />
         </div>
-        <div className="space-y-1 text-sm text-gray-600">
-          <p className="flex items-center gap-2">
+        <div className="space-y-1 text-sm text-gray-600 flex-grow flex flex-col justify-center">
+          <p className="flex items-start gap-2 leading-tight">
             <FontAwesomeIcon
               icon={faMapMarkerAlt}
-              className="text-gray-400 w-4"
+              className="text-gray-400 w-4 mt-0.5 flex-shrink-0"
             />
-            {store.address}
+            <span className="break-words">{store.address}</span>
           </p>
           <p className="ml-6 text-gray-500">{store.city}</p>
         </div>
@@ -156,22 +155,22 @@ const StoreMap: React.FC<StoreMapProps> = ({ store }) => {
       </div>
 
       {/* Footer con info de contacto */}
-      <div className="p-4 space-y-2">
-        <div className="flex items-center justify-between text-sm">
+      <div className="p-4 space-y-3 min-h-[100px] flex flex-col justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
           <div className="flex items-center gap-2 text-gray-600">
-            <FontAwesomeIcon icon={faPhone} className="text-gray-400 w-4" />
-            <span className="font-medium">{store.phone}</span>
+            <FontAwesomeIcon icon={faPhone} className="text-gray-400 w-4 flex-shrink-0" />
+            <span className="font-medium break-all">{store.phone}</span>
           </div>
           <div className="flex items-center gap-2 text-gray-600">
-            <FontAwesomeIcon icon={faClock} className="text-gray-400 w-4" />
-            <span className="font-medium">{store.hours}</span>
+            <FontAwesomeIcon icon={faClock} className="text-gray-400 w-4 flex-shrink-0" />
+            <span className="font-medium whitespace-nowrap">{store.hours}</span>
           </div>
         </div>
 
         {/* Botón de llamada */}
         <button
           onClick={() => window.open(`tel:${store.phone}`, "_self")}
-          className="w-full bg-black/80 text-white py-2 px-4 rounded-lg transition-all duration-200 uppercase font-bold font-archivoBlack hover:bg-gray-800 transform hover:scale-[1.02] active:scale-[0.98]"
+          className="w-full bg-black/80 text-white py-2.5 px-4 rounded-lg transition-all duration-200 uppercase font-bold font-archivoBlack hover:bg-gray-800 transform hover:scale-[1.02] active:scale-[0.98] mt-auto"
         >
           {i18n.t("stores_map.call_button")}
         </button>
@@ -233,7 +232,7 @@ const StoresMapGrid: React.FC = () => {
       </div>
 
       {/* Grid de Mapas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 large:grid-cols-4 xl:grid-cols-2 gap-6">
         {stores.map((store) => (
           <StoreMap key={store.id} store={store} />
         ))}

@@ -7,6 +7,8 @@ import {
   ChevronRight,
   UserCircleIcon,
   ShoppingBag,
+  MessageCircleQuestion,
+  Info,
 } from "lucide-react"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import {
@@ -16,7 +18,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../../../../src/components/ui/sheet"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, type Variants } from "framer-motion"
 import SearchModal from "@modules/search-algolia/components/modal"
 import LanguageSwitcher from "../language-switcher"
 import { useTranslation } from "react-i18next"
@@ -27,23 +29,23 @@ interface MobileMenuProps {
 }
 
 // Variantes de animación optimizadas
-const collapsibleVariants = {
+const collapsibleVariants: Variants = {
   hidden: {
     opacity: 0,
     height: 0,
-    overflow: "hidden",
+    overflow: "hidden" as const,
     transition: {
       duration: 0.2,
-      ease: "easeInOut",
+      ease: [0.4, 0.0, 0.2, 1],
     },
   },
   visible: {
     opacity: 1,
-    height: "auto",
-    overflow: "visible",
+    height: "auto" as const,
+    overflow: "visible" as const,
     transition: {
       duration: 0.2,
-      ease: "easeInOut",
+      ease: [0.4, 0.0, 0.2, 1],
       staggerChildren: 0.03,
       delayChildren: 0.05,
     },
@@ -51,15 +53,15 @@ const collapsibleVariants = {
   exit: {
     opacity: 0,
     height: 0,
-    overflow: "hidden",
+    overflow: "hidden" as const,
     transition: {
       duration: 0.15,
-      ease: "easeInOut",
+      ease: [0.4, 0.0, 0.2, 1],
     },
   },
 }
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: {
     opacity: 0,
     x: -10,
@@ -72,12 +74,12 @@ const itemVariants = {
     x: 0,
     transition: {
       duration: 0.2,
-      ease: "easeOut",
+      ease: [0.0, 0.0, 0.2, 1],
     },
   },
 }
 
-const linkVariants = {
+const linkVariants: Variants = {
   hidden: {
     opacity: 0,
     y: 5,
@@ -87,7 +89,7 @@ const linkVariants = {
     y: 0,
     transition: {
       duration: 0.2,
-      ease: "easeOut",
+      ease: [0.0, 0.0, 0.2, 1],
     },
   },
 }
@@ -115,11 +117,12 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
     )
   }
 
-  const textColor = isDark ? "text-white" : "text-black"
-  const textColorSecondary = isDark ? "text-white/80" : "text-black/80"
-  const hoverColor = isDark ? "hover:text-white" : "hover:text-black"
-  const bgColor = isDark ? "bg-black/50" : "bg-white/50"
-  const borderColor = isDark ? "border-gray-800" : "border-gray-200"
+  const textColor = isDark ? "text-white" : "text-black/80"
+  const textColorSecondary = isDark ? "text-white/80" : "text-white/80"
+  const hoverColor = isDark ? "hover:text-white" : "hover:text-white"
+  const bgColor = isDark ? "bg-black/50" : "bg-black/50"
+  const borderColor = isDark ? "border-gray-800" : "border-gray-800"
+  const i18nColor = isDark ? "text-white/90" : "text-white/90"
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -137,113 +140,156 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
         className={`w-full sm:w-3/4 md:2/4 lg:1/4 ${bgColor} backdrop-blur-md ${borderColor} border-r flex flex-col`}
       >
         {/* Header fijo */}
-        <SheetHeader className="text-left flex justify-between space-y-0 flex-row items-center flex-shrink-0">
+        <SheetHeader className="text-left flex justify-between space-y-0 flex-row items-center flex-shrink-0 pb-4 border-b border-gray-200/20">
           <SheetTitle className={`${textColor} text-xl font-bold`}>
-            Menú
+            <motion.div
+              className=""
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, ease: [0.0, 0.0, 0.2, 1] }}
+            >
+              <img
+                className="transition-all object-cover duration-200 w-48 hover:scale-105"
+                src="/logomyswide.png"
+                alt="MyUrbanScoot Logo"
+              />
+            </motion.div>
           </SheetTitle>
-          <motion.button
-            onClick={() => setIsOpen(false)}
-            className={`${textColor} hover:${hoverColor} m-0 transition-all duration-200`}
-            aria-label="Cerrar menú"
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            whileTap={{ scale: 0.9 }}
-            transition={{ duration: 0.2 }}
-          >
-            <X className="w-10 h-10" />
-          </motion.button>
+          <div className="flex items-center gap-3">
+            {/* Language Switcher en header - más accesible */}
+            <motion.div
+              className="flex items-center gap-1"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <LanguageSwitcher color={i18nColor} />
+            </motion.div>
+
+            <motion.button
+              onClick={() => setIsOpen(false)}
+              className={`text-white/80 hover:${hoverColor} m-0 transition-all duration-200`}
+              aria-label="Cerrar menú"
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ duration: 0.2 }}
+            >
+              <X className="w-8 h-8" />
+            </motion.button>
+          </div>
         </SheetHeader>
 
         {/* Contenido scrolleable */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden mt-8 pr-2 pb-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden mt-2 pr-2 pb-6">
           <div className="space-y-6">
             {/* Logo con animación */}
-            <motion.div
-              className="pb-6 border-b border-gray-200/20"
+            {/* <motion.div
+              className="pb-4"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              transition={{ duration: 0.3, ease: [0.0, 0.0, 0.2, 1] }}
             >
               <img
                 className="transition-all object-cover duration-200 hover:scale-105"
                 src="/logomys.png"
                 alt="MyUrbanScoot Logo"
               />
+            </motion.div> */}
+
+            {/* Barra de búsqueda - Posición prominent */}
+            <motion.div
+              className="pb-2 border-b border-gray-200/20"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2, ease: [0.0, 0.0, 0.2, 1] }}
+            >
+              <div className="space-y-2">
+                <p className={`text-sm ${textColorSecondary} font-medium`}>
+                  ¿Qué buscas?
+                </p>
+                <div className="relative z-[10000] w-full">
+                  <SearchModal dark={true} />
+                </div>
+              </div>
+            </motion.div>
+            <motion.div
+              className="pb-2 border-b border-gray-200/20"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+            >
+              <div className="space-y-2">
+                <p className={`text-sm ${textColorSecondary} font-medium`}>
+                  ¿Necesitas ayuda?
+                </p>
+                <div className="relative z-[10000] w-full">
+                  <motion.div 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <LocalizedClientLink
+                      className={`hover:text-ui-fg-base text-base py-2 px-3 font-semibold flex gap-2 transition-all duration-200 hover:bg-gray-100/10 rounded-lg ${
+                        isDark
+                          ? "text-white/80 hover:text-white"
+                          : "text-white/80"
+                      }`}
+                      href="/contact"
+                      onClick={handleLinkClick}
+                      scroll={false}
+                      data-testid="nav-search-link"
+                    >
+                      <Info className="w-6 h-6"  />
+                      {t("navigation.contact")}
+                    </LocalizedClientLink>
+                  </motion.div>
+                </div>
+              </div>
             </motion.div>
 
             {/* Navigation Links */}
             <nav className="space-y-4">
-              {/* Links de cuenta con animación */}
-              <motion.div
-                className="flex gap-2 justify-center items-center"
-                initial="hidden"
-                animate="visible"
-                variants={{
-                  visible: {
-                    transition: {
-                      staggerChildren: 0.05,
-                    },
-                  },
-                }}
-              >
-                <motion.div
-                  className="relative z-[10000]"
-                  variants={linkVariants}
-                >
-                  <SearchModal dark={isDark} />
-                </motion.div>
-                <motion.div
-                  className="flex items-center justify-center gap-2"
-                  variants={linkVariants}
-                >
-                  <LanguageSwitcher />{" "}
-                  <p className="text-ui-fg-base font-semibold">
-                    {t("navigation.lang")}
-                  </p>
-                </motion.div>
-              </motion.div>
-
-              {/* Divider */}
-              <div className="border-t border-gray-200/20 pt-6"></div>
-
-              {/* Blog con animación */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2, delay: 0.1 }}
-              >
-                <LocalizedClientLink
-                  href="/category/noticias-patinete-electrico"
-                  onClick={handleLinkClick}
-                  className={`${textColorSecondary} ${hoverColor} block py-3 px-4 rounded-lg transition-all duration-200 hover:bg-gray-100/10`}
-                >
-                  <span className="text-lg font-semibold">Blog</span>
-                </LocalizedClientLink>
-              </motion.div>
-
               {/* Vinilos - Collapsible con animación */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.2, delay: 0.15 }}
               >
-                <motion.button
+                <motion.div
                   className={`${textColorSecondary} ${hoverColor} flex items-center justify-between w-full py-3 px-4 rounded-lg transition-all duration-200 hover:bg-gray-100/10`}
-                  onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <LocalizedClientLink
-                    href="/categories/vinilos"
-                    className="text-lg font-semibold"
+                  {/* 50% izquierdo - Link */}
+                  <div className="flex-1">
+                    <LocalizedClientLink
+                      href="/categories/vinilos"
+                      onClick={handleLinkClick}
+                      className="text-base font-semibold block w-full h-full"
+                    >
+                      {vinylsCategory?.name || "Vinilos"}
+                    </LocalizedClientLink>
+                  </div>
+
+                  {/* 50% derecho - Toggle */}
+                  <div
+                    className="flex-1 flex justify-end cursor-pointer"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setIsCategoriesOpen(!isCategoriesOpen)
+                    }}
                   >
-                    {vinylsCategory?.name || "Vinilos"}
-                  </LocalizedClientLink>
-                  <motion.div
-                    animate={{ rotate: isCategoriesOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
-                  >
-                    <ChevronDown className="w-5 h-5" />
-                  </motion.div>
-                </motion.button>
+                    <motion.div
+                      transition={{ duration: 0.2, ease: [0.4, 0.0, 0.2, 1] }}
+                    >
+                      {isCategoriesOpen ? (
+                        <ChevronDown className="w-5 h-5" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5" />
+                      )}
+                    </motion.div>
+                  </div>
+                </motion.div>
 
                 <AnimatePresence>
                   {isCategoriesOpen && (
@@ -265,34 +311,44 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                           {brand.category_children &&
                           brand.category_children.length > 0 ? (
                             <div>
-                              <div className="flex items-center">
-                                <LocalizedClientLink
-                                  href={`/categories/${brand.handle}`}
-                                  onClick={handleLinkClick}
-                                  className={`${textColorSecondary} ${hoverColor} font-semibold flex-1 py-2 px-4 rounded-md transition-all duration-200 hover:bg-gray-100/5 text-base`}
-                                >
-                                  {brand.name}
-                                </LocalizedClientLink>
-                                <motion.button
-                                  className={`${textColorSecondary} ${hoverColor} flex justify-end p-2`}
-                                  onClick={() => toggleBrand(brand.id)}
-                                  whileTap={{ scale: 0.9 }}
+                              <motion.div
+                                className={`${textColorSecondary} ${hoverColor} flex items-center py-2 px-4 rounded-md transition-all duration-200 hover:bg-gray-100/5`}
+                                whileTap={{ scale: 0.98 }}
+                              >
+                                {/* 50% izquierdo - Link */}
+                                <div className="flex-1">
+                                  <LocalizedClientLink
+                                    href={`/categories/${brand.handle}`}
+                                    onClick={handleLinkClick}
+                                    className="font-semibold text-base block w-full h-full"
+                                  >
+                                    {brand.name}
+                                  </LocalizedClientLink>
+                                </div>
+
+                                {/* 50% derecho - Toggle */}
+                                <div
+                                  className="flex-1 flex justify-end cursor-pointer p-2"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    toggleBrand(brand.id)
+                                  }}
                                 >
                                   <motion.div
-                                    animate={{
-                                      rotate: openBrands.includes(brand.id)
-                                        ? 180
-                                        : 0,
-                                    }}
                                     transition={{
                                       duration: 0.2,
-                                      ease: "easeInOut",
+                                      ease: [0.4, 0.0, 0.2, 1],
                                     }}
                                   >
-                                    <ChevronDown className="w-4 h-4" />
+                                    {openBrands.includes(brand.id) ? (
+                                      <ChevronDown className="w-4 h-4" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4" />
+                                    )}
                                   </motion.div>
-                                </motion.button>
-                              </div>
+                                </div>
+                              </motion.div>
 
                               <AnimatePresence>
                                 {openBrands.includes(brand.id) && (
@@ -379,13 +435,68 @@ export default function MobileMenu({ categories, isDark }: MobileMenuProps) {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.2, delay: 0.2 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <LocalizedClientLink
                   href="/spare-parts"
                   onClick={handleLinkClick}
-                  className={`${textColorSecondary} ${hoverColor} block py-3 px-4 rounded-lg transition-all duration-200 hover:bg-gray-100/10`}
+                  className={`${textColorSecondary} ${hoverColor} flex justify-between py-3 px-4 rounded-lg transition-all duration-200 hover:bg-gray-100/10`}
                 >
-                  <span className="text-lg font-semibold">Recambios</span>
+                  <span className="text-base font-semibold">Recambios</span>
+                  <ChevronRight className="w-5 h-5 inline-block ml-2" />
+                </LocalizedClientLink>
+              </motion.div>
+
+              {/* Patinetes Eléctricos con animación */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: 0.25 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <LocalizedClientLink
+                  href="/categories/patinetes-electricos"
+                  onClick={handleLinkClick}
+                  className={`${textColorSecondary} ${hoverColor} flex justify-between py-3 px-4 rounded-lg transition-all duration-200 hover:bg-gray-100/10`}
+                >
+                  <span className="text-base font-semibold">
+                    Patinetes Eléctricos
+                  </span>
+                  <ChevronRight className="w-5 h-5 inline-block ml-2" />
+                </LocalizedClientLink>
+              </motion.div>
+
+              {/* Zona Circuito con animación */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: 0.3 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <LocalizedClientLink
+                  href="/categories/patinetes-electricos"
+                  onClick={handleLinkClick}
+                  className={`${textColorSecondary} ${hoverColor} flex justify-between py-3 px-4 rounded-lg transition-all duration-200 hover:bg-gray-100/10`}
+                >
+                  <span className="text-base font-semibold">Zona Circuito</span>
+                  <ChevronRight className="w-5 h-5 inline-block ml-2" />
+                </LocalizedClientLink>
+              </motion.div>
+
+              {/* FAQ con animación */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: 0.35 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <LocalizedClientLink
+                  href="/help-center"
+                  onClick={handleLinkClick}
+                  className={`${textColorSecondary} ${hoverColor} flex justify-between py-3 px-4 rounded-lg transition-all duration-200 hover:bg-gray-100/10`}
+                >
+                  <span className="text-base font-semibold">FAQ</span>
+                  <ChevronRight className="w-5 h-5 inline-block ml-2" />
                 </LocalizedClientLink>
               </motion.div>
             </nav>

@@ -94,9 +94,11 @@ const WorkInfoSection = ({ request, onFieldUpdate }: WorkInfoSectionProps) => {
           <EditableField
             label="Número de Cuotas"
             value={request.financing_installment_count}
-            type="select"
+            type="select-input"
             options={INSTALLMENT_COUNT_OPTIONS}
             required={true}
+            minValue={12}
+            maxValue={60}
             onSave={(value) => onFieldUpdate("financing_installment_count", value)}
           />
 

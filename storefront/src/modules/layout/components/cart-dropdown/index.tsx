@@ -339,7 +339,7 @@ const CartDropdown = ({
                         >
                           {isProcessingCustomFee
                             ? "Procesando..."
-                            : "Ir a Pagar"}
+                            : "Finalizar Compra"}
                         </Button>
                       </LocalizedClientLink>
 

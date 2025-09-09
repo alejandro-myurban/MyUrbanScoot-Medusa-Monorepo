@@ -111,11 +111,15 @@ const RangeFilter: React.FC<RangeFilterProps> = ({
 
   return (
     <div className="mb-6">
-      <h4 className="font-medium text-base mb-3">{label}</h4>
+      <h4 className="font-medium text-base mb-3 lg:block hidden">{label}</h4>
 
-      <div className="flex justify-between items-center mb-4 text-sm text-gray-600">
-        <span>{minVal}</span>
-        <span>{maxVal}</span>
+      <div className="flex justify-between items-center mb-4 text-sm font-archivo">
+        <div className="flex items-center gap-2">
+          <span className="text-gray-600 lg:hidden">Rango:</span>
+          <span className="font-medium text-gray-800 lg:text-gray-600 lg:font-normal">{minVal}</span>
+          <span className="text-gray-400 lg:hidden">-</span>
+          <span className="font-medium text-gray-800 lg:text-gray-600 lg:font-normal lg:ml-auto">{maxVal}</span>
+        </div>
       </div>
 
       <div className="flex justify-between items-center mb-2 text-xs text-gray-400">
@@ -128,7 +132,7 @@ const RangeFilter: React.FC<RangeFilterProps> = ({
         <div className="relative h-2 bg-gray-200 rounded-full w-full">
           {/* Track activo */}
           <div
-            className="absolute h-2 bg-mysGreen-100 rounded-full"
+            className="absolute h-2 bg-red-500 lg:bg-mysGreen-100 rounded-full"
             style={{
               left: `${Math.min(Math.max(minPercent, 0), 100)}%`,
               width: `${Math.min(Math.max(Math.abs(maxPercent - minPercent), 0), 100)}%`,
@@ -137,7 +141,7 @@ const RangeFilter: React.FC<RangeFilterProps> = ({
 
           {/* Thumb mínima */}
           <div
-            className="absolute w-5 h-5 bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer hover:bg-gray-800 transition-colors touch-manipulation"
+            className="absolute w-5 h-5 bg-red-500 lg:bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer hover:bg-red-600 lg:hover:bg-gray-800 transition-colors touch-manipulation"
             style={{
               left: `${minPercent}%`,
               transform: `translateX(-50%) translateY(-6px)`,
@@ -148,7 +152,7 @@ const RangeFilter: React.FC<RangeFilterProps> = ({
 
           {/* Thumb máxima */}
           <div
-            className="absolute w-5 h-5 bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer hover:bg-gray-800 transition-colors touch-manipulation"
+            className="absolute w-5 h-5 bg-red-500 lg:bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer hover:bg-red-600 lg:hover:bg-gray-800 transition-colors touch-manipulation"
             style={{
               left: `${maxPercent}%`,
               transform: `translateX(-50%) translateY(-6px)`,
