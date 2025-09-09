@@ -59,6 +59,9 @@ export const useFinancingForm = (): UseFinancingFormReturn => {
   const [isUnemployed, setIsUnemployed] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [documentVerifications, setDocumentVerifications] = useState<DocumentVerifications>(INITIAL_DOCUMENT_VERIFICATIONS)
+  
+  // Estado adicional para prevenir double-submit
+  const [lastSubmitTime, setLastSubmitTime] = useState<number>(0)
 
   // Función para determinar qué preguntas mostrar (extraída del original)
   const getVisibleQuestions = (): number[] => {
@@ -135,6 +138,42 @@ export const useFinancingForm = (): UseFinancingFormReturn => {
     }))
   }
 
+  // Métodos de control de submit (para prevenir double-submit)
+  const lockSubmit = () => {
+    console.log("🔒 Bloqueando submit para prevenir duplicados")
+    setSubmitting(true)
+    setLastSubmitTime(Date.now())
+  }
+
+  const unlockSubmit = () => {
+    console.log("🔓 Desbloqueando submit")
+    setSubmitting(false)
+  }
+
+  const canSubmit = (): { allowed: boolean; reason?: string } => {
+    const now = Date.now()
+    const timeSinceLastSubmit = now - lastSubmitTime
+    const MIN_SUBMIT_INTERVAL = 3000 // 3 segundos mínimo entre submits
+
+    if (submitting) {
+      return { allowed: false, reason: "Ya se está enviando la solicitud..." }
+    }
+
+    if (submitted) {
+      return { allowed: false, reason: "La solicitud ya fue enviada" }
+    }
+
+    if (timeSinceLastSubmit < MIN_SUBMIT_INTERVAL && lastSubmitTime > 0) {
+      const remainingTime = Math.ceil((MIN_SUBMIT_INTERVAL - timeSinceLastSubmit) / 1000)
+      return { 
+        allowed: false, 
+        reason: `Espera ${remainingTime} segundo${remainingTime !== 1 ? 's' : ''} antes de intentar de nuevo` 
+      }
+    }
+
+    return { allowed: true }
+  }
+
   const visibleQuestions = getVisibleQuestions()
 
   return {
@@ -153,11 +192,18 @@ export const useFinancingForm = (): UseFinancingFormReturn => {
     setFiles,
     setIsUnemployed,
     setDocumentVerifications,
+    setSubmitting, // Expuesto para control directo
+    setSubmitted,
     
     // Handlers
     handleInputChange,
     handleFileChange,
     removeFile,
     handleVerificationComplete,
+    
+    // Métodos de control de submit (anti-double-submit)
+    lockSubmit,
+    unlockSubmit,
+    canSubmit,
   }
 }

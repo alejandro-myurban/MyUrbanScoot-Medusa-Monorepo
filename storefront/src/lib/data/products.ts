@@ -61,15 +61,23 @@ export const getProductsById = cache(async function ({
   // Debug customer context for pricing
   const customer = await getCustomerForDebug()
   
+  // Use safe auth headers utility
+  const { getAuthHeadersSafe } = await import("./auth-utils")
+  const authHeaders = await getAuthHeadersSafe()
+  
   console.log('🔍 PRICING DEBUG - getProductsById called with:', {
     ids: ids.slice(0, 3), // Log first 3 IDs only
     regionId,
     countryCode,
     customerDetected: !!customer,
     customerId: customer?.id,
+    hasAuthHeaders: !!Object.keys(authHeaders).length,
+    authHeaderKeys: Object.keys(authHeaders),
+    willPassCustomerId: !!customer?.id,
+    // Debug: Log the actual auth headers (without sensitive data)
+    authHeadersPresent: Object.keys(authHeaders).length > 0 ? 'Bearer token present' : 'No auth',
   })
-
-  // SDK automatically includes customer context from cookies for pricing
+  
   return sdk.store.product
     .list(
       {
@@ -77,7 +85,10 @@ export const getProductsById = cache(async function ({
         region_id: regionId,
         fields: `*variants.calculated_price,+variants.inventory_quantity,+tags,+metadata${translationsField}`,
       },
-      { next: { tags: ["products"] } }
+      { 
+        next: { tags: ["products"] },
+        ...authHeaders
+      }
     )
     .then(({ products }) => {
       console.log('🔍 PRICING DEBUG - getProductsById response:', {
@@ -87,8 +98,16 @@ export const getProductsById = cache(async function ({
           originalAmount: products[0].variants[0].calculated_price.original_amount,
           currencyCode: products[0].variants[0].calculated_price.currency_code,
           priceListType: products[0].variants[0].calculated_price.calculated_price?.price_list_type,
+          // Debug more detailed pricing info
+          fullCalculatedPrice: products[0].variants[0].calculated_price,
         } : 'No pricing data',
         customerId: customer?.id || 'No customer',
+        // Log first product details for debugging
+        firstProduct: products[0] ? {
+          id: products[0].id,
+          title: products[0].title,
+          variantCount: products[0].variants?.length
+        } : null,
       })
 
       return products.map((product) => ({
@@ -139,7 +158,10 @@ export const getProductByHandle = cache(async function (
     customerId: customer?.id,
   })
 
-  // SDK automatically includes customer context from cookies for pricing  
+  // Use safe auth headers utility
+  const { getAuthHeadersSafe } = await import("./auth-utils")
+  const authHeaders = await getAuthHeadersSafe()
+  
   return sdk.store.product
     .list(
       {
@@ -147,7 +169,10 @@ export const getProductByHandle = cache(async function (
         region_id: regionId,
         fields: `*variants.calculated_price,+variants.inventory_quantity,+categories.*,+tags,+metadata${translationsField}`,
       },
-      { next: { tags: ["products"] } }
+      { 
+        next: { tags: ["products"] },
+        ...authHeaders
+      }
     )
     .then(({ products }) => {
       const product = products[0]
@@ -232,7 +257,10 @@ export const getProductsList = cache(async function ({
     customerId: customer?.id,
   })
   
-  // SDK automatically includes customer context from cookies for pricing
+  // Use safe auth headers utility
+  const { getAuthHeadersSafe } = await import("./auth-utils")
+  const authHeaders = await getAuthHeadersSafe()
+  
   return sdk.store.product
     .list(
       {
@@ -242,7 +270,10 @@ export const getProductsList = cache(async function ({
         fields: "*variants.calculated_price,+metadata,*categories",
         ...cleanQueryParams,
       },
-      { next: { tags: ["products"] } }
+      { 
+        next: { tags: ["products"] },
+        ...authHeaders
+      }
     )
     .then(({ products, count }) => {
       const nextPage = count > offset + limit ? pageParam + 1 : null

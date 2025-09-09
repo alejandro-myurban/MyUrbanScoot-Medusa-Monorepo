@@ -47,10 +47,15 @@ export const FinancingForm = () => {
     documentVerifications,
     visibleQuestions,
     setFormData,
+    setSubmitted,
     handleInputChange,
     handleFileChange,
     removeFile,
     handleVerificationComplete,
+    // Métodos anti-double-submit
+    lockSubmit,
+    unlockSubmit,
+    canSubmit,
   } = formHook
 
   // Hook de validación
@@ -134,83 +139,104 @@ export const FinancingForm = () => {
     }
   }
 
-  // Función de envío del formulario (extraída del original)
+  // Función de envío del formulario con protección anti-double-submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    console.log("🚀 handleSubmit iniciado - verificando si se puede enviar...")
 
-    // VALIDACIÓN DE USUARIO DESEMPLEADO
-    if (isUnemployed) {
-      toast.error(
-        "La financiación no está disponible para personas en situación de desempleo"
-      )
+    // 🔒 PROTECCIÓN ANTI-DOUBLE-SUBMIT - PRIMERA LÍNEA DE DEFENSA
+    const submitCheck = canSubmit()
+    if (!submitCheck.allowed) {
+      console.log("❌ Submit bloqueado:", submitCheck.reason)
+      toast.error(submitCheck.reason || "No se puede enviar en este momento")
       return
     }
 
-    // VALIDACIÓN DE DOCUMENTOS REQUERIDOS
-    if (!isFormValid) {
-      const missing = getMissingDocuments()
-      const missingText =
-        missing.length > 1
-          ? `${missing.slice(0, -1).join(", ")} y ${missing.slice(-1)}`
-          : missing[0]
-      toast.error(`Faltan documentos requeridos: ${missingText}`)
-      return
-    }
-
-    // VALIDACIÓN COMPREHENSIVA CON ZOD
-    const formValidation = formSchema.safeParse(formData)
-    if (!formValidation.success) {
-      const errors = formValidation.error.errors
-      const firstError = errors[0]
-      console.log("❌ Errores de validación:", errors)
-
-      if (firstError.path.length > 0) {
-        const fieldName = firstError.path[0]
-        const fieldLabels: Record<string, string> = {
-          email: "Email",
-          phone_mumber: "Teléfono",
-          address: "Dirección",
-          postal_code: "Código postal",
-          city: "Ciudad",
-          province: "Provincia",
-          income: "Ingresos",
-          contract_type: "Tipo de contrato",
-          civil_status: "Estado civil",
-          housing_type: "Tipo de vivienda",
-          financing_installment_count: "Plazos de financiación",
-          company_position: "Cargo en la empresa",
-          company_start_date: "Fecha de inicio en la empresa",
-          freelance_start_date: "Fecha de alta como autónomo",
-          marital_status_details: "Detalles del estado civil",
-          housing_type_details: "Detalles del tipo de vivienda",
-        }
-
-        const fieldLabel = fieldLabels[fieldName as string] || fieldName
-        toast.error(`${fieldLabel}: ${firstError.message}`)
-      } else {
-        toast.error(`Error de validación: ${firstError.message}`)
-      }
-      return
-    }
-
-    // VALIDACIÓN DE TELÉFONO
-    if (phoneValidation.exists) {
-      toast.error(
-        "Ya existe una solicitud con este número de teléfono. Por favor, usa un número diferente."
-      )
-      return
-    }
-
-    if (phoneValidation.isChecking) {
-      toast.error(
-        "Espera un momento mientras verificamos el número de teléfono..."
-      )
-      return
-    }
-
-    const toastId = toast.loading("Enviando solicitud...")
+    // 🔒 BLOQUEAR SUBMIT INMEDIATAMENTE (antes de cualquier validación)
+    console.log("🔒 Bloqueando submit para prevenir duplicados...")
+    lockSubmit()
 
     try {
+      // VALIDACIÓN DE USUARIO DESEMPLEADO
+      if (isUnemployed) {
+        toast.error(
+          "La financiación no está disponible para personas en situación de desempleo"
+        )
+        unlockSubmit() // Desbloquear para permitir cambios
+        return
+      }
+
+      // VALIDACIÓN DE DOCUMENTOS REQUERIDOS
+      if (!isFormValid) {
+        const missing = getMissingDocuments()
+        const missingText =
+          missing.length > 1
+            ? `${missing.slice(0, -1).join(", ")} y ${missing.slice(-1)}`
+            : missing[0]
+        toast.error(`Faltan documentos requeridos: ${missingText}`)
+        unlockSubmit() // Desbloquear para permitir cargar documentos
+        return
+      }
+
+      // VALIDACIÓN COMPREHENSIVA CON ZOD
+      const formValidation = formSchema.safeParse(formData)
+      if (!formValidation.success) {
+        const errors = formValidation.error.errors
+        const firstError = errors[0]
+        console.log("❌ Errores de validación:", errors)
+
+        if (firstError.path.length > 0) {
+          const fieldName = firstError.path[0]
+          const fieldLabels: Record<string, string> = {
+            email: "Email",
+            phone_mumber: "Teléfono",
+            address: "Dirección",
+            postal_code: "Código postal",
+            city: "Ciudad",
+            province: "Provincia",
+            income: "Ingresos",
+            contract_type: "Tipo de contrato",
+            civil_status: "Estado civil",
+            housing_type: "Tipo de vivienda",
+            financing_installment_count: "Plazos de financiación",
+            company_position: "Cargo en la empresa",
+            company_start_date: "Fecha de inicio en la empresa",
+            freelance_start_date: "Fecha de alta como autónomo",
+            marital_status_details: "Detalles del estado civil",
+            housing_type_details: "Detalles del tipo de vivienda",
+          }
+
+          const fieldLabel = fieldLabels[fieldName as string] || fieldName
+          toast.error(`${fieldLabel}: ${firstError.message}`)
+        } else {
+          toast.error(`Error de validación: ${firstError.message}`)
+        }
+        unlockSubmit() // Desbloquear para permitir corregir errores
+        return
+      }
+
+      // VALIDACIÓN DE TELÉFONO
+      if (phoneValidation.exists) {
+        toast.error(
+          "Ya existe una solicitud con este número de teléfono. Por favor, usa un número diferente."
+        )
+        unlockSubmit() // Desbloquear para permitir cambiar teléfono
+        return
+      }
+
+      if (phoneValidation.isChecking) {
+        toast.error(
+          "Espera un momento mientras verificamos el número de teléfono..."
+        )
+        unlockSubmit() // Desbloquear para permitir reintento
+        return
+      }
+
+      // 🎯 TODAS LAS VALIDACIONES PASARON - PROCEDER CON ENVÍO
+      console.log("✅ Todas las validaciones pasaron, procediendo con envío...")
+      const toastId = toast.loading("Enviando solicitud...")
+
       const uploadedFileIds: Partial<Record<string, string>> = {}
 
       // Subir archivos normales
@@ -257,11 +283,21 @@ export const FinancingForm = () => {
         requested_at: new Date().toISOString(),
       }
 
+      console.log("📡 Enviando payload al servidor...", { 
+        email: finalPayload.email, 
+        phone: finalPayload.phone_mumber 
+      })
+
       const response = await sdk.client.fetch(API_ENDPOINTS.SUBMIT_FORM, {
         method: "POST",
         body: finalPayload,
       })
 
+      console.log("✅ Solicitud enviada exitosamente!")
+      
+      // Marcar como completado ANTES del toast de éxito
+      setSubmitted(true)
+      
       toast.success("¡Solicitud de financiación enviada con éxito!", {
         id: toastId,
       })
@@ -270,9 +306,13 @@ export const FinancingForm = () => {
       setTimeout(() => {
         router.push(REDIRECT_URLS.SUCCESS)
       }, 2000)
+      
     } catch (err: any) {
       console.error("❌ Error en el envío:", err)
-      toast.error(`Error: ${err.message}`, { id: toastId })
+      toast.error(`Error: ${err.message}`)
+      
+      // 🔓 IMPORTANTE: Desbloquear en caso de error para permitir reintento
+      unlockSubmit()
     }
   }
 
@@ -390,6 +430,8 @@ export const FinancingForm = () => {
                   className={`w-full flex justify-center items-center py-4 px-8 font-semibold rounded-xl shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] disabled:hover:scale-100 ${
                     submitted
                       ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white"
+                      : submitting
+                      ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white cursor-wait"
                       : !isFormValid
                       ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white cursor-not-allowed"
                       : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
@@ -398,7 +440,7 @@ export const FinancingForm = () => {
                   {submitting ? (
                     <>
                       <LoaderCircle className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" />
-                      Enviando solicitud...
+                      <span className="animate-pulse">Procesando solicitud...</span>
                     </>
                   ) : submitted ? (
                     <>
@@ -427,6 +469,8 @@ export const FinancingForm = () => {
                 <p className="text-center text-sm text-gray-500 mt-4">
                   {submitted
                     ? "Redirigiendo a la página de confirmación..."
+                    : submitting
+                    ? "🔒 Solicitud en proceso. Por favor espera..."
                     : isUnemployed
                     ? "La financiación requiere ingresos regulares demostrables."
                     : !isFormValid

@@ -58,12 +58,15 @@ const ImageOrPlaceholder = ({
   return image ? (
     <Image
       src={image}
-      alt="Thumbnail"
+      alt="Product thumbnail"
       className="absolute inset-0 object-cover object-center"
       draggable={false}
-      quality={85} // Aumenté la calidad de 75 a 85 para mejor nitidez
+      quality={priority ? 90 : 70} // Mayor diferencia de calidad  
       sizes="(max-width: 576px) 380px, (max-width: 768px) 500px, (max-width: 992px) 650px, 1000px"
-      priority={priority} // Prioridad para imágenes above-the-fold
+      priority={priority}
+      loading={priority ? "eager" : "lazy"} // Forzar eager/lazy
+      // @ts-ignore - fetchPriority es experimental pero funciona
+      fetchPriority={priority ? "high" : "low"} // Fetch priority nativo
       fill
     />
   ) : (

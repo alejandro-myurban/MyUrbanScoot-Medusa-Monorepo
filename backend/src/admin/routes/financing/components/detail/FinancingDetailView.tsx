@@ -817,9 +817,11 @@ const FinancingDetailView = ({ request, onBack }: FinancingDetailViewProps) => {
               <EditableField
                 label="Plazos Solicitados"
                 value={selectedRequest.financing_installment_count}
-                type="select"
+                type="select-input"
                 options={getInstallmentOptions()}
                 required={true}
+                minValue={12}
+                maxValue={60}
                 onSave={(value) => updateField("financing_installment_count", value)}
               />
               

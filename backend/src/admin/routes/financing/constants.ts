@@ -141,11 +141,11 @@ export const DEFAULT_FILTERS = {
 
 // Financing installment options
 export const INSTALLMENT_COUNT_OPTIONS = [
-  { value: "6", label: "6 meses" },
   { value: "12", label: "12 meses" },
   { value: "18", label: "18 meses" },
   { value: "24", label: "24 meses" },
   { value: "36", label: "36 meses" },
+  { value: "60", label: "60 meses" },
 ];
 
 // Form field configurations

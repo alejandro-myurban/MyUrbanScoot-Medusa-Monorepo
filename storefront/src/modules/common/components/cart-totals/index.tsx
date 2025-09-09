@@ -36,9 +36,10 @@ const CartTotals: React.FC<CartTotalsProps> = ({ totals }) => {
   const originalSubtotal = total && shipping_total ? total - shipping_total : total
   
   // Mostrar descuento de IVA solo si hay tax_total
-  const showVATDiscount = tax_total && tax_total > 0
+  const showVATDiscount = tax_total !== null && tax_total !== undefined && tax_total > 0
 
   console.log("TOTALES", totals)
+  console.log("tax_total:", tax_total, "showVATDiscount:", showVATDiscount)
   return (
     <div>
       <div className="flex flex-col gap-y-2 txt-medium sm:text-xl text-black/90 font-archivo ">

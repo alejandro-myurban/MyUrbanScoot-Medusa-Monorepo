@@ -30,7 +30,7 @@ export default async function CartButton({ dark = false }: { dark?: boolean }) {
       </LocalizedClientLink>
       <CartDropdown dark={dark} cart={cart} />
       <div className="hidden small:flex items-center gap-x-6 h-full">
-        <LanguageSwitcher />
+        <LanguageSwitcher color={dark ? "text-white/90" : "text-black/90"} />
       </div>
     </>
   )

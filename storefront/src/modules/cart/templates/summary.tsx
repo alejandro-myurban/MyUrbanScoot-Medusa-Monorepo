@@ -45,7 +45,7 @@ const Summary = ({ cart, showDiscount }: SummaryProps) => {
         data-testid="checkout-button"
       >
         <Button className="w-full h-10 font-archivoBlack text-xl uppercase">
-          IR A PAGAR
+          Finalizar compra
         </Button>
       </LocalizedClientLink>
     </div>

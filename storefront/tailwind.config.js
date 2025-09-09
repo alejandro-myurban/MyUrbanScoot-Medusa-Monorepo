@@ -57,6 +57,7 @@ module.exports = {
         xsmall: "512px",
         msmall: "750px",
         small: "1024px",
+        nav: "1245px",
         medium: "1280px",
         large: "1440px",
         xlarge: "1680px",

@@ -76,6 +76,7 @@ export const POST = async (
   console.log("🚀 Datos recibidos en financing-data:", req.body);
   
   const requestData = req.body;
+  const startTime = Date.now();
 
   // Normalizar el número de teléfono antes de procesar
   if (requestData.phone_mumber) {
@@ -95,6 +96,81 @@ export const POST = async (
     return res.status(400).json({
       message: "Identity (NIF/NIE) is required"
     });
+  }
+
+  // 🔒 VALIDACIÓN ANTI-DUPLICADOS
+  const financingDataModule: FinancingModuleService = req.scope.resolve(FINANCING_MODULE);
+  
+  try {
+    console.log("🛡️ Verificando duplicados para:", {
+      email: requestData.email,
+      phone: requestData.phone_mumber,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Verificar submissions recientes (últimos 30 segundos) del mismo email
+    const recentSubmissionsByEmail = await financingDataModule.listFinancingData({
+      email: requestData.email,
+      requested_at: {
+        $gte: new Date(startTime - 30000) // Últimos 30 segundos
+      }
+    });
+    
+    if (recentSubmissionsByEmail && recentSubmissionsByEmail.length > 0) {
+      const lastSubmission = recentSubmissionsByEmail[0];
+      const timeDiff = startTime - new Date(lastSubmission.requested_at).getTime();
+      
+      console.log("⚠️ Posible duplicado detectado por email:", {
+        email: requestData.email,
+        timeDiff: `${timeDiff}ms`,
+        lastSubmissionId: lastSubmission.id
+      });
+      
+      return res.status(429).json({
+        message: "Duplicate submission detected. Please wait before submitting again.",
+        error: "DUPLICATE_SUBMISSION",
+        details: {
+          lastSubmission: lastSubmission.requested_at,
+          waitTime: Math.ceil((30000 - timeDiff) / 1000)
+        }
+      });
+    }
+    
+    // Verificar submissions recientes del mismo teléfono
+    if (requestData.phone_mumber) {
+      const recentSubmissionsByPhone = await financingDataModule.listFinancingData({
+        phone_mumber: requestData.phone_mumber,
+        requested_at: {
+          $gte: new Date(startTime - 30000)
+        }
+      });
+      
+      if (recentSubmissionsByPhone && recentSubmissionsByPhone.length > 0) {
+        const lastSubmission = recentSubmissionsByPhone[0];
+        const timeDiff = startTime - new Date(lastSubmission.requested_at).getTime();
+        
+        console.log("⚠️ Posible duplicado detectado por teléfono:", {
+          phone: requestData.phone_mumber,
+          timeDiff: `${timeDiff}ms`,
+          lastSubmissionId: lastSubmission.id
+        });
+        
+        return res.status(429).json({
+          message: "Duplicate submission detected. Please wait before submitting again.",
+          error: "DUPLICATE_SUBMISSION",
+          details: {
+            lastSubmission: lastSubmission.requested_at,
+            waitTime: Math.ceil((30000 - timeDiff) / 1000)
+          }
+        });
+      }
+    }
+    
+    console.log("✅ No se detectaron duplicados, procediendo con la creación...");
+    
+  } catch (duplicateCheckError) {
+    console.error("❌ Error verificando duplicados:", duplicateCheckError);
+    // No bloquear la submission por error en la verificación, solo loggear
   }
 
   // Convertir fecha si existe
@@ -143,13 +219,19 @@ export const POST = async (
 
   console.log("📦 Datos mapeados para guardar:", financingData);
 
-  const financingDataModule: FinancingModuleService = req.scope.resolve(FINANCING_MODULE);
-
   try {
     //@ts-ignore
     const savedData = await financingDataModule.createFinancingData(financingData);
 
-    console.log("✅ Datos guardados exitosamente:", savedData.id);
+    const processingTime = Date.now() - startTime;
+    
+    console.log("✅ Datos guardados exitosamente:", {
+      id: savedData.id,
+      email: savedData.email,
+      phone: savedData.phone_mumber,
+      processingTime: `${processingTime}ms`,
+      timestamp: new Date().toISOString()
+    });
 
     res.status(201).json({
       message: "Financing data saved successfully",
