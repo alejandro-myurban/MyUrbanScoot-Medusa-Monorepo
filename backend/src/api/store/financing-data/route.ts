@@ -117,8 +117,8 @@ export const POST = async (
     });
 
     // Verificar submissions recientes (últimos 30 segundos) del mismo email
-    //@ts-ignore
     const recentSubmissionsByEmail =
+    //@ts-ignore
       await financingDataModule.listFinancingData({
         email: requestData.email,
         requested_at: {
@@ -150,9 +150,8 @@ export const POST = async (
 
     // Verificar submissions recientes del mismo teléfono
     if (requestData.phone_mumber) {
-      //@ts-ignore
-
       const recentSubmissionsByPhone =
+      //@ts-ignore
         await financingDataModule.listFinancingData({
           phone_mumber: requestData.phone_mumber,
           requested_at: {
