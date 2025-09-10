@@ -28,6 +28,7 @@ function isValidBase64Image(base64String: string): boolean {
   return base64Pattern.test(base64String.replace(/^data:image\/[^;]+;base64,/, ''))
 }
 
+
 export const POST = async (
   req: MedusaRequest,
   res: MedusaResponse
@@ -78,13 +79,13 @@ export const POST = async (
 
     // Verificar tamaño aproximado
     const approximateSize = (cleanBase64.length * 3) / 4
-    const maxSize = 10 * 1024 * 1024 // 10MB
+    const maxSize = 8 * 1024 * 1024 // 8MB
     
     if (approximateSize > maxSize) {
       logger.error(`❌ Imagen demasiado grande: ${approximateSize} bytes`)
       return res.status(400).json({
         success: false,
-        error: "La imagen es demasiado grande (máximo 10MB)"
+        error: "La imagen es demasiado grande (máximo 8MB)"
       })
     }
 

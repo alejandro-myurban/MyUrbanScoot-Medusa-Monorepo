@@ -402,7 +402,7 @@ export const FileInputEnhanced = ({
             <div className="text-center">
               <p className="text-sm font-semibold">Seleccionar archivo</p>
               <p className="text-xs text-gray-400 mt-1">
-                {shouldVerify ? 'JPG, PNG, HEIC (máx. 10MB)' : 'PDF, JPG, PNG, HEIC (máx. 10MB)'}
+                {shouldVerify ? 'JPG, PNG, HEIC (máx. 8MB)' : 'PDF, JPG, PNG, HEIC (máx. 8MB)'}
               </p>
               {shouldVerify && (
                 <p className="text-xs text-blue-600 mt-1 font-medium">

@@ -13,7 +13,7 @@ import type {
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB límite
+    fileSize: 8 * 1024 * 1024, // 8MB límite
     files: 3, // Máximo 3 archivos
   },
   fileFilter: (req, file, cb) => {
@@ -119,7 +119,7 @@ export default defineMiddlewares({
     {
       matcher: "/store/document-verification",
       method: ["POST"],
-      bodyParser: { sizeLimit: "5mb" },
+      bodyParser: { sizeLimit: "8mb" },
     },
     {
       matcher: "/store/carts/*", 
