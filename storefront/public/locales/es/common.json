@@ -293,7 +293,7 @@
     "priceRange": "{minPrice} € - {maxPrice} €"
   },
   "SortProducts": {
-    "filterBy": "Filtrar por",
+    "filterBy": "ORDENAR POR",
     "latestArrivals": "Últimas novedades",
     "lowestPrice": "Precio más bajo",
     "highestPrice": "Precio más alto"

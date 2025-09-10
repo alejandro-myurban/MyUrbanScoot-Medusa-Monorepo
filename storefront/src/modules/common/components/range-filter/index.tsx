@@ -132,7 +132,7 @@ const RangeFilter: React.FC<RangeFilterProps> = ({
         <div className="relative h-2 bg-gray-200 rounded-full w-full">
           {/* Track activo */}
           <div
-            className="absolute h-2 bg-red-500 lg:bg-mysGreen-100 rounded-full"
+            className="absolute h-2 bg-mysGreen-100 rounded-full"
             style={{
               left: `${Math.min(Math.max(minPercent, 0), 100)}%`,
               width: `${Math.min(Math.max(Math.abs(maxPercent - minPercent), 0), 100)}%`,
@@ -141,7 +141,7 @@ const RangeFilter: React.FC<RangeFilterProps> = ({
 
           {/* Thumb mínima */}
           <div
-            className="absolute w-5 h-5 bg-red-500 lg:bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer hover:bg-red-600 lg:hover:bg-gray-800 transition-colors touch-manipulation"
+            className="absolute w-5 h-5 bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer hover:bg-gray-800 transition-colors touch-manipulation"
             style={{
               left: `${minPercent}%`,
               transform: `translateX(-50%) translateY(-6px)`,
@@ -152,7 +152,7 @@ const RangeFilter: React.FC<RangeFilterProps> = ({
 
           {/* Thumb máxima */}
           <div
-            className="absolute w-5 h-5 bg-red-500 lg:bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer hover:bg-red-600 lg:hover:bg-gray-800 transition-colors touch-manipulation"
+            className="absolute w-5 h-5 bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer hover:bg-gray-800 transition-colors touch-manipulation"
             style={{
               left: `${maxPercent}%`,
               transform: `translateX(-50%) translateY(-6px)`,

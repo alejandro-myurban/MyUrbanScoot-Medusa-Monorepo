@@ -381,34 +381,13 @@ const CartDropdown = ({
         >
           <AnimatePresence>
             {isSheetOpen && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="h-full flex flex-col"
-              >
-                {/* Header animado */}
-                <motion.div
-                  initial={{ y: -50, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
-                  className="pb-2 border-b border-gray-200/50 flex-shrink-0"
-                >
+              <div className="h-full flex flex-col">
+                {/* Header sin animación */}
+                <div className="pb-2 border-b border-gray-200/50 flex-shrink-0">
                   <SheetTitle className="text-2xl text-left font-bold font-archivoBlack uppercase flex items-center gap-2">
                     <div className="text-black/90 flex items-center gap-2">
                       Tu Carrito
-                      <motion.div
-                        initial={{ rotate: -180, scale: 0 }}
-                        animate={{ rotate: 0, scale: 1 }}
-                        transition={{
-                          delay: 0.3,
-                          duration: 0.5,
-                          ease: "easeOut",
-                        }}
-                      >
-                        <ShoppingBag className="w-8 h-8 text-black/90" />
-                      </motion.div>
+                      <ShoppingBag className="w-8 h-8 text-black/90" />
                     </div>
                   </SheetTitle>
                   <SheetDescription className="text-gray-600">
@@ -420,48 +399,25 @@ const CartDropdown = ({
                       "Tu carrito está vacío"
                     )}
                   </SheetDescription>
-                </motion.div>
+                </div>
 
-                {/* Contenido principal */}
+                {/* Contenido principal sin animaciones pesadas */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden pt-6">
                   {cartState?.items?.length ? (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2, duration: 0.5 }}
-                      className="flex flex-col h-full gap-y-6 px-2 pb-6"
-                    >
-                      <motion.div
-                        initial="hidden"
-                        animate="visible"
-                        variants={{
-                          hidden: { opacity: 0 },
-                          visible: {
-                            opacity: 1,
-                            transition: {
-                              staggerChildren: 0.1,
-                              delayChildren: 0.3,
-                            },
-                          },
-                        }}
-                        className="flex-1"
-                      >
+                    <div className="flex flex-col h-full gap-y-6 px-2 pb-6">
+                      <div className="flex-1">
                         <CompactItemsTemplate
                           items={cartState?.items}
                           showQuantityControls={true}
                         />
-                      </motion.div>
+                      </div>
 
                       {cartState && cartState.region && (
                         <motion.div
-                          initial={{ y: 100, opacity: 0 }}
+                          initial={{ y: 20, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
-                          transition={{
-                            delay: 0.5,
-                            duration: 0.6,
-                            ease: "easeOut",
-                          }}
-                          className="border-t pt-4 mt-4 bg-white/80 backdrop-blur-sm rounded-t-xl -mx-6 px-6 animate-in slide-in-from-bottom duration-500"
+                          transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
+                          className="border-t pt-4 mt-4 bg-white/80 backdrop-blur-sm rounded-t-xl -mx-6 px-6"
                         >
                           <Summary
                             cart={cartState as any}
@@ -469,19 +425,14 @@ const CartDropdown = ({
                           />
                         </motion.div>
                       )}
-                    </motion.div>
+                    </div>
                   ) : (
-                    <motion.div
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.3, duration: 0.5 }}
-                      className="flex-1 flex items-center justify-center animate-in fade-in duration-500"
-                    >
+                    <div className="flex-1 flex items-center justify-center">
                       <EmptyCartMessage />
-                    </motion.div>
+                    </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
             )}
           </AnimatePresence>
         </SheetContent>

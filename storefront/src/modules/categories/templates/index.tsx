@@ -21,7 +21,8 @@ import PriceFilterWrapper from "@modules/products/components/price-filter-wrappe
 import { SubcategoryCardLight } from "../components/subcategory-card"
 import JsonLd, { generateCategorySchema, generateBreadcrumbSchema } from "@/components/seo/json-ld"
 
-import ScootersFiltersContainer from "../components/filters/scootets-filters-container" 
+import ScootersFiltersContainer from "../components/filters/scootets-filters-container"
+import MobileFiltersButton from "../components/filters/mobile-filters-button" 
 
 const applyScooterFilters = (
   products: HttpTypes.StoreProduct[],
@@ -275,35 +276,72 @@ export default async function CategoryTemplate({
             ))}
           </div>
         ) : (
-          <div className="flex gap-8 flex-col md:flex-row">
-            <div className="flex flex-col gap-4 w-full md:w-[250px] md:flex-shrink-0">
-              <RefinementList sortBy={sort} data-testid="sort-by-container" />
-              <PriceFilterWrapper products={allCategoryProducts} />
+          <div className="flex gap-6 flex-col lg:flex-row">
+            <aside className="w-full lg:w-[280px] lg:flex-shrink-0">
+              <div className="sticky top-4 space-y-4 lg:space-y-6">
+                {/* Filtros Header - Responsive Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-0">
+                  {/* Ordenación Card */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 lg:p-6">
+                    <RefinementList sortBy={sort} data-testid="sort-by-container" />
+                  </div>
+                  
+                  {/* Precio Card */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 lg:p-6">
+                    <h3 className="font-bold font-archivoBlack text-lg text-gray-900 mb-4 uppercase tracking-wide lg:text-lg">
+                      Precio
+                    </h3>
+                    <div className="bg-gray-50 rounded-lg p-3 lg:p-4">
+                      <PriceFilterWrapper products={allCategoryProducts} />
+                    </div>
+                  </div>
+                </div>
 
-              {/* Contenedor para ScootersFilters */}
-              {category.handle === "patinetes-electricos" && (
-                <ScootersFiltersContainer
-                  allProducts={allCategoryProducts} 
-                  initialSearchParams={searchParams || {}} 
-                />
-              )}
-
-              {category.category_children &&
-                category.category_children.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-base-semi mb-4">Subcategorías</h3>
-                    <ul className="space-y-2">
-                      {category.category_children.map((c) => (
-                        <li key={c.id}>
-                          <LocalizedClientLink href={`/categories/${c.handle}`}>
-                            {c.name}
-                          </LocalizedClientLink>
-                        </li>
-                      ))}
-                    </ul>
+                {/* Scooter Filters */}
+                {category.handle === "patinetes-electricos" && (
+                  <div className="hidden lg:block bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    <h3 className="font-bold font-archivoBlack text-lg text-gray-900 mb-4 uppercase tracking-wide">
+                      Especificaciones
+                    </h3>
+                    <ScootersFiltersContainer
+                      allProducts={allCategoryProducts} 
+                      initialSearchParams={searchParams || {}} 
+                    />
                   </div>
                 )}
-            </div>
+
+                {/* Subcategorías */}
+                {category.category_children &&
+                  category.category_children.length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                      <h3 className="font-bold font-archivoBlack text-lg text-gray-900 mb-4 uppercase tracking-wide">
+                        Subcategorías
+                      </h3>
+                      <ul className="space-y-3">
+                        {category.category_children.map((c) => (
+                          <li key={c.id}>
+                            <LocalizedClientLink 
+                              href={`/categories/${c.handle}`}
+                              className="flex items-center px-3 py-2 text-gray-700 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200 font-medium"
+                            >
+                              <span className="w-2 h-2 bg-gray-300 rounded-full mr-3 transition-colors duration-200 group-hover:bg-red-500"></span>
+                              {c.name}
+                            </LocalizedClientLink>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+              </div>
+            </aside>
+
+            {/* Mobile Floating Button para Scooters */}
+            {category.handle === "patinetes-electricos" && (
+              <MobileFiltersButton
+                allProducts={allCategoryProducts} 
+                initialSearchParams={searchParams || {}} 
+              />
+            )}
 
             <div className="flex-1">
               <Suspense fallback={<SkeletonProductGrid />}>
