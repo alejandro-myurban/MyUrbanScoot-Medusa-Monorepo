@@ -173,23 +173,30 @@ export const PriceRangeFilter = ({
   }
 
   return (
-    <div className="mb-6">
-      <h4 className="font-medium text-base mb-3">Rango de Precio</h4>
-
-      <div className="flex justify-between items-center mb-4 text-sm text-gray-600">
-        <span><NumberFlow value={priceRange[0]} />€</span>
-        <span><NumberFlow value={priceRange[1]} />€</span>
+    <div className="w-full">
+      {/* Price Range Display */}
+      <div className="flex justify-between items-center mb-6 p-3 bg-white rounded-lg border border-gray-200">
+        <div className="text-center">
+          <p className="text-xs text-gray-500 mb-1">Desde</p>
+          <p className="font-bold text-sm text-gray-900">
+            <NumberFlow value={priceRange[0]} />€
+          </p>
+        </div>
+        <div className="flex items-center">
+          <div className="w-8 h-px bg-gray-300"></div>
+        </div>
+        <div className="text-center">
+          <p className="text-xs text-gray-500 mb-1">Hasta</p>
+          <p className="font-bold text-sm text-gray-900">
+            <NumberFlow value={priceRange[1]} />€
+          </p>
+        </div>
       </div>
 
-      <div className="flex justify-between items-center mb-2 text-xs text-gray-400">
-        <span>{minPrice}€</span>
-        <span>{maxPrice}€</span>
-      </div>
-
-      <div className="relative mb-6 px-2" ref={sliderRef}>
-        {/* Track de fondo */}
+      {/* Range Slider */}
+      <div className="relative mb-4 px-2" ref={sliderRef}>
         <div className="h-2 bg-gray-200 rounded-full relative">
-          {/* Track activo */}
+          {/* Active Track */}
           <div
             className="absolute h-2 bg-mysGreen-100 rounded-full"
             style={{
@@ -198,9 +205,9 @@ export const PriceRangeFilter = ({
             }}
           />
 
-          {/* Thumb mínimo */}
+          {/* Min Thumb */}
           <div
-            className="absolute w-5 h-5 bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer transform -translate-y-1.5 hover:bg-gray-800 transition-colors touch-manipulation"
+            className="absolute w-5 h-5 bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer hover:bg-gray-800 transition-colors touch-manipulation"
             style={{
               left: `${minPercent}%`,
               transform: `translateX(-50%) translateY(-6px)`,
@@ -210,9 +217,9 @@ export const PriceRangeFilter = ({
             onTouchStart={handlePointerDown(0)}
           />
 
-          {/* Thumb máximo */}
+          {/* Max Thumb */}
           <div
-            className="absolute w-5 h-5 bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer transform -translate-y-1.5 hover:bg-gray-800 transition-colors touch-manipulation"
+            className="absolute w-5 h-5 bg-gray-900 border-2 border-white rounded-full shadow-lg cursor-pointer hover:bg-gray-800 transition-colors touch-manipulation"
             style={{
               left: `${maxPercent}%`,
               transform: `translateX(-50%) translateY(-6px)`,
@@ -222,6 +229,12 @@ export const PriceRangeFilter = ({
             onTouchStart={handlePointerDown(1)}
           />
         </div>
+      </div>
+
+      {/* Min/Max Indicators */}
+      <div className="flex justify-between text-xs text-gray-400 px-2">
+        <span>{minPrice}€</span>
+        <span>{maxPrice}€</span>
       </div>
     </div>
   )

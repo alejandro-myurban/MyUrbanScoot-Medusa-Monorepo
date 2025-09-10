@@ -37,18 +37,20 @@ const EditableField: React.FC<EditableFieldProps> = ({
   const [isCustomInput, setIsCustomInput] = useState(false);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
 
-  // Sincronizar valor cuando cambie externamente
+  // Sincronizar valor cuando cambie externamente - SOLO si NO estamos editando
   useEffect(() => {
-    setCurrentValue(value);
+    if (!isEditing) {  // ← CLAVE: Solo actualizar si no estamos editando
+      setCurrentValue(value);
+    }
     
     // Para select-input, determinar si el valor actual requiere input personalizado
-    if (type === 'select-input' && value) {
+    if (type === 'select-input' && value && !isEditing) {
       const isPredefineOption = options.some(opt => 
         typeof opt === 'string' ? opt === value : opt.value === value
       );
       setIsCustomInput(!isPredefineOption);
     }
-  }, [value, type, options]);
+  }, [value, type, options, isEditing]); // ← Agregamos isEditing como dependencia
 
   // Focus automático cuando se entra en modo edición
   useEffect(() => {

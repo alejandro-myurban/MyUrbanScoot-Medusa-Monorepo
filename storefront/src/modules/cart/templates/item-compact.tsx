@@ -12,7 +12,7 @@ import LineItemPrice from "@modules/common/components/line-item-price"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Spinner from "@modules/common/icons/spinner"
 import Thumbnail from "@modules/products/components/thumbnail"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, memo, useCallback } from "react"
 import { Minus, Plus, Trash2 } from "lucide-react"
 
 type CompactItemProps = {
@@ -91,7 +91,7 @@ const CompactItem = ({
     return item.thumbnail
   }
 
-  const changeQuantity = async (quantity: number) => {
+  const changeQuantity = useCallback(async (quantity: number) => {
     setError(null)
     setUpdating(true)
 
@@ -105,10 +105,10 @@ const CompactItem = ({
       .finally(() => {
         setUpdating(false)
       })
-  }
+  }, [item.id])
 
   // Nueva función para eliminar el item correctamente
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     setError(null)
     setDeleting(true)
     
@@ -119,30 +119,29 @@ const CompactItem = ({
       setError(err.message)
       setDeleting(false)
     }
-  }
+  }, [item.id])
 
-  const incrementQuantity = () => {
+  const incrementQuantity = useCallback(() => {
     if (item.quantity < 10) {
       changeQuantity(item.quantity + 1)
     }
-  }
+  }, [item.quantity, changeQuantity])
 
-  const decrementQuantity = () => {
+  const decrementQuantity = useCallback(() => {
     if (item.quantity > 1) {
       changeQuantity(item.quantity - 1)
     }
-  }
+  }, [item.quantity, changeQuantity])
 
 
   return (
     <div 
       className={clx(
-        "group flex gap-3 p-3 rounded-xl border transition-all duration-200",
-        "hover:shadow-md hover:scale-[1.01] bg-white/70 backdrop-blur-sm",
-        "border-gray-200/60 hover:border-gray-300/80",
-        "animate-in slide-in-from-left"
+        "group flex gap-3 p-3 rounded-xl border transition-all duration-150", // ← Duración reducida
+        "hover:shadow-sm bg-white/70", // ← Sin hover:scale para evitar repaints
+        "border-gray-200/60 hover:border-gray-300/80"
+        // ← Removida animación slide-in-from-left para evitar conflicto con Framer Motion
       )}
-      style={{ animationDelay: `${index * 100}ms` }}
       data-testid="compact-cart-item"
     >
       {/* Imagen del producto */}
@@ -246,4 +245,4 @@ const CompactItem = ({
   )
 }
 
-export default CompactItem
+export default memo(CompactItem)

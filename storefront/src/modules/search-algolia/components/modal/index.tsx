@@ -129,7 +129,7 @@ export default function SearchModal({ dark = false }: { dark?: boolean }) {
   const router = useRouter()
   const modalRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const {t} = useTranslation()
+  const { t } = useTranslation()
 
   useEffect(() => {
     setIsOpen(false)
@@ -205,10 +205,10 @@ export default function SearchModal({ dark = false }: { dark?: boolean }) {
           <Button
             onClick={() => setIsOpen(true)}
             variant="transparent"
-            className={`text-white/90 hover:text-white font-dmSans text-base px-0 hover:bg-transparent focus:!bg-transparent flex items-center gap-2 transition-all ${
+            className={`text-white/90 hover:text-white text-base px-0 hover:bg-transparent focus:!bg-transparent flex items-center gap-2 transition-all ${
               dark
-                ? "text-white/80 hover:text-white rounded-xl py-1 px-3 bg-gray-500"
-                : "text-black hover:text-black/90 rounded-xl py-1 px-3 bg-gray-200"
+                ? "text-white/80 hover:text-white rounded-xl py-1 px-3 border-white border bg-gray-500"
+                : "text-black hover:text-black/90 rounded-xl py-1 px-3 border-black border bg-gray-200"
             }`}
           >
             <Search
@@ -235,7 +235,9 @@ export default function SearchModal({ dark = false }: { dark?: boolean }) {
           }`}
         >
           <Search className="w-6 h-6" />
-          <span className="text-base font-semibold">Buscar</span>
+          <span className="text-base font-semibold">
+            {t("navigation.search")}
+          </span>
         </motion.button>
       </div>
 
@@ -261,7 +263,7 @@ export default function SearchModal({ dark = false }: { dark?: boolean }) {
             <div className="relative flex justify-center pt-[5vh] sm:pt-[10vh] px-4 sm:px-0">
               <motion.div
                 ref={modalRef}
-                style={{width: "100%"}}
+                style={{ width: "100%" }}
                 className="relative w-full sm:w-auto sm:bottom-20 bg-white shadow-xl rounded-lg sm:rounded-none overflow-hidden sm:overflow-visible"
                 initial={{
                   opacity: 0,
