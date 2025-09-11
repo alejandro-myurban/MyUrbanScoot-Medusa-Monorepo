@@ -41,8 +41,10 @@ export class DocumentVerificationModuleService {
     }
 
     try {
-      this.logger_.info("🆕 Creando assistant compartido para análisis de documentos...");
-      
+      this.logger_.info(
+        "🆕 Creando assistant compartido para análisis de documentos..."
+      );
+
       this.sharedAssistant = await this.openai.beta.assistants.create({
         name: "Document Analyzer Shared",
         instructions: `Eres un experto analizador de documentos españoles especializado en:
@@ -59,11 +61,15 @@ export class DocumentVerificationModuleService {
       });
 
       this.assistantInitialized = true;
-      this.logger_.info(`✅ Assistant compartido creado: ${this.sharedAssistant.id}`);
-      
+      this.logger_.info(
+        `✅ Assistant compartido creado: ${this.sharedAssistant.id}`
+      );
+
       return this.sharedAssistant;
     } catch (error: any) {
-      this.logger_.error(`❌ Error creando assistant compartido: ${error.message}`);
+      this.logger_.error(
+        `❌ Error creando assistant compartido: ${error.message}`
+      );
       throw error;
     }
   }
@@ -300,25 +306,37 @@ EJEMPLO de lo que buscas:
         }
 
         // ✅ VALIDACIÓN DE EDAD PARA DNI FRONT
-        if (documentSide === "front" && result.extractedData && result.isValid) {
-          this.logger_.info(`🔍 DEBUGGING EDAD - Datos extraídos completos:`, result.extractedData);
-          this.logger_.info(`📅 Fecha nacimiento RAW: "${result.extractedData.birthDate}"`);
-          
+        if (
+          documentSide === "front" &&
+          result.extractedData &&
+          result.isValid
+        ) {
+          this.logger_.info(
+            `📅 Fecha nacimiento RAW: "${result.extractedData.birthDate}"`
+          );
+
           // Test manual del cálculo de edad
-          const manualAge = validationHelpers.calculateAge(result.extractedData.birthDate);
+          const manualAge = validationHelpers.calculateAge(
+            result.extractedData.birthDate
+          );
           this.logger_.info(`🧮 Edad calculada manualmente: ${manualAge}`);
-          
-          const ageValidation = validationHelpers.validateAgeFromDNI(result.extractedData);
-          this.logger_.info(`🎯 Resultado validación completa:`, ageValidation);
-          
+
+          const ageValidation = validationHelpers.validateAgeFromDNI(
+            result.extractedData
+          );
+
           if (!ageValidation.isValid) {
             result.isValid = false;
             result.confidence = 0;
             result.issues = result.issues || [];
-            result.issues.push(ageValidation.message || "Edad insuficiente para financiación");
-            
+            result.issues.push(
+              ageValidation.message || "Edad insuficiente para financiación"
+            );
+
             this.logger_.info(`🚫 EDAD INSUFICIENTE: ${ageValidation.message}`);
-            this.logger_.info(`📅 Fecha nacimiento extraída: ${result.extractedData.birthDate}`);
+            this.logger_.info(
+              `📅 Fecha nacimiento extraída: ${result.extractedData.birthDate}`
+            );
           } else {
             this.logger_.info(`✅ EDAD VALIDADA: ${ageValidation.message}`);
           }
@@ -457,17 +475,23 @@ EJEMPLO de lo que buscas:
     documentType: "bank_certificate" | "bank_statement"
   ): Promise<VerificationResult> {
     try {
-      this.logger_.info(`🏦 Verificando documento bancario: ${documentType}...`);
+      this.logger_.info(
+        `🏦 Verificando documento bancario: ${documentType}...`
+      );
 
       // Detectar si es PDF o imagen
-      const buffer = Buffer.from(documentBase64, 'base64');
+      const buffer = Buffer.from(documentBase64, "base64");
       const formatInfo = this.detectFileFormatFromBuffer(buffer);
-      
-      this.logger_.info(`📄 Formato detectado: ${formatInfo.mimeType} (método: ${formatInfo.method})`);
+
+      this.logger_.info(
+        `📄 Formato detectado: ${formatInfo.mimeType} (método: ${formatInfo.method})`
+      );
 
       // Si es PDF, usar OpenAI File API como en payroll
-      if (formatInfo.mimeType === 'application/pdf') {
-        this.logger_.info("📄 Detectado PDF, procesando con OpenAI File API...");
+      if (formatInfo.mimeType === "application/pdf") {
+        this.logger_.info(
+          "📄 Detectado PDF, procesando con OpenAI File API..."
+        );
         return await this.processPdfBank(documentBase64, documentType);
       }
 
@@ -475,7 +499,11 @@ EJEMPLO de lo que buscas:
       const finalMimeType = formatInfo.mimeType;
       const finalBase64 = documentBase64;
 
-      const prompt = `Analiza este documento de un ${documentType === "bank_certificate" ? "certificado bancario" : "extracto bancario"} y extrae la siguiente información:
+      const prompt = `Analiza este documento de un ${
+        documentType === "bank_certificate"
+          ? "certificado bancario"
+          : "extracto bancario"
+      } y extrae la siguiente información:
 
 VALIDACIONES IMPORTANTES:
 1. ¿Es un documento bancario oficial válido y legible?
@@ -554,7 +582,9 @@ ${jsonFormat}
         throw new Error("No se recibió respuesta de OpenAI");
       }
 
-      this.logger_.info(`📄 Respuesta de OpenAI para documento bancario: ${content}`);
+      this.logger_.info(
+        `📄 Respuesta de OpenAI para documento bancario: ${content}`
+      );
 
       let result: VerificationResult;
       try {
@@ -579,7 +609,9 @@ ${jsonFormat}
       return result;
     } catch (error: any) {
       this.logger_.error(
-        `❌ Error en verificación de documento bancario: ${error?.message || error}`
+        `❌ Error en verificación de documento bancario: ${
+          error?.message || error
+        }`
       );
 
       return {
@@ -592,18 +624,22 @@ ${jsonFormat}
     }
   }
 
-  async verifyPayrollDocument(documentBase64: string): Promise<VerificationResult> {
+  async verifyPayrollDocument(
+    documentBase64: string
+  ): Promise<VerificationResult> {
     try {
       this.logger_.info(`💼 Verificando nómina...`);
 
       // Detectar si es PDF o imagen
-      const buffer = Buffer.from(documentBase64, 'base64');
+      const buffer = Buffer.from(documentBase64, "base64");
       const formatInfo = this.detectFileFormatFromBuffer(buffer);
-      
-      this.logger_.info(`📄 Formato detectado: ${formatInfo.mimeType} (método: ${formatInfo.method})`);
+
+      this.logger_.info(
+        `📄 Formato detectado: ${formatInfo.mimeType} (método: ${formatInfo.method})`
+      );
 
       // Si es PDF, usar método especial de OpenAI
-      if (formatInfo.mimeType === 'application/pdf') {
+      if (formatInfo.mimeType === "application/pdf") {
         return await this.processPdfPayroll(documentBase64);
       }
 
@@ -700,7 +736,7 @@ CONCEPTOS CLAVE A BUSCAR:
               {
                 type: "image_url",
                 image_url: {
-                       //@ts-ignore
+                  //@ts-ignore
                   url: `data:${finalMimeType};base64,${finalBase64}`,
                   detail: "high",
                 },
@@ -750,7 +786,10 @@ CONCEPTOS CLAVE A BUSCAR:
         // Validación adicional para nóminas
         if (result.extractedData) {
           // Si encuentra datos básicos de empleado y empleador, muy probable que sea válido
-          if (result.extractedData.employeeName && result.extractedData.employerName) {
+          if (
+            result.extractedData.employeeName &&
+            result.extractedData.employerName
+          ) {
             result.isValid = true;
             if (result.confidence < 70) {
               result.confidence = 80;
@@ -761,18 +800,22 @@ CONCEPTOS CLAVE A BUSCAR:
           }
 
           // Si encuentra salarios, probablemente válido
-          if (result.extractedData.grossSalary && result.extractedData.netSalary) {
+          if (
+            result.extractedData.grossSalary &&
+            result.extractedData.netSalary
+          ) {
             result.isValid = true;
             if (result.confidence < 75) {
               result.confidence = 85;
             }
-            this.logger_.info(
-              `💰 Salarios encontrados - AUMENTANDO CONFIANZA`
-            );
+            this.logger_.info(`💰 Salarios encontrados - AUMENTANDO CONFIANZA`);
           }
 
           // Si tiene formato oficial de nómina
-          if (result.extractedData.hasOfficialPayrollFormat && result.confidence < 60) {
+          if (
+            result.extractedData.hasOfficialPayrollFormat &&
+            result.confidence < 60
+          ) {
             result.confidence = 70;
             this.logger_.info(
               `📋 Formato oficial detectado - AUMENTANDO CONFIANZA`
@@ -804,15 +847,25 @@ CONCEPTOS CLAVE A BUSCAR:
       if (result.extractedData) {
         this.logger_.info(`📋 ========== DATOS DE LA NÓMINA ==========`);
         if (result.extractedData.employeeName)
-          this.logger_.info(`   👤 Empleado: ${result.extractedData.employeeName}`);
+          this.logger_.info(
+            `   👤 Empleado: ${result.extractedData.employeeName}`
+          );
         if (result.extractedData.employerName)
-          this.logger_.info(`   🏢 Empresa: ${result.extractedData.employerName}`);
+          this.logger_.info(
+            `   🏢 Empresa: ${result.extractedData.employerName}`
+          );
         if (result.extractedData.payrollPeriod)
-          this.logger_.info(`   📅 Período: ${result.extractedData.payrollPeriod}`);
+          this.logger_.info(
+            `   📅 Período: ${result.extractedData.payrollPeriod}`
+          );
         if (result.extractedData.grossSalary)
-          this.logger_.info(`   💰 Salario bruto: ${result.extractedData.grossSalary}`);
+          this.logger_.info(
+            `   💰 Salario bruto: ${result.extractedData.grossSalary}`
+          );
         if (result.extractedData.netSalary)
-          this.logger_.info(`   💵 Salario neto: ${result.extractedData.netSalary}`);
+          this.logger_.info(
+            `   💵 Salario neto: ${result.extractedData.netSalary}`
+          );
         if (result.extractedData.jobTitle)
           this.logger_.info(`   💼 Puesto: ${result.extractedData.jobTitle}`);
         this.logger_.info(`📋 =====================================`);
@@ -842,7 +895,9 @@ CONCEPTOS CLAVE A BUSCAR:
     }
   }
 
-  private async processPdfPayroll(pdfBase64: string): Promise<VerificationResult> {
+  private async processPdfPayroll(
+    pdfBase64: string
+  ): Promise<VerificationResult> {
     try {
       this.logger_.info("📄 Procesando nómina en PDF con OpenAI File API...");
 
@@ -921,7 +976,7 @@ CONCEPTOS CLAVE A BUSCAR:
 - NUNCA uses markdown o bloques de código`;
 
       const response = await this.analyzePdfWithOpenAI(pdfBase64, fullPrompt);
-      
+
       // Procesar respuesta
       let result: VerificationResult;
       try {
@@ -947,15 +1002,23 @@ CONCEPTOS CLAVE A BUSCAR:
 
         // Validación adicional para nóminas
         if (result.extractedData) {
-          if (result.extractedData.employeeName && result.extractedData.employerName) {
+          if (
+            result.extractedData.employeeName &&
+            result.extractedData.employerName
+          ) {
             result.isValid = true;
             if (result.confidence < 70) {
               result.confidence = 80;
             }
-            this.logger_.info(`👤 Empleado y empleador encontrados - FORZANDO VÁLIDO`);
+            this.logger_.info(
+              `👤 Empleado y empleador encontrados - FORZANDO VÁLIDO`
+            );
           }
 
-          if (result.extractedData.grossSalary && result.extractedData.netSalary) {
+          if (
+            result.extractedData.grossSalary &&
+            result.extractedData.netSalary
+          ) {
             result.isValid = true;
             if (result.confidence < 75) {
               result.confidence = 85;
@@ -963,13 +1026,20 @@ CONCEPTOS CLAVE A BUSCAR:
             this.logger_.info(`💰 Salarios encontrados - AUMENTANDO CONFIANZA`);
           }
 
-          if (result.extractedData.hasOfficialPayrollFormat && result.confidence < 60) {
+          if (
+            result.extractedData.hasOfficialPayrollFormat &&
+            result.confidence < 60
+          ) {
             result.confidence = 70;
-            this.logger_.info(`📋 Formato oficial detectado - AUMENTANDO CONFIANZA`);
+            this.logger_.info(
+              `📋 Formato oficial detectado - AUMENTANDO CONFIANZA`
+            );
           }
         }
       } catch (parseError: any) {
-        this.logger_.error(`❌ Error parseando JSON de PDF: ${parseError?.message}`);
+        this.logger_.error(
+          `❌ Error parseando JSON de PDF: ${parseError?.message}`
+        );
         return {
           isValid: false,
           extractedData: {},
@@ -989,24 +1059,35 @@ CONCEPTOS CLAVE A BUSCAR:
       if (result.extractedData) {
         this.logger_.info(`📋 ========== DATOS DE LA NÓMINA PDF ==========`);
         if (result.extractedData.employeeName)
-          this.logger_.info(`   👤 Empleado: ${result.extractedData.employeeName}`);
+          this.logger_.info(
+            `   👤 Empleado: ${result.extractedData.employeeName}`
+          );
         if (result.extractedData.employerName)
-          this.logger_.info(`   🏢 Empresa: ${result.extractedData.employerName}`);
+          this.logger_.info(
+            `   🏢 Empresa: ${result.extractedData.employerName}`
+          );
         if (result.extractedData.payrollPeriod)
-          this.logger_.info(`   📅 Período: ${result.extractedData.payrollPeriod}`);
+          this.logger_.info(
+            `   📅 Período: ${result.extractedData.payrollPeriod}`
+          );
         if (result.extractedData.grossSalary)
-          this.logger_.info(`   💰 Salario bruto: ${result.extractedData.grossSalary}`);
+          this.logger_.info(
+            `   💰 Salario bruto: ${result.extractedData.grossSalary}`
+          );
         if (result.extractedData.netSalary)
-          this.logger_.info(`   💵 Salario neto: ${result.extractedData.netSalary}`);
+          this.logger_.info(
+            `   💵 Salario neto: ${result.extractedData.netSalary}`
+          );
         if (result.extractedData.jobTitle)
           this.logger_.info(`   💼 Puesto: ${result.extractedData.jobTitle}`);
         this.logger_.info(`📋 =====================================`);
       }
 
       return result;
-
     } catch (error: any) {
-      this.logger_.error(`❌ Error procesando nómina PDF: ${error?.message || error}`);
+      this.logger_.error(
+        `❌ Error procesando nómina PDF: ${error?.message || error}`
+      );
       return {
         isValid: false,
         extractedData: {},
@@ -1017,11 +1098,20 @@ CONCEPTOS CLAVE A BUSCAR:
     }
   }
 
-  private async processPdfBank(pdfBase64: string, documentType: "bank_certificate" | "bank_statement"): Promise<VerificationResult> {
+  private async processPdfBank(
+    pdfBase64: string,
+    documentType: "bank_certificate" | "bank_statement"
+  ): Promise<VerificationResult> {
     try {
-      this.logger_.info(`📄 Procesando documento bancario PDF con OpenAI File API...`);
+      this.logger_.info(
+        `📄 Procesando documento bancario PDF con OpenAI File API...`
+      );
 
-      const prompt = `Analiza este documento PDF de un ${documentType === "bank_certificate" ? "certificado bancario" : "extracto bancario"} español y extrae la siguiente información:
+      const prompt = `Analiza este documento PDF de un ${
+        documentType === "bank_certificate"
+          ? "certificado bancario"
+          : "extracto bancario"
+      } español y extrae la siguiente información:
 
 VALIDACIONES IMPORTANTES:
 1. ¿Es un documento bancario oficial válido y legible?
@@ -1086,7 +1176,7 @@ ELEMENTOS CLAVE A BUSCAR:
 - NUNCA uses markdown o bloques de código`;
 
       const response = await this.analyzePdfWithOpenAI(pdfBase64, fullPrompt);
-      
+
       // Procesar respuesta
       let result: VerificationResult;
       try {
@@ -1109,10 +1199,10 @@ ELEMENTOS CLAVE A BUSCAR:
           let bracketCount = 0;
           let validJsonEnd = -1;
           const jsonStart = cleanContent.indexOf("{");
-          
+
           for (let i = jsonStart; i < cleanContent.length; i++) {
-            if (cleanContent[i] === '{') bracketCount++;
-            if (cleanContent[i] === '}') {
+            if (cleanContent[i] === "{") bracketCount++;
+            if (cleanContent[i] === "}") {
               bracketCount--;
               if (bracketCount === 0) {
                 validJsonEnd = i;
@@ -1120,7 +1210,7 @@ ELEMENTOS CLAVE A BUSCAR:
               }
             }
           }
-          
+
           if (validJsonEnd !== -1) {
             cleanContent = cleanContent.substring(jsonStart, validJsonEnd + 1);
             result = JSON.parse(cleanContent);
@@ -1136,7 +1226,11 @@ ELEMENTOS CLAVE A BUSCAR:
           throw new Error("Estructura JSON inválida");
         }
 
-        if (typeof result.confidence !== "number" || result.confidence < 0 || result.confidence > 100) {
+        if (
+          typeof result.confidence !== "number" ||
+          result.confidence < 0 ||
+          result.confidence > 100
+        ) {
           result.confidence = 50;
         }
 
@@ -1149,14 +1243,22 @@ ELEMENTOS CLAVE A BUSCAR:
         }
 
         if (!result.imageQuality) {
-          result.imageQuality = result.confidence > 80 ? "excellent" : 
-                               result.confidence > 60 ? "good" : 
-                               result.confidence > 40 ? "fair" : "poor";
+          result.imageQuality =
+            result.confidence > 80
+              ? "excellent"
+              : result.confidence > 60
+              ? "good"
+              : result.confidence > 40
+              ? "fair"
+              : "poor";
         }
-
       } catch (parseError: any) {
-        this.logger_.error(`❌ Error parseando respuesta JSON del documento bancario: ${parseError?.message}`);
-        this.logger_.error(`📄 Respuesta cruda recibida: ${response.substring(0, 500)}...`);
+        this.logger_.error(
+          `❌ Error parseando respuesta JSON del documento bancario: ${parseError?.message}`
+        );
+        this.logger_.error(
+          `📄 Respuesta cruda recibida: ${response.substring(0, 500)}...`
+        );
         result = {
           isValid: false,
           extractedData: {},
@@ -1174,24 +1276,31 @@ ELEMENTOS CLAVE A BUSCAR:
 
       // Logging detallado de datos extraídos
       if (result.extractedData) {
-        this.logger_.info(`🏦 ========== DATOS DEL DOCUMENTO BANCARIO ==========`);
+        this.logger_.info(
+          `🏦 ========== DATOS DEL DOCUMENTO BANCARIO ==========`
+        );
         if (result.extractedData.bankName)
           this.logger_.info(`   🏛️ Banco: ${result.extractedData.bankName}`);
         if (result.extractedData.accountHolder)
-          this.logger_.info(`   👤 Titular: ${result.extractedData.accountHolder}`);
+          this.logger_.info(
+            `   👤 Titular: ${result.extractedData.accountHolder}`
+          );
         if (result.extractedData.iban)
           this.logger_.info(`   💳 IBAN: ${result.extractedData.iban}`);
         if (result.extractedData.issueDate)
-          this.logger_.info(`   📅 Fecha emisión: ${result.extractedData.issueDate}`);
+          this.logger_.info(
+            `   📅 Fecha emisión: ${result.extractedData.issueDate}`
+          );
         if (result.extractedData.balance)
           this.logger_.info(`   💰 Saldo: ${result.extractedData.balance}`);
         this.logger_.info(`🏦 ==========================================`);
       }
 
       return result;
-
     } catch (error: any) {
-      this.logger_.error(`❌ Error procesando documento bancario PDF: ${error?.message || error}`);
+      this.logger_.error(
+        `❌ Error procesando documento bancario PDF: ${error?.message || error}`
+      );
       return {
         isValid: false,
         extractedData: {},
@@ -1203,33 +1312,36 @@ ELEMENTOS CLAVE A BUSCAR:
   }
 
   // ✅ ANÁLISIS DE PDF CON OPENAI FILE API
-  private async analyzePdfWithOpenAI(pdfBase64: string, prompt: string): Promise<any> {
+  private async analyzePdfWithOpenAI(
+    pdfBase64: string,
+    prompt: string
+  ): Promise<any> {
     try {
       this.logger_.info("📄 Analizando PDF usando OpenAI File API...");
-      
+
       // Crear archivo temporal
-      const tempDir = process.env.TEMP || '/tmp';
+      const tempDir = process.env.TEMP || "/tmp";
       const tempFilePath = path.join(tempDir, `document_${Date.now()}.pdf`);
-      
+
       // Escribir PDF a archivo temporal
-      fs.writeFileSync(tempFilePath, Buffer.from(pdfBase64, 'base64'));
-      
+      fs.writeFileSync(tempFilePath, Buffer.from(pdfBase64, "base64"));
+
       // Subir archivo a OpenAI
       const file = await this.openai.files.create({
         file: fs.createReadStream(tempFilePath),
-        purpose: 'assistants',
+        purpose: "assistants",
       });
-      
+
       this.logger_.info(`📤 Archivo subido a OpenAI: ${file.id}`);
-      
+
       // ✅ USAR ASSISTANT COMPARTIDO EN LUGAR DE CREAR UNO NUEVO
       const assistant = await this.getOrCreateSharedAssistant();
-      
+
       // Crear hilo de conversación
       const { id: threadId } = await this.openai.beta.threads.create();
-      
+
       this.logger_.info(`🧵 Thread creado: ${threadId}`);
-      
+
       // Crear mensaje en el thread
       await this.openai.beta.threads.messages.create(threadId, {
         role: "user",
@@ -1241,136 +1353,178 @@ ELEMENTOS CLAVE A BUSCAR:
           },
         ],
       });
-      
+
       // Ejecutar análisis
-      const { id: runId } = await this.openai.beta.threads.runs.create(threadId, {
-        assistant_id: assistant.id,
-      });
-      
+      const { id: runId } = await this.openai.beta.threads.runs.create(
+        threadId,
+        {
+          assistant_id: assistant.id,
+        }
+      );
+
       this.logger_.info(`🏃 Run creado: ${runId}`);
-      
+
       // Usar método con fallback automático para compatibilidad
       let runStatus;
       try {
         //@ts-ignore
-        runStatus = await this.openai.beta.threads.runs.retrieve(threadId, runId);
+        runStatus = await this.openai.beta.threads.runs.retrieve(
+          threadId,
+          runId
+        );
       } catch (retrieveError: any) {
         // Fallback automático para versión específica de la librería OpenAI
         try {
-          runStatus = await this.openai.beta.threads.runs.retrieve(runId, { thread_id: threadId });
+          runStatus = await this.openai.beta.threads.runs.retrieve(runId, {
+            thread_id: threadId,
+          });
         } catch (altError: any) {
-          this.logger_.error(`❌ Error obteniendo estado del run: ${retrieveError.message}`);
+          this.logger_.error(
+            `❌ Error obteniendo estado del run: ${retrieveError.message}`
+          );
           throw retrieveError;
         }
       }
       let attempts = 0;
       const maxAttempts = 30; // 30 segundos máximo
-      
-      this.logger_.info(`⏳ Esperando resultado del análisis (estado inicial: ${runStatus.status})`);
-      
-      while ((runStatus.status === 'queued' || runStatus.status === 'in_progress') && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
+      this.logger_.info(
+        `⏳ Esperando resultado del análisis (estado inicial: ${runStatus.status})`
+      );
+
+      while (
+        (runStatus.status === "queued" || runStatus.status === "in_progress") &&
+        attempts < maxAttempts
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         // Actualizar estado del run con fallback automático
         try {
-               //@ts-ignore
-          runStatus = await this.openai.beta.threads.runs.retrieve(threadId, runId);
+          //@ts-ignore
+          runStatus = await this.openai.beta.threads.runs.retrieve(
+            threadId,
+            runId
+          );
         } catch (loopRetrieveError: any) {
           // Fallback automático
           try {
-            runStatus = await this.openai.beta.threads.runs.retrieve(runId, { thread_id: threadId });
+            runStatus = await this.openai.beta.threads.runs.retrieve(runId, {
+              thread_id: threadId,
+            });
           } catch (altLoopError: any) {
             throw loopRetrieveError;
           }
         }
         attempts++;
-        
+
         if (attempts % 5 === 0) {
-          this.logger_.info(`⏳ Análisis en progreso... (intento ${attempts}/${maxAttempts}, estado: ${runStatus.status})`);
+          this.logger_.info(
+            `⏳ Análisis en progreso... (intento ${attempts}/${maxAttempts}, estado: ${runStatus.status})`
+          );
         }
       }
-      
-      this.logger_.info(`🏁 Análisis completado con estado: ${runStatus.status}`);
-      
-      if (runStatus.status === 'completed') {
+
+      this.logger_.info(
+        `🏁 Análisis completado con estado: ${runStatus.status}`
+      );
+
+      if (runStatus.status === "completed") {
         const messages = await this.openai.beta.threads.messages.list(threadId);
         const response = messages.data[0].content[0];
-        
+
         this.logger_.info(`📥 Respuesta recibida, tipo: ${response.type}`);
-        
+
         // ✅ LIMPIAR RECURSOS PERO MANTENER EL ASSISTANT COMPARTIDO
         await this.cleanupOpenAIResources(file.id, null, threadId); // null = no eliminar assistant
         if (fs.existsSync(tempFilePath)) {
           fs.unlinkSync(tempFilePath);
         }
-        
+
         // @ts-ignore
-        return response.text?.value || '';
-      } else if (runStatus.status === 'failed') {
-        this.logger_.error(`❌ Análisis falló: ${JSON.stringify(runStatus.last_error)}`);
-        throw new Error(`Análisis falló: ${runStatus.last_error?.message || 'Error desconocido'}`);
+        return response.text?.value || "";
+      } else if (runStatus.status === "failed") {
+        this.logger_.error(
+          `❌ Análisis falló: ${JSON.stringify(runStatus.last_error)}`
+        );
+        throw new Error(
+          `Análisis falló: ${
+            runStatus.last_error?.message || "Error desconocido"
+          }`
+        );
       } else if (attempts >= maxAttempts) {
         throw new Error(`Análisis expiró después de ${maxAttempts} segundos`);
       } else {
-        throw new Error(`Análisis terminó con estado inesperado: ${runStatus.status}`);
+        throw new Error(
+          `Análisis terminó con estado inesperado: ${runStatus.status}`
+        );
       }
-      
     } catch (error: any) {
       this.logger_.error(`❌ Error analizando PDF: ${error.message}`);
-      
+
       // Intentar limpiar recursos incluso si hay error
       try {
-             //@ts-ignore
+        //@ts-ignore
         if (tempFilePath && fs.existsSync(tempFilePath)) {
-               //@ts-ignore
+          //@ts-ignore
           fs.unlinkSync(tempFilePath);
         }
       } catch (cleanupError) {
-             //@ts-ignore
+        //@ts-ignore
         this.logger_.warn("Error limpiando archivo temporal:", cleanupError);
       }
-      
+
       throw error;
     }
   }
-  
-  private async cleanupOpenAIResources(fileId: string, assistantId: string | null, threadId: string) {
+
+  private async cleanupOpenAIResources(
+    fileId: string,
+    assistantId: string | null,
+    threadId: string
+  ) {
     try {
       this.logger_.info("🧹 Limpiando recursos de OpenAI...");
-      
+
       const cleanupPromises = [];
-      
+
       if (fileId) {
         cleanupPromises.push(
-               //@ts-ignore
-          this.openai.files.del(fileId).catch(err => 
-                 //@ts-ignore
-            this.logger_.warn(`Error eliminando archivo ${fileId}:`, err.message)
+          //@ts-ignore
+          this.openai.files.del(fileId).catch((err) =>
+            //@ts-ignore
+            this.logger_.warn(
+              `Error eliminando archivo ${fileId}:`,
+              err.message
+            )
           )
         );
       }
-      
+
       // ✅ SOLO ELIMINAR ASSISTANT SI NO ES EL COMPARTIDO (assistantId !== null)
       if (assistantId) {
         cleanupPromises.push(
-               //@ts-ignore
-          this.openai.beta.assistants.del(assistantId).catch(err => 
-                 //@ts-ignore
-            this.logger_.warn(`Error eliminando asistente ${assistantId}:`, err.message)
+          //@ts-ignore
+          this.openai.beta.assistants.del(assistantId).catch((err) =>
+            //@ts-ignore
+            this.logger_.warn(
+              `Error eliminando asistente ${assistantId}:`,
+              err.message
+            )
           )
         );
         this.logger_.info(`🗑️ Eliminando assistant temporal: ${assistantId}`);
       } else {
         this.logger_.info("♻️ Manteniendo assistant compartido");
       }
-      
+
       await Promise.allSettled(cleanupPromises);
       this.logger_.info("🧹 Recursos de OpenAI limpiados");
     } catch (error: any) {
-           //@ts-ignore
-      this.logger_.warn("Advertencia limpiando recursos OpenAI:", error.message);
-
-      
+      //@ts-ignore
+      this.logger_.warn(
+        "Advertencia limpiando recursos OpenAI:",
+        error.message
+      );
     }
   }
 
@@ -1421,8 +1575,6 @@ ELEMENTOS CLAVE A BUSCAR:
       method: "fallback_pdf",
     };
   }
-
-
 
   // Método adicional para verificar ambos lados
   async verifyBothSides(
@@ -1480,15 +1632,20 @@ ELEMENTOS CLAVE A BUSCAR:
   async cleanup() {
     if (this.sharedAssistant && this.assistantInitialized) {
       try {
-        this.logger_.info("🧹 Limpiando assistant compartido al cerrar servicio...");
-          //@ts-ignore
+        this.logger_.info(
+          "🧹 Limpiando assistant compartido al cerrar servicio..."
+        );
+        //@ts-ignore
         await this.openai.beta.assistants.del(this.sharedAssistant.id);
         this.sharedAssistant = null;
         this.assistantInitialized = false;
         this.logger_.info("✅ Assistant compartido eliminado");
       } catch (error: any) {
-          //@ts-ignore
-        this.logger_.warn("Advertencia limpiando assistant compartido:", error.message);
+        //@ts-ignore
+        this.logger_.warn(
+          "Advertencia limpiando assistant compartido:",
+          error.message
+        );
       }
     }
   }
