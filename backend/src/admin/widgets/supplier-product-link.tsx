@@ -5,7 +5,7 @@ import {
   DetailWidgetProps,
   AdminProduct,
 } from "@medusajs/framework/types";
-import { Plus, Edit, Trash2, Package, User, DollarSign, AlertTriangle } from "lucide-react";
+import { Plus, Edit, Trash2, Package, User, DollarSign, AlertTriangle, ExternalLink } from "lucide-react";
 
 interface Supplier {
   id: string;
@@ -283,7 +283,7 @@ const SupplierProductLinkWidget = ({
                   className="flex items-center justify-between p-3 border border-ui-border-base rounded-lg hover:shadow-sm transition-shadow"
                 >
                   <div className="flex items-center gap-3">
-                    <User className="h-4 w-4 text-ui-fg-subtle" />
+                   
                     <div>
                       <div className="flex items-center gap-2">
                         <Text weight="plus" size="small">
@@ -309,6 +309,20 @@ const SupplierProductLinkWidget = ({
                           Precio: {" "}
                           {formatPrice(relation.cost_price, relation.currency_code)}
                         </Text>
+                        {relation.supplier_product_url && (
+                          <a
+                            href={relation.supplier_product_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-ui-fg-interactive hover:text-ui-fg-interactive-hover transition-colors"
+                            title="Ver producto en sitio del proveedor"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <Text size="xsmall" className="text-ui-fg-interactive">
+                              Ver producto
+                            </Text>
+                          </a>
+                        )}
                       </div>
                       
                       {/* Notes display */}

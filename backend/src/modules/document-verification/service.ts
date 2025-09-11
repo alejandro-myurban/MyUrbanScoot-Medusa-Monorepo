@@ -1370,6 +1370,8 @@ ELEMENTOS CLAVE A BUSCAR:
         //@ts-ignore
         runStatus = await this.openai.beta.threads.runs.retrieve(
           threadId,
+          //@ts-ignore
+
           runId
         );
       } catch (retrieveError: any) {
@@ -1403,6 +1405,7 @@ ELEMENTOS CLAVE A BUSCAR:
           //@ts-ignore
           runStatus = await this.openai.beta.threads.runs.retrieve(
             threadId,
+            //@ts-ignore
             runId
           );
         } catch (loopRetrieveError: any) {
@@ -1494,6 +1497,7 @@ ELEMENTOS CLAVE A BUSCAR:
             //@ts-ignore
             this.logger_.warn(
               `Error eliminando archivo ${fileId}:`,
+              //@ts-ignore
               err.message
             )
           )
@@ -1508,6 +1512,7 @@ ELEMENTOS CLAVE A BUSCAR:
             //@ts-ignore
             this.logger_.warn(
               `Error eliminando asistente ${assistantId}:`,
+              //@ts-ignore
               err.message
             )
           )
@@ -1523,6 +1528,7 @@ ELEMENTOS CLAVE A BUSCAR:
       //@ts-ignore
       this.logger_.warn(
         "Advertencia limpiando recursos OpenAI:",
+        //@ts-ignore
         error.message
       );
     }
@@ -1644,6 +1650,7 @@ ELEMENTOS CLAVE A BUSCAR:
         //@ts-ignore
         this.logger_.warn(
           "Advertencia limpiando assistant compartido:",
+          //@ts-ignore
           error.message
         );
       }
