@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button, Text } from "@medusajs/ui";
-import { ChevronDown, ChevronUp, Edit, Eye } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { ExtractedDniInfo } from "../../types";
 import { formatters } from "../../utils/formatters";
 
@@ -8,16 +8,12 @@ interface ExtractedDataAccordionProps {
   dniInfo: ExtractedDniInfo;
   showExtractedData: boolean;
   onToggleExtractedData: () => void;
-  manualMode: boolean;
-  onToggleManualMode: () => void;
 }
 
 const ExtractedDataAccordion = ({
   dniInfo,
   showExtractedData,
-  onToggleExtractedData,
-  manualMode,
-  onToggleManualMode
+  onToggleExtractedData
 }: ExtractedDataAccordionProps) => {
   const hasExtractionData = dniInfo && Object.keys(dniInfo).length > 0;
   const confidence = dniInfo?.confidence || 0;
@@ -48,19 +44,6 @@ const ExtractedDataAccordion = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {hasExtractionData && (
-            <Button
-              variant="secondary"
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleManualMode();
-              }}
-            >
-              {manualMode ? <Eye className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
-              {manualMode ? 'Ver automático' : 'Editar manual'}
-            </Button>
-          )}
           {showExtractedData ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
         </div>
       </Button>
