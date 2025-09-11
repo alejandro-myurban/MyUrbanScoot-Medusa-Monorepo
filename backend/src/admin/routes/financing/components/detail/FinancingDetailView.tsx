@@ -63,20 +63,38 @@ const FinancingDetailView = ({ request, onBack }: FinancingDetailViewProps) => {
   };
 
   const initializeManualDniData = () => {
-    const updatedRequest = {
-      ...selectedRequest,
-      dni_front_verification: {
-        extractedData: {
-          fullName: "",
-          documentNumber: "",
-          birthDate: "",
-          sex: "",
-          nationality: ""
-        },
-        issues: ["Entrada manual"]
-      }
-    };
-    setSelectedRequest(updatedRequest);
+    // Si no hay datos del front, inicializarlos
+    if (!selectedRequest.dni_front_verification?.extractedData) {
+      const updatedRequest = {
+        ...selectedRequest,
+        dni_front_verification: {
+          extractedData: {
+            fullName: "",
+            documentNumber: "",
+            birthDate: "",
+            sex: "",
+            nationality: ""
+          },
+          issues: ["Entrada manual"]
+        }
+      };
+      setSelectedRequest(updatedRequest);
+    }
+    
+    // Si no hay datos del back, inicializarlos también
+    if (!selectedRequest.dni_back_verification?.extractedData) {
+      setSelectedRequest(prev => ({
+        ...prev,
+        dni_back_verification: {
+          extractedData: {
+            addresses: [""],
+            birthPlace: ""
+          },
+          issues: ["Entrada manual"]
+        }
+      }));
+    }
+    
     setManualDniMode(true);
   };
 
@@ -200,10 +218,8 @@ const FinancingDetailView = ({ request, onBack }: FinancingDetailViewProps) => {
                 );
               })()}
               
-              {/* Botón para añadir datos DNI manualmente cuando no existen */}
-              {(!selectedRequest.dni_front_verification?.extractedData && 
-                !selectedRequest.dni_back_verification?.extractedData &&
-                !manualDniMode) && (
+       
+              {!manualDniMode && (
                 <div className="space-y-2">
                   <Button
                     variant="secondary"
@@ -212,10 +228,16 @@ const FinancingDetailView = ({ request, onBack }: FinancingDetailViewProps) => {
                     className="flex items-center gap-2 bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100"
                   >
                     <Edit className="w-4 h-4" />
-                    ➕ Añadir Datos DNI Manualmente
+                    {(selectedRequest.dni_front_verification?.extractedData || selectedRequest.dni_back_verification?.extractedData) 
+                      ? "✏️ Editar Datos DNI" 
+                      : "➕ Añadir Datos DNI"
+                    }
                   </Button>
                   <Text size="small" className="text-gray-500">
-                    No se detectaron datos extraídos del DNI. Puede añadirlos manualmente.
+                    {(selectedRequest.dni_front_verification?.extractedData || selectedRequest.dni_back_verification?.extractedData)
+                      ? "Puede editar o completar los datos extraídos del DNI manualmente."
+                      : "No se detectaron datos extraídos del DNI. Puede añadirlos manualmente."
+                    }
                   </Text>
                 </div>
               )}
@@ -239,29 +261,23 @@ const FinancingDetailView = ({ request, onBack }: FinancingDetailViewProps) => {
                 </div>
               )}
 
-              {/* Botón para mostrar/ocultar datos extraídos */}
-              {(selectedRequest.dni_front_verification?.extractedData || 
-                selectedRequest.dni_back_verification?.extractedData ||
-                selectedRequest.payroll_verification?.extractedData ||
-                manualDniMode) && (
+              {/* Botón para salir del modo manual */}
+              {manualDniMode && (
                 <div className="space-y-2">
                   <Button
                     variant="secondary"
                     size="small"
-                    onClick={() => setShowExtractedData(!showExtractedData)}
+                    onClick={() => setManualDniMode(false)}
                     className="flex items-center gap-2"
                   >
-                    <Edit className="w-4 h-4" />
-                    Editar Datos Extraídos
-                    {showExtractedData ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
+                    <Eye className="w-4 h-4" />
+                    Cerrar Editor
                   </Button>
+                </div>
+              )}
 
-                  {/* Acordeón con datos extraídos */}
-                  {showExtractedData && (
+              {/* Acordeón con datos extraídos - se muestra cuando está en modo manual */}
+              {manualDniMode && (
                     <div className="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       
                       {/* DNI Frontal */}
@@ -569,8 +585,6 @@ const FinancingDetailView = ({ request, onBack }: FinancingDetailViewProps) => {
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
               )}
               
               <EditableField

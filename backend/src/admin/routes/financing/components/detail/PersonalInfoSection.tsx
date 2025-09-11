@@ -28,8 +28,6 @@ const PersonalInfoSection = ({
         dniInfo={dniInfo}
         showExtractedData={showExtractedData}
         onToggleExtractedData={onToggleExtractedData}
-        manualMode={manualMode}
-        onToggleManualMode={onToggleManualMode}
       />
 
       {/* Age Validation Section */}
