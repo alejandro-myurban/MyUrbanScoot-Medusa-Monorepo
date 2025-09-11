@@ -596,7 +596,40 @@ class SupplierManagementModuleService extends MedusaService({
   // =====================================================
 
   async linkProductToSupplier(data: any): Promise<ProductSupplier> {
-    return await this.createProductSuppliers(data);
+    const supplierId = data.supplier?.id || data.supplier_id;
+    
+    // Verificar que el supplier existe
+    const supplier = await this.getSupplierById(supplierId);
+    if (!supplier) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Supplier with id ${supplierId} not found`
+      );
+    }
+
+    // Verificar si ya existe una relación para este producto y proveedor
+    const existingRelation = await this.listProductSuppliers({
+      product_id: data.product_id,
+      supplier_id: supplierId
+    });
+
+    if (existingRelation.length > 0) {
+      throw new MedusaError(
+        MedusaError.Types.DUPLICATE_ERROR,
+        "Product is already linked to this supplier"
+      );
+    }
+
+    // Crear la relación usando supplier_id directamente
+    const relationData = {
+      ...data,
+      supplier_id: supplierId
+    };
+
+    // Remover la referencia anidada si existe
+    delete relationData.supplier;
+
+    return await this.createProductSuppliers(relationData);
   }
 
   async updateProductSupplierCost(
@@ -673,7 +706,7 @@ class SupplierManagementModuleService extends MedusaService({
       // Buscar si ya existe una relación para este producto y proveedor
       const searchCriteria = {
         product_id: data.product_id,
-        supplier: { id: data.supplier_id }
+        supplier_id: data.supplier_id
       };
       console.log(`🔍 Buscando ProductSupplier con:`, JSON.stringify(searchCriteria, null, 2));
       
@@ -707,7 +740,7 @@ class SupplierManagementModuleService extends MedusaService({
         console.log(`✨ Creando nueva relación ProductSupplier`);
         const createData = {
           product_id: data.product_id,
-          supplier: { id: data.supplier_id },
+          supplier_id: data.supplier_id,
           supplier_sku: data.supplier_sku || null,
           cost_price: data.unit_price || null,
           last_purchase_date: new Date(),
@@ -1140,7 +1173,7 @@ class SupplierManagementModuleService extends MedusaService({
       try {
         const productSupplierRelation = await this.listProductSuppliers({
           product_id: productId,
-          supplier: { id: supplierId }
+          supplier_id: supplierId
         });
         
         if (productSupplierRelation.length > 0) {

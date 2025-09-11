@@ -41,6 +41,7 @@ export const GET = async (
     const productSuppliers = await supplierService.listProductSuppliers(filters, {
       skip: Number(offset),
       take: Number(limit),
+      relations: ["supplier"], // Include supplier data
     });
     
     res.status(200).json({

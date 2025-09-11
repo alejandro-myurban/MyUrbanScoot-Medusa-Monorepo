@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { validateAgeFromDNI } from "../utils/validation"
 import type { 
   FinancingFormData, 
   FileStates, 
@@ -168,6 +169,18 @@ export const useFinancingForm = (): UseFinancingFormReturn => {
       return { 
         allowed: false, 
         reason: `Espera ${remainingTime} segundo${remainingTime !== 1 ? 's' : ''} antes de intentar de nuevo` 
+      }
+    }
+
+    // Validar edad mínima desde datos extraídos del DNI - CORREGIR keys
+    const dniData = documentVerifications?.front?.extractedData || documentVerifications?.back?.extractedData;
+    if (dniData) {
+      const ageValidation = validateAgeFromDNI(dniData);
+      if (!ageValidation.isValid) {
+        return { 
+          allowed: false, 
+          reason: ageValidation.message || "Edad mínima requerida: 18 años"
+        }
       }
     }
 

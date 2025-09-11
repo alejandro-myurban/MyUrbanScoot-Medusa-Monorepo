@@ -1,8 +1,10 @@
 import { Text } from "@medusajs/ui";
 import { PersonalInfoSectionProps } from "../../types";
 import { formatters } from "../../utils/formatters";
+import { validationHelpers } from "../../utils/validationHelpers";
 import ExtractedDataAccordion from "../shared/ExtractedDataAccordion";
 import EditableField from "../../../../components/editable-field";
+import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 
 const PersonalInfoSection = ({
   request,
@@ -16,6 +18,9 @@ const PersonalInfoSection = ({
   manualMode: boolean;
   onToggleManualMode: () => void;
 }) => {
+  // Validar edad si hay datos extraídos del DNI
+  const ageValidation = dniInfo ? validationHelpers.validateAgeFromDNI(dniInfo) : null;
+
   return (
     <div className="space-y-6">
       {/* Extracted Data Accordion */}
@@ -26,6 +31,40 @@ const PersonalInfoSection = ({
         manualMode={manualMode}
         onToggleManualMode={onToggleManualMode}
       />
+
+      {/* Age Validation Section */}
+      {ageValidation && (
+        <div className={`p-4 rounded-lg border ${
+          ageValidation.isValid 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-red-50 border-red-200'
+        }`}>
+          <div className="flex items-center gap-3">
+            {ageValidation.isValid ? (
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+            ) : (
+              <XCircle className="w-5 h-5 text-red-600" />
+            )}
+            <div>
+              <Text className={`font-semibold ${
+                ageValidation.isValid ? 'text-green-800' : 'text-red-800'
+              }`}>
+                Validación de Edad
+              </Text>
+              <Text className={`text-sm ${
+                ageValidation.isValid ? 'text-green-700' : 'text-red-700'
+              }`}>
+                {ageValidation.message}
+              </Text>
+              {dniInfo?.birthDate && (
+                <Text className="text-xs text-gray-600 mt-1">
+                  Fecha de nacimiento: {formatters.formatDate(dniInfo.birthDate)}
+                </Text>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Personal Information Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -9,6 +9,7 @@ import {
   VerificationResult,
   BothSidesVerificationResult,
 } from "./types";
+import { validationHelpers } from "../../admin/routes/financing/utils/validationHelpers";
 
 type InjectedDependencies = {
   logger: Logger;
@@ -295,6 +296,31 @@ EJEMPLO de lo que buscas:
             this.logger_.info(
               `🎨 Diseño oficial detectado - AUMENTANDO CONFIANZA`
             );
+          }
+        }
+
+        // ✅ VALIDACIÓN DE EDAD PARA DNI FRONT
+        if (documentSide === "front" && result.extractedData && result.isValid) {
+          this.logger_.info(`🔍 DEBUGGING EDAD - Datos extraídos completos:`, result.extractedData);
+          this.logger_.info(`📅 Fecha nacimiento RAW: "${result.extractedData.birthDate}"`);
+          
+          // Test manual del cálculo de edad
+          const manualAge = validationHelpers.calculateAge(result.extractedData.birthDate);
+          this.logger_.info(`🧮 Edad calculada manualmente: ${manualAge}`);
+          
+          const ageValidation = validationHelpers.validateAgeFromDNI(result.extractedData);
+          this.logger_.info(`🎯 Resultado validación completa:`, ageValidation);
+          
+          if (!ageValidation.isValid) {
+            result.isValid = false;
+            result.confidence = 0;
+            result.issues = result.issues || [];
+            result.issues.push(ageValidation.message || "Edad insuficiente para financiación");
+            
+            this.logger_.info(`🚫 EDAD INSUFICIENTE: ${ageValidation.message}`);
+            this.logger_.info(`📅 Fecha nacimiento extraída: ${result.extractedData.birthDate}`);
+          } else {
+            this.logger_.info(`✅ EDAD VALIDADA: ${ageValidation.message}`);
           }
         }
       } catch (parseError: any) {

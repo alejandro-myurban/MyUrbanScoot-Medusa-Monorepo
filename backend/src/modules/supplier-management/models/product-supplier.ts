@@ -15,6 +15,7 @@ const ProductSupplier = model.define("product_supplier", {
   supplier_sku: model.text().nullable(),   // SKU/código del proveedor
   supplier_product_name: model.text().nullable(), // Nombre en catálogo del proveedor
   supplier_description: model.text().nullable(), // Descripción del proveedor
+  supplier_product_url: model.text().nullable(), // URL del producto en el sitio del proveedor
   
   // Precios y condiciones
   cost_price: model.number().nullable(),   // Precio de costo actual

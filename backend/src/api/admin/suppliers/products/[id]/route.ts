@@ -27,8 +27,7 @@ export const PUT = async (
         message: "Product supplier cost updated successfully"
       });
     } else {
-          //@ts-ignore
-      const productSupplier = await supplierService.updateProductSupplier(id, req.body);
+      const productSupplier = await supplierService.updateProductSupplierData(id, req.body);
       
       res.status(200).json({
         product_supplier: productSupplier,

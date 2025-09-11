@@ -586,6 +586,15 @@
           "nullable": true,
           "mappedType": "text"
         },
+        "supplier_product_url": {
+          "name": "supplier_product_url",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
         "cost_price": {
           "name": "cost_price",
           "type": "integer",
