@@ -278,9 +278,9 @@ export default async function CategoryTemplate({
         ) : (
           <div className="flex gap-6 flex-col lg:flex-row">
             <aside className="w-full lg:w-[280px] lg:flex-shrink-0">
-              <div className="sticky top-4 space-y-4 lg:space-y-6">
+              <div className="sticky top-20 space-y-4 lg:space-y-6">
                 {/* Filtros Header - Responsive Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-4">
                   {/* Ordenación Card */}
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 lg:p-6">
                     <RefinementList sortBy={sort} data-testid="sort-by-container" />

@@ -141,6 +141,90 @@ export const validationHelpers = {
     return age >= 18;
   },
 
+  // Calculate exact age from birth date
+  calculateAge: (birthDate: string): number | null => {
+    if (!birthDate) return null;
+    
+    let birth: Date;
+    
+    // DEBUG: Log del input
+    console.log(`🔍 calculateAge DEBUG - Input: "${birthDate}"`);
+    
+    // Parsear formato español DNI: "DD MM YYYY"
+    if (/^\d{2} \d{2} \d{4}$/.test(birthDate.trim())) {
+      const [day, month, year] = birthDate.trim().split(' ');
+      console.log(`📅 Parsed parts:`, { day, month, year });
+      // Crear fecha con formato ISO: YYYY-MM-DD
+      birth = new Date(`${year}-${month}-${day}`);
+      console.log(`🗓️ Created birth date:`, birth.toISOString());
+    } else {
+      // Intentar parsear otros formatos
+      birth = new Date(birthDate);
+      console.log(`🗓️ Created birth date (other format):`, birth.toISOString());
+    }
+    
+    // Verificar que la fecha sea válida
+    if (isNaN(birth.getTime())) {
+      console.log(`❌ Invalid date created`);
+      return null;
+    }
+    
+    const today = new Date();
+    console.log(`📆 Today:`, today.toISOString());
+    console.log(`🎂 Birth:`, birth.toISOString());
+    
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    
+    console.log(`📊 Initial age: ${age} (${today.getFullYear()} - ${birth.getFullYear()})`);
+    console.log(`📊 Month diff: ${monthDiff} (${today.getMonth()} - ${birth.getMonth()})`);
+    console.log(`📊 Today date: ${today.getDate()}, Birth date: ${birth.getDate()}`);
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      console.log(`📊 Adjusting age down by 1 year because:`);
+      console.log(`   - monthDiff < 0: ${monthDiff < 0}`);
+      console.log(`   - monthDiff === 0: ${monthDiff === 0}`);
+      console.log(`   - today.getDate() < birth.getDate(): ${today.getDate() < birth.getDate()}`);
+      age--;
+    }
+    
+    console.log(`🎯 Final calculated age: ${age}`);
+    return age;
+  },
+
+  // Validate age from DNI extracted data
+  validateAgeFromDNI: (extractedDniData: any): { isValid: boolean; age?: number; message?: string } => {
+    if (!extractedDniData || !extractedDniData.birthDate) {
+      return {
+        isValid: false,
+        message: 'No se pudo extraer la fecha de nacimiento del DNI'
+      };
+    }
+
+    const age = validationHelpers.calculateAge(extractedDniData.birthDate);
+    
+    if (age === null) {
+      return {
+        isValid: false,
+        message: 'Fecha de nacimiento inválida en el DNI'
+      };
+    }
+
+    if (age < 18) {
+      return {
+        isValid: false,
+        age,
+        message: `La edad mínima requerida es 18 años (edad actual: ${age} años)`
+      };
+    }
+
+    return {
+      isValid: true,
+      age,
+      message: `Edad validada correctamente: ${age} años`
+    };
+  },
+
   // Validate required documents based on contract type
   validateRequiredDocuments: (contractType: string, documents: any): ValidationResult => {
     const requiredDocs: string[] = ['identity_front_file_id', 'identity_back_file_id'];

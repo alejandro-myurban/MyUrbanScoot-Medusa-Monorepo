@@ -211,6 +211,70 @@ export const formSchema = z.object({
   path: ["housing_type_details"]
 })
 
+// Validar edad mínima (18 años)
+export const validateAge = (birthDate: string): { isValid: boolean; age?: number; message?: string } => {
+  if (!birthDate) {
+    return {
+      isValid: false,
+      message: 'Fecha de nacimiento requerida'
+    };
+  }
+
+  let birth: Date;
+  
+  // Parsear formato español DNI: "DD MM YYYY"
+  if (/^\d{2} \d{2} \d{4}$/.test(birthDate.trim())) {
+    const [day, month, year] = birthDate.trim().split(' ');
+    // Crear fecha con formato ISO: YYYY-MM-DD
+    birth = new Date(`${year}-${month}-${day}`);
+  } else {
+    // Intentar parsear otros formatos
+    birth = new Date(birthDate);
+  }
+  
+  // Verificar que la fecha sea válida
+  if (isNaN(birth.getTime())) {
+    return {
+      isValid: false,
+      message: 'Fecha de nacimiento inválida'
+    };
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  if (age < 18) {
+    return {
+      isValid: false,
+      age,
+      message: `Debes ser mayor de edad para acceder a financiación (edad actual: ${age} años)`
+    };
+  }
+
+  return {
+    isValid: true,
+    age,
+    message: `Edad validada correctamente: ${age} años`
+  };
+};
+
+// Validar edad desde datos extraídos del DNI
+export const validateAgeFromDNI = (extractedDniData: any): { isValid: boolean; age?: number; message?: string } => {
+  if (!extractedDniData || !extractedDniData.birthDate) {
+    return {
+      isValid: false,
+      message: 'No se pudo extraer la fecha de nacimiento del DNI'
+    };
+  }
+
+  return validateAge(extractedDniData.birthDate);
+};
+
 // Función helper para validar un campo individual - EXTRAÍDA DEL ORIGINAL
 export const validateField = (fieldName: string, value: string, currentFormData?: any) => {
   try {

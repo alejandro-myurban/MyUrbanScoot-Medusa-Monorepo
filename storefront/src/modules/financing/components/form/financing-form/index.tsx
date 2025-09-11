@@ -426,7 +426,7 @@ export const FinancingForm = () => {
 
                 <button
                   type="submit"
-                  disabled={submitting || submitted || !isFormValid}
+                  disabled={!canSubmit().allowed || submitting || submitted || !isFormValid}
                   className={`w-full flex justify-center items-center py-4 px-8 font-semibold rounded-xl shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] disabled:hover:scale-100 ${
                     submitted
                       ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white"
@@ -471,6 +471,8 @@ export const FinancingForm = () => {
                     ? "Redirigiendo a la página de confirmación..."
                     : submitting
                     ? "🔒 Solicitud en proceso. Por favor espera..."
+                    : !canSubmit().allowed
+                    ? `⚠️ ${canSubmit().reason}`
                     : isUnemployed
                     ? "La financiación requiere ingresos regulares demostrables."
                     : !isFormValid

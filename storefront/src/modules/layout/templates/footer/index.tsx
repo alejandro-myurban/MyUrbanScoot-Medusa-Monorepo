@@ -1,159 +1,210 @@
-import { getCategoriesList } from "@lib/data/categories"
-import { getCollectionsList } from "@lib/data/collections"
-import { Text, clx } from "@medusajs/ui"
+"use client"
+import { Button, Input } from "@medusajs/ui"
+import {
+  Facebook,
+  Twitter,
+  Linkedin,
+  Mail,
+  ChevronDown,
+  Smartphone,
+  Monitor,
+} from "lucide-react"
+import { useState } from "react"
+import TikTok from "./icons/titok"
+import Instagram from "./icons/instagram"
 
-import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import MedusaCTA from "@modules/layout/components/medusa-cta"
-import VinylNavDropdown from "./dropdown-test"
+const Footer = () => {
+  const [email, setEmail] = useState("")
+  const [showMoreInfo, setShowMoreInfo] = useState(false)
 
-export default async function Footer() {
-  const { collections } = await getCollectionsList(0, 6)
-  const { product_categories } = await getCategoriesList(0, 6)
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Handle newsletter subscription
+    console.log("Subscribing email:", email)
+    setEmail("")
+  }
+
+  const footerLinks = {
+    "Sobre Nosotros": [
+      "¿Quiénes somos?",
+      "Prensa",
+      "¡Estamos contratando!",
+      "Opiniones",
+    ],
+    Ayuda: [
+      "Contacto",
+      "Centro de ayuda",
+      "Entrega",
+      "Devoluciones y reembolsos",
+    ],
+    Servicios: [
+      "Garantía comercial",
+      "Seguros",
+      "Renove",
+      "Descuento estudiantes",
+      "Profesionales: ¿cómo vender aquí?",
+      "Portal del vendedor",
+      "Pago 100% seguro",
+    ],
+    "Guías de compra": ["Tecnoteca", "Comparar productos", "Ideas de regalos"],
+    "Condiciones legales": [
+      "Condiciones generales de uso",
+      "Condiciones generales de venta",
+      "Términos y Condiciones de Renove",
+      "Configuración de cookies y privacidad",
+      "Protección de datos",
+      "Otra información legal",
+      "Aviso Legal",
+      "Reportar contenido ilícito",
+    ],
+  }
 
   return (
-    <footer className="border-t border-ui-border-base w-full">
-      <div className="content-container flex flex-col w-full">
-        <div className="flex flex-col gap-y-6 xsmall:flex-row items-start justify-between py-10">
-          <div>
-            <LocalizedClientLink
-              href="/"
-              className="uppercase txt-compact-xlarge-plus hover:text-ui-fg-base"
-            >
-              <img
-                className="w-40"
-                style={{ width: "200px" }}
-                src="https://myurbanscoot.com/wp-content/uploads/2025/05/cropped-logo-myurbanscoot-vertical-2025-05-382x101.png"
-              />
-            </LocalizedClientLink>
+    <footer className="bg-footer max-w-screen-large mx-auto text-footer-foreground border-t border-footer-border">
+      {/* Newsletter Section */}
+      <div className="bg-footer-newsletter">
+        <div className="container mx-auto px-6 py-8">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold mb-2">
+                Obtén 15 € de descuento en tu primer pedido.
+              </h3>
+              <p className="text-footer-muted text-sm">
+                En pedidos de 250 € o más al suscribirte a nuestra newsletter.
+              </p>
+            </div>
+
+            <div className="flex-1 max-w-md">
+              <form onSubmit={handleSubscribe} className="flex gap-3">
+                <div className="flex-1">
+                  <Input
+                    type="email"
+                    placeholder="Correo electrónico"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="bg-background text-foreground border-gray-300"
+                    required
+                  />
+                </div>
+                <Button type="submit" className="px-6">
+                  Me suscribo
+                </Button>
+              </form>
+
+              <button
+                onClick={() => setShowMoreInfo(!showMoreInfo)}
+                className="flex items-center gap-1 text-sm text-footer-muted mt-3 hover:text-footer-foreground transition-colors"
+              >
+                Más información
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${
+                    showMoreInfo ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {showMoreInfo && (
+                <div className="mt-3 text-xs text-footer-muted">
+                  Al suscribirte aceptas recibir nuestras comunicaciones
+                  comerciales. Puedes darte de baja en cualquier momento.
+                </div>
+              )}
+            </div>
           </div>
-          {/* <div className="text-small-regular gap-10 md:gap-x-16 grid grid-cols-2 sm:grid-cols-3">
-            {product_categories && product_categories?.length > 0 && (
-              <div className="flex flex-col gap-y-2">
-                <span className="txt-small-plus txt-ui-fg-base">
-                  Categories
-                </span>
-                <ul
-                  className="grid grid-cols-1 gap-2"
-                  data-testid="footer-categories"
-                >
-                  {product_categories?.slice(0, 6).map((c) => {
-                    if (c.parent_category) {
-                      return
-                    }
+        </div>
+      </div>
 
-                    const children =
-                      c.category_children?.map((child) => ({
-                        name: child.name,
-                        handle: child.handle,
-                        id: child.id,
-                      })) || null
-
-                    return (
-                      <li
-                        className="flex flex-col gap-2 text-ui-fg-subtle txt-small"
-                        key={c.id}
-                      >
-                        <LocalizedClientLink
-                          className={clx(
-                            "hover:text-ui-fg-base",
-                            children && "txt-small-plus"
-                          )}
-                          href={`/categories/${c.handle}`}
-                          data-testid="category-link"
-                        >
-                          {c.name}
-                        </LocalizedClientLink>
-                        {children && (
-                          <ul className="grid grid-cols-1 ml-3 gap-2">
-                            {children &&
-                              children.map((child) => (
-                                <li key={child.id}>
-                                  <LocalizedClientLink
-                                    className="hover:text-ui-fg-base"
-                                    href={`/categories/${child.handle}`}
-                                    data-testid="category-link"
-                                  >
-                                    {child.name}
-                                  </LocalizedClientLink>
-                                </li>
-                              ))}
-                          </ul>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            )}
-            {collections && collections.length > 0 && (
-              <div className="flex flex-col gap-y-2">
-                <span className="txt-small-plus txt-ui-fg-base">
-                  Collections
-                </span>
-                <ul
-                  className={clx(
-                    "grid grid-cols-1 gap-2 text-ui-fg-subtle txt-small",
-                    {
-                      "grid-cols-2": (collections?.length || 0) > 3,
-                    }
-                  )}
-                >
-                  {collections?.slice(0, 6).map((c) => (
-                    <li key={c.id}>
-                      <LocalizedClientLink
-                        className="hover:text-ui-fg-base"
-                        href={`/collections/${c.handle}`}
-                      >
-                        {c.title}
-                      </LocalizedClientLink>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <div className="flex flex-col gap-y-2">
-              <span className="txt-small-plus txt-ui-fg-base">Medusa</span>
-              <ul className="grid grid-cols-1 gap-y-2 text-ui-fg-subtle txt-small">
-                <li>
-                  <a
-                    href="https://github.com/medusajs"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-ui-fg-base"
-                  >
-                    GitHub
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://docs.medusajs.com"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-ui-fg-base"
-                  >
-                    Documentation
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://github.com/medusajs/nextjs-starter-medusa"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-ui-fg-base"
-                  >
-                    Source code
-                  </a>
-                </li>
+      {/* Main Footer Content */}
+      <div className="container mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+          {Object.entries(footerLinks).map(([title, links]) => (
+            <div key={title}>
+              <h4 className="font-semibold mb-4 text-footer-foreground">
+                {title}
+              </h4>
+              <ul className="space-y-3">
+                {links.map((link) => (
+                  <li key={link}>
+                    <a
+                      href="#"
+                      className="text-footer-muted hover:text-footer-foreground transition-colors text-sm"
+                    >
+                      {link}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
-          </div> */}
+          ))}
         </div>
-        <div className="flex w-full mb-4 justify-between text-ui-fg-muted">
-          <Text className="txt-compact-small">
-            © {new Date().getFullYear()} MyUrbanScoot. Todos los derechos reservados.
-          </Text>
+
+        {/* Social Media & Apps */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mt-12 pt-8 border-t border-footer-border gap-6">
+          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+            {/* Social Media */}
+            <div className="flex gap-4">
+              <a
+                href="#"
+                className="text-footer-muted hover:text-footer-foreground transition-colors"
+              >
+                <TikTok className="w-5 h-5" />
+              </a>
+              <a
+                href="#"
+                className="text-footer-muted hover:text-footer-foreground transition-colors"
+              >
+                <Instagram className="w-5 h-5" />
+              </a>
+            </div>
+
+            {/* Certification */}
+            {/* <div className="flex items-center gap-2 bg-footer-border rounded-lg px-3 py-2">
+              <div className="w-8 h-8 bg-footer-foreground rounded-full flex items-center justify-center">
+                <span className="text-footer font-bold text-sm">B</span>
+              </div>
+              <div className="text-xs">
+                <div className="font-semibold">Certified</div>
+                <div className="text-footer-muted">Corporation</div>
+              </div>
+            </div> */}
+          </div>
+
+          {/* App Downloads */}
+          <div className="flex gap-3">
+              <img className="w-[350px]" src="/logomys.png" />
+          </div>
+        </div>
+
+        {/* Payment Methods */}
+        <div className="mt-8 pt-6 border-t border-footer-border">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="text-sm text-footer-muted">
+              © {new Date().getFullYear()} MyUrbanScoot. Todos los derechos
+              reservados.
+            </div>
+
+            <div className="flex items-center gap-3 text-xs text-footer-muted">
+              <span>Pago 100% seguro</span>
+              <div className="flex gap-2">
+                <div className="w-12 h-12  rounded flex items-center justify-center text-white text-xs font-bold">
+                  <img src="visa-image.svg" />
+                </div>
+                <div className="w-12 h-12  rounded flex items-center justify-center text-white text-xs font-bold">
+                  <img src="paypal-image.svg" />
+                </div>
+                <div className="w-12 h-12 rounded flex items-center justify-center text-white text-xs font-bold">
+                   <img src="stripe-image.svg" />
+                </div>
+                <div className="w-12 h-12  rounded flex items-center justify-center text-white text-xs font-bold">
+                 <img src="klarna-image.svg" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
   )
 }
+
+export default Footer
