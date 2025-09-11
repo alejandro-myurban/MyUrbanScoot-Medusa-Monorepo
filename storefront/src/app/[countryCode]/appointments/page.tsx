@@ -14,7 +14,7 @@ interface Workshop {
   email?: string
 }
 
-const API_URL = "backend-production-9e9f.up.railway.app";
+const API_URL = "https://backend-production-9e9f.up.railway.app";
 
 export default function AppointmentsPage() {
   const [selectedWorkshopId, setSelectedWorkshopId] = useState("")
