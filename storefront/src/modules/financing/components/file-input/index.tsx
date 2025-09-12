@@ -165,9 +165,19 @@ export const FileInputEnhanced = ({
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e) // Llamar al onChange original
-    
     const selectedFile = e.target.files?.[0]
+    
+    // Validación específica para nóminas - solo PDF
+    if (selectedFile && documentType === 'payroll') {
+      if (!selectedFile.type.includes('pdf') && !selectedFile.name.toLowerCase().endsWith('.pdf')) {
+        toast.error('❌ Para nóminas solo se permiten archivos PDF')
+        e.target.value = '' // Limpiar el input
+        return
+      }
+    }
+    
+    onChange(e) // Llamar al onChange original solo si pasa la validación
+    
     if (selectedFile && shouldVerify) {
       await verifyDocument(selectedFile)
     }
@@ -402,7 +412,8 @@ export const FileInputEnhanced = ({
             <div className="text-center">
               <p className="text-sm font-semibold">Seleccionar archivo</p>
               <p className="text-xs text-gray-400 mt-1">
-                {shouldVerify ? 'JPG, PNG, HEIC (máx. 8MB)' : 'PDF, JPG, PNG, HEIC (máx. 8MB)'}
+                {documentType === 'payroll' ? 'Solo PDF (máx. 8MB)' : 
+                 shouldVerify ? 'JPG, PNG, HEIC (máx. 8MB)' : 'PDF, JPG, PNG, HEIC (máx. 8MB)'}
               </p>
               {shouldVerify && (
                 <p className="text-xs text-blue-600 mt-1 font-medium">
@@ -415,7 +426,8 @@ export const FileInputEnhanced = ({
             id={id}
             name={id}
             type="file"
-            accept={shouldVerify ? ".jpg,.jpeg,.png,.pdf,.heic" : ".pdf,.jpg,.jpeg,.png,.heic"}
+            accept={documentType === 'payroll' ? ".pdf" : 
+                    shouldVerify ? ".jpg,.jpeg,.png,.pdf,.heic" : ".pdf,.jpg,.jpeg,.png,.heic"}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             onChange={handleFileChange}
             disabled={disabled}

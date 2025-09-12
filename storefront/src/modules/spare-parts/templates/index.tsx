@@ -46,9 +46,22 @@ export default function SparePartsTemplate({
   const [selectedModels, setSelectedModels] = useState<string[]>([])
   const [selectedInches, setSelectedInches] = useState<string[]>([]) // NUEVO: filtro de pulgadas
   const [expandedBrands, setExpandedBrands] = useState<string[]>([])
-  const [selectedTireSizes, setSelectedTireSizes] = useState<string[]>([]) // Filtro por tamaño
-  const [selectedGripTypes, setSelectedGripTypes] = useState<string[]>([]) // Filtro por agarre
-  const [selectedTireTypes, setSelectedTireTypes] = useState<string[]>([]) // Filtro por tipo de neumatico
+  // Estados para filtros de neumáticos
+  const [selectedTireSizes, setSelectedTireSizes] = useState<string[]>([])
+  const [selectedGripTypes, setSelectedGripTypes] = useState<string[]>([])
+  const [selectedTireTypes, setSelectedTireTypes] = useState<string[]>([])
+  
+  // Estados para filtros de cámaras
+  const [selectedTubeSizes, setSelectedTubeSizes] = useState<string[]>([])
+  const [selectedValveTypes, setSelectedValveTypes] = useState<string[]>([])
+  
+  // Estados para filtros de baterías
+  const [selectedBatteryVoltages, setSelectedBatteryVoltages] = useState<string[]>([])
+  const [selectedBatteryAmperageRange, setSelectedBatteryAmperageRange] = useState<[number, number]>([0, 100])
+  
+  // Estados para filtros de cargadores
+  const [selectedChargerVoltages, setSelectedChargerVoltages] = useState<string[]>([])
+  const [selectedChargerConnectors, setSelectedChargerConnectors] = useState<string[]>([])
 
   const [loading, setLoading] = useState(false)
   const [priceRange, setPriceRange] = useState([0, 500])
@@ -140,27 +153,65 @@ export default function SparePartsTemplate({
     return Array.from(inches).sort((a, b) => parseFloat(a) - parseFloat(b))
   }
 
-  const getAvailableTireOptions = () => {
-    const sizes = new Set<string>()
-    const grips = new Set<string>()
-    const types = new Set<string>()
+  // Función unificada para obtener opciones de filtros según tipo de recambio
+  const getAvailableFilterOptions = () => {
+    const currentCollection = params.get("collection")
+    const selectedCollection = sparePartsTypes.find(col => col.id === currentCollection)
+    const collectionHandle = selectedCollection?.handle?.toLowerCase() || ''
+
+    // Conjuntos para almacenar valores únicos
+    const tireOptions = { sizes: new Set<string>(), grips: new Set<string>(), types: new Set<string>() }
+    const tubeOptions = { sizes: new Set<string>(), valves: new Set<string>() }
+    const batteryOptions = { voltages: new Set<string>(), amperages: new Set<number>() }
+    const chargerOptions = { voltages: new Set<string>(), connectors: new Set<string>() }
 
     products.forEach((product) => {
       const meta = product.metadata || {}
-      console.log(meta.tire_grip_type)
-      if (typeof meta.tire_size === "string") sizes.add(meta.tire_size)
-      if (typeof meta.tire_grip_type === "string") grips.add(meta.tire_grip_type)
-      if (typeof meta.tire_type === "string") types.add(meta.tire_type)
+      
+      // Opciones para neumáticos
+      if (typeof meta.tire_size === "string") tireOptions.sizes.add(meta.tire_size)
+      if (typeof meta.tire_grip_type === "string") tireOptions.grips.add(meta.tire_grip_type)
+      if (typeof meta.tire_type === "string") tireOptions.types.add(meta.tire_type)
+      
+      // Opciones para cámaras
+      if (typeof meta.tube_size === "string") tubeOptions.sizes.add(meta.tube_size)
+      if (typeof meta.valve_type === "string") tubeOptions.valves.add(meta.valve_type)
+      
+      // Opciones para baterías
+      if (typeof meta.battery_voltage === "string") batteryOptions.voltages.add(meta.battery_voltage)
+      if (typeof meta.battery_amperage_min === "number") batteryOptions.amperages.add(meta.battery_amperage_min)
+      if (typeof meta.battery_amperage_max === "number") batteryOptions.amperages.add(meta.battery_amperage_max)
+      
+      // Opciones para cargadores
+      if (typeof meta.charger_voltage === "string") chargerOptions.voltages.add(meta.charger_voltage)
+      if (typeof meta.charger_connector === "string") chargerOptions.connectors.add(meta.charger_connector)
     })
 
     return {
-      sizes: Array.from(sizes).sort(),
-      grips: Array.from(grips),
-      types: Array.from(types),
+      neumaticos: {
+        tireSizes: Array.from(tireOptions.sizes).sort(),
+        gripTypes: Array.from(tireOptions.grips),
+        tireTypes: Array.from(tireOptions.types)
+      },
+      camaras: {
+        tubeSizes: Array.from(tubeOptions.sizes).sort(),
+        valveTypes: Array.from(tubeOptions.valves)
+      },
+      baterias: {
+        batteryVoltages: Array.from(batteryOptions.voltages).sort(),
+        amperageRange: batteryOptions.amperages.size > 0 ? 
+          [Math.min(...batteryOptions.amperages), Math.max(...batteryOptions.amperages)] : 
+          [0, 100]
+      },
+      cargadores: {
+        chargerVoltages: Array.from(chargerOptions.voltages).sort(),
+        chargerConnectors: Array.from(chargerOptions.connectors)
+      },
+      otros: {}
     }
   }
 
-  const { sizes, grips, types } = getAvailableTireOptions()
+  const filterOptions = getAvailableFilterOptions()
 
   // NUEVO: Verificar si se debe mostrar el filtro de pulgadas
   const shouldShowInchesFilter = (): boolean => {
@@ -184,12 +235,13 @@ export default function SparePartsTemplate({
 
   useEffect(() => {
     filterProducts()
-  }, [selectedBrands, selectedModels, selectedInches, products, priceRange, selectedTireSizes, selectedGripTypes, selectedTireTypes]) // ACTUALIZADO: añadir todos los filtros
-
-  // Filtrar productos cuando cambien los filtros
-  useEffect(() => {
-    filterProducts()
-  }, [selectedBrands, selectedModels, selectedInches, products, selectedTireSizes, selectedGripTypes, selectedTireTypes]) // ACTUALIZADO: añadir todos los filtros
+  }, [
+    selectedBrands, selectedModels, selectedInches, products, priceRange,
+    selectedTireSizes, selectedGripTypes, selectedTireTypes,
+    selectedTubeSizes, selectedValveTypes,
+    selectedBatteryVoltages, selectedBatteryAmperageRange,
+    selectedChargerVoltages, selectedChargerConnectors
+  ])
 
   const getFirstAvailableVariant = (
     product: HttpTypes.StoreProduct
@@ -307,7 +359,7 @@ export default function SparePartsTemplate({
       })
     }
 
-    // Filtro por tamaño de neumático (metadata.tire_size)
+    // FILTROS PARA NEUMÁTICOS
     if (selectedTireSizes.length > 0) {
       filtered = filtered.filter((product) =>
         typeof product.metadata?.tire_size === "string" &&
@@ -315,7 +367,6 @@ export default function SparePartsTemplate({
       )
     }
 
-    // Filtro por tipo de agarre (metadata.tire_grip_type)
     if (selectedGripTypes.length > 0) {
       filtered = filtered.filter((product) =>
         typeof product.metadata?.tire_grip_type === "string" &&
@@ -323,11 +374,62 @@ export default function SparePartsTemplate({
       )
     }
 
-    // Filtro por tipo de neumático (metadata.tire_type)
     if (selectedTireTypes.length > 0) {
       filtered = filtered.filter((product) =>
         typeof product.metadata?.tire_type === "string" &&
         selectedTireTypes.includes(product.metadata.tire_type)
+      )
+    }
+
+    // FILTROS PARA CÁMARAS
+    if (selectedTubeSizes.length > 0) {
+      filtered = filtered.filter((product) =>
+        typeof product.metadata?.tube_size === "string" &&
+        selectedTubeSizes.includes(product.metadata.tube_size)
+      )
+    }
+
+    if (selectedValveTypes.length > 0) {
+      filtered = filtered.filter((product) =>
+        typeof product.metadata?.valve_type === "string" &&
+        selectedValveTypes.includes(product.metadata.valve_type)
+      )
+    }
+
+    // FILTROS PARA BATERÍAS
+    if (selectedBatteryVoltages.length > 0) {
+      filtered = filtered.filter((product) =>
+        typeof product.metadata?.battery_voltage === "string" &&
+        selectedBatteryVoltages.includes(product.metadata.battery_voltage)
+      )
+    }
+
+    // Filtro por rango de amperaje para baterías
+    if (selectedBatteryAmperageRange[0] > 0 || selectedBatteryAmperageRange[1] < 100) {
+      filtered = filtered.filter((product) => {
+        const minAmp = product.metadata?.battery_amperage_min as number
+        const maxAmp = product.metadata?.battery_amperage_max as number
+        
+        if (typeof minAmp === "number" && typeof maxAmp === "number") {
+          // El rango del producto debe intersectar con el rango seleccionado
+          return minAmp <= selectedBatteryAmperageRange[1] && maxAmp >= selectedBatteryAmperageRange[0]
+        }
+        return true // Si no tiene datos de amperaje, no filtrar
+      })
+    }
+
+    // FILTROS PARA CARGADORES
+    if (selectedChargerVoltages.length > 0) {
+      filtered = filtered.filter((product) =>
+        typeof product.metadata?.charger_voltage === "string" &&
+        selectedChargerVoltages.includes(product.metadata.charger_voltage)
+      )
+    }
+
+    if (selectedChargerConnectors.length > 0) {
+      filtered = filtered.filter((product) =>
+        typeof product.metadata?.charger_connector === "string" &&
+        selectedChargerConnectors.includes(product.metadata.charger_connector)
       )
     }
 
@@ -375,17 +477,57 @@ export default function SparePartsTemplate({
   const resetFilters = () => {
     setSelectedBrands([])
     setSelectedModels([])
-    setSelectedInches([]) // NUEVO: limpiar filtro de pulgadas
+    setSelectedInches([])
     setExpandedBrands([])
-    // --- Neumaticos ---
+    
+    // Limpiar filtros de neumáticos
     setSelectedTireSizes([])
     setSelectedGripTypes([])
     setSelectedTireTypes([])
-
+    
+    // Limpiar filtros de cámaras
+    setSelectedTubeSizes([])
+    setSelectedValveTypes([])
+    
+    // Limpiar filtros de baterías
+    setSelectedBatteryVoltages([])
+    setSelectedBatteryAmperageRange([0, 100])
+    
+    // Limpiar filtros de cargadores
+    setSelectedChargerVoltages([])
+    setSelectedChargerConnectors([])
   }
 
   // NUEVO: Obtener pulgadas disponibles
   const availableInches = getAvailableInches()
+
+  // Función para determinar el tipo de recambio actual
+  const getCurrentSparePartType = (): string | null => {
+    const currentCollection = params.get("collection")
+    const selectedCollection = sparePartsTypes.find(col => col.id === currentCollection)
+    const collectionHandle = selectedCollection?.handle?.toLowerCase() || ''
+    const collectionTitle = selectedCollection?.title?.toLowerCase() || ''
+    
+    if (collectionHandle.includes('neumaticos') || collectionHandle.includes('rueda') || 
+        collectionTitle.includes('neumático') || collectionTitle.includes('rueda') ||
+        collectionTitle.includes('wheel') || collectionHandle.includes('wheel')) {
+      return 'neumaticos'
+    }
+    if (collectionHandle.includes('camaras') || collectionTitle.includes('cámara')) {
+      return 'camaras'
+    }
+    if (collectionHandle.includes('baterias') || collectionTitle.includes('batería')) {
+      return 'baterias'
+    }
+    if (collectionHandle.includes('cargadores') || collectionTitle.includes('cargador')) {
+      return 'cargadores'
+    }
+    
+    return null
+  }
+
+  const currentSparePartType = getCurrentSparePartType()
+
 
   return (
     <div className="content-container py-6">
@@ -509,9 +651,9 @@ export default function SparePartsTemplate({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar de filtros */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg py-6 pr-4 sticky top-4">
+          <div className="bg-white rounded-lg py-6 pr-4 sticky top-20 border border-ui-border-base p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Filtros</h3>
+              <h3 className="text-lg font-archivoBlack font-semibold uppercase">Filtros</h3>
               <button
                 onClick={resetFilters}
                 className="text-sm text-ui-fg-interactive hover:underline"
@@ -528,105 +670,261 @@ export default function SparePartsTemplate({
               />
             </div>
 
-            {/* NUEVO: Filtro por pulgadas (solo si es colección de ruedas) */}
-            {shouldShowInchesFilter() && availableInches.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-medium mb-3">Tamaño (Pulgadas)</h4>
-                <div className="space-y-2">
-                  {availableInches.map((inch) => (
-                    <label
-                      key={inch}
-                      className="flex items-center space-x-2 cursor-pointer"
-                    >
-                      <Checkbox
-                        checked={selectedInches.includes(inch)}
-                        onCheckedChange={(checked) =>
-                          handleInchChange(inch, !!checked)
-                        }
-                      />
-                      <span className="text-sm">{inch}"</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Filtro Neumaticos */}
-            
-            {/* Filtro Tamaño de Neumatico */}
-            {sizes.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-medium mb-3">Tamaño neumático</h4>
-                {sizes.map((size) => (
-                  <label key={size} className="flex items-center space-x-2 cursor-pointer">
-                    <Checkbox
-                      checked={selectedTireSizes.includes(size)}
-                      onCheckedChange={(checked) =>
-                        setSelectedTireSizes((prev) =>
-                          checked ? [...prev, size] : prev.filter((s) => s !== size)
-                        )
-                      }
-                    />
-                    <span className="text-sm">{size}</span>
-                  </label>
-                ))}
-              </div>
-            )}
+            {/* FILTROS DINÁMICOS BASADOS EN METADATOS */}
+            {(() => {
+              const currentType = getCurrentSparePartType()
+              const options = filterOptions[currentType || 'otros'] || {}
+              
+              return (
+                <>
+                  {/* Filtros para Neumáticos */}
+                  {currentType === 'neumaticos' && (
+                    <>
+                      {/* Tamaño Neumático */}
+                      {options.tireSizes?.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-medium mb-3">Tamaño neumático</h4>
+                          <div className="space-y-2">
+                            {options.tireSizes.map((size) => (
+                              <label key={size} className="flex items-center space-x-2 cursor-pointer">
+                                <Checkbox
+                                  checked={selectedTireSizes.includes(size)}
+                                  onCheckedChange={(checked) =>
+                                    setSelectedTireSizes((prev) =>
+                                      checked ? [...prev, size] : prev.filter((s) => s !== size)
+                                    )
+                                  }
+                                />
+                                <span className="text-sm">{size}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-            {/* Filtro tipo de agarre */}
+                      {/* Tipo de Agarre */}
+                      {options.gripTypes?.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-medium mb-3">Tipo de agarre</h4>
+                          <div className="space-y-2">
+                            {options.gripTypes.map((grip) => (
+                              <label key={grip} className="flex items-center space-x-2 cursor-pointer">
+                                <Checkbox
+                                  checked={selectedGripTypes.includes(grip)}
+                                  onCheckedChange={(checked) =>
+                                    setSelectedGripTypes((prev) =>
+                                      checked ? [...prev, grip] : prev.filter((g) => g !== grip)
+                                    )
+                                  }
+                                />
+                                <span className="text-sm">{grip}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-            {grips.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-medium mb-3">Tipo de agarre</h4>
-                {grips.map((grip) => (
-                  <label key={grip} className="flex items-center space-x-2 cursor-pointer">
-                    <Checkbox
-                      checked={selectedGripTypes.includes(grip)}
-                      onCheckedChange={(checked) =>
-                        setSelectedGripTypes((prev) =>
-                          checked ? [...prev, grip] : prev.filter((g) => g !== grip)
-                        )
-                      }
-                    />
-                    <span className="text-sm capitalize">
-                      {grip === "offroad"
-                        ? "Offroad (taco)"
-                        : grip === "smooth"
-                        ? "Liso"
-                        : grip === "mixed"
-                        ? "Mixto"
-                        : grip}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            )}
+                      {/* Tipo de Neumático */}
+                      {options.tireTypes?.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-medium mb-3">Tipo de neumático</h4>
+                          <div className="space-y-2">
+                            {options.tireTypes.map((type) => (
+                              <label key={type} className="flex items-center space-x-2 cursor-pointer">
+                                <Checkbox
+                                  checked={selectedTireTypes.includes(type)}
+                                  onCheckedChange={(checked) =>
+                                    setSelectedTireTypes((prev) =>
+                                      checked ? [...prev, type] : prev.filter((t) => t !== type)
+                                    )
+                                  }
+                                />
+                                <span className="text-sm">{type}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
 
-            {/* Filtro tipo de neumaticos */}
-            
-            {types.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-medium mb-3">Tipo de neumático</h4>
-                {types.map((type) => (
-                  <label key={type} className="flex items-center space-x-2 cursor-pointer">
-                    <Checkbox
-                      checked={selectedTireTypes.includes(type)}
-                      onCheckedChange={(checked) =>
-                        setSelectedTireTypes((prev) =>
-                          checked ? [...prev, type] : prev.filter((t) => t !== type)
-                        )
-                      }
-                    />
-                    <span className="text-sm capitalize">
-                      {{
-                        tubeless: "Tubeless",
-                        tube: "Con cámara",
-                        solid: "Macizo",
-                      }[type] || type}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            )}
+                  {/* Filtros para Cámaras */}
+                  {currentType === 'camaras' && (
+                    <>
+                      {/* Tamaño Cámara */}
+                      {options.tubeSizes?.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-medium mb-3">Tamaño</h4>
+                          <div className="space-y-2">
+                            {options.tubeSizes.map((size) => (
+                              <label key={size} className="flex items-center space-x-2 cursor-pointer">
+                                <Checkbox
+                                  checked={selectedTubeSizes.includes(size)}
+                                  onCheckedChange={(checked) =>
+                                    setSelectedTubeSizes((prev) =>
+                                      checked ? [...prev, size] : prev.filter((s) => s !== size)
+                                    )
+                                  }
+                                />
+                                <span className="text-sm">{size}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tipo de Válvula */}
+                      {options.valveTypes?.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-medium mb-3">Tipo de válvula</h4>
+                          <div className="space-y-2">
+                            {options.valveTypes.map((valve) => (
+                              <label key={valve} className="flex items-center space-x-2 cursor-pointer">
+                                <Checkbox
+                                  checked={selectedValveTypes.includes(valve)}
+                                  onCheckedChange={(checked) =>
+                                    setSelectedValveTypes((prev) =>
+                                      checked ? [...prev, valve] : prev.filter((v) => v !== valve)
+                                    )
+                                  }
+                                />
+                                <span className="text-sm">{valve}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Filtros para Baterías */}
+                  {currentType === 'baterias' && (
+                    <>
+                      {/* Voltaje Batería */}
+                      {options.batteryVoltages?.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-medium mb-3">Voltaje</h4>
+                          <div className="space-y-2">
+                            {options.batteryVoltages.map((voltage:any) => (
+                              <label key={voltage} className="flex items-center space-x-2 cursor-pointer">
+                                <Checkbox
+                                  checked={selectedBatteryVoltages.includes(voltage)}
+                                  onCheckedChange={(checked) =>
+                                    setSelectedBatteryVoltages((prev) =>
+                                      checked ? [...prev, voltage] : prev.filter((v) => v !== voltage)
+                                    )
+                                  }
+                                />
+                                <span className="text-sm">{voltage}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Rango de Amperaje */}
+                      {options.amperageRange && (
+                        <div className="mb-6">
+                          <h4 className="font-medium mb-3">Amperaje (Ah)</h4>
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm">
+                                {selectedBatteryAmperageRange[0]} - {selectedBatteryAmperageRange[1]} Ah
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min={options.amperageRange[0]}
+                              max={options.amperageRange[1]}
+                              value={selectedBatteryAmperageRange[1]}
+                              onChange={(e) =>
+                                setSelectedBatteryAmperageRange([
+                                  selectedBatteryAmperageRange[0],
+                                  parseInt(e.target.value)
+                                ])
+                              }
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Filtros para Cargadores */}
+                  {currentType === 'cargadores' && (
+                    <>
+                      {/* Voltaje Cargador */}
+                      {options.chargerVoltages?.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-medium mb-3">Voltaje</h4>
+                          <div className="space-y-2">
+                            {options.chargerVoltages.map((voltage) => (
+                              <label key={voltage} className="flex items-center space-x-2 cursor-pointer">
+                                <Checkbox
+                                  checked={selectedChargerVoltages.includes(voltage)}
+                                  onCheckedChange={(checked) =>
+                                    setSelectedChargerVoltages((prev) =>
+                                      checked ? [...prev, voltage] : prev.filter((v) => v !== voltage)
+                                    )
+                                  }
+                                />
+                                <span className="text-sm">{voltage}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Conector Cargador */}
+                      {options.chargerConnectors?.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-medium mb-3">Conector</h4>
+                          <div className="space-y-2">
+                            {options.chargerConnectors.map((connector) => (
+                              <label key={connector} className="flex items-center space-x-2 cursor-pointer">
+                                <Checkbox
+                                  checked={selectedChargerConnectors.includes(connector)}
+                                  onCheckedChange={(checked) =>
+                                    setSelectedChargerConnectors((prev) =>
+                                      checked ? [...prev, connector] : prev.filter((c) => c !== connector)
+                                    )
+                                  }
+                                />
+                                <span className="text-sm">{connector}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Fallback: Filtro por pulgadas para tipos no reconocidos */}
+                  {!currentType && shouldShowInchesFilter() && availableInches.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="font-medium mb-3">Tamaño (Pulgadas)</h4>
+                      <div className="space-y-2">
+                        {availableInches.map((inch) => (
+                          <label
+                            key={inch}
+                            className="flex items-center space-x-2 cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={selectedInches.includes(inch)}
+                              onCheckedChange={(checked) =>
+                                handleInchChange(inch, !!checked)
+                              }
+                            />
+                            <span className="text-sm">{inch}"</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
 
 
 

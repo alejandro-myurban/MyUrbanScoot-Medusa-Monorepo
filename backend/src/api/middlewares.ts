@@ -69,6 +69,11 @@ export default defineMiddlewares({
       middlewares: [uploadMiddleware],
     },
     {
+      matcher: "/admin/financing/*/replace-document",
+      method: ["POST"],
+      middlewares: [uploadMiddleware],
+    },
+    {
       matcher: "/store/document-verification", // Cambia esto por la ruta que necesites
       method: ["POST"],
       bodyParser: { sizeLimit: "8mb" },

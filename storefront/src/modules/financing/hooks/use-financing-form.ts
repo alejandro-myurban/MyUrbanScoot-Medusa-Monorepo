@@ -176,7 +176,8 @@ export const useFinancingForm = (): UseFinancingFormReturn => {
     const dniData = documentVerifications?.front?.extractedData || documentVerifications?.back?.extractedData;
     if (dniData) {
       const ageValidation = validateAgeFromDNI(dniData);
-      if (!ageValidation.isValid) {
+      // Solo bloquear si la validación falla Y no es por problemas de extracción
+      if (!ageValidation.isValid && !ageValidation.skipValidation) {
         return { 
           allowed: false, 
           reason: ageValidation.message || "Edad mínima requerida: 18 años"

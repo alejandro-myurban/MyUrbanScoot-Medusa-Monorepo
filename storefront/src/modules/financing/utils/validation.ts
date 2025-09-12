@@ -264,14 +264,18 @@ export const validateAge = (birthDate: string): { isValid: boolean; age?: number
 };
 
 // Validar edad desde datos extraídos del DNI
-export const validateAgeFromDNI = (extractedDniData: any): { isValid: boolean; age?: number; message?: string } => {
+export const validateAgeFromDNI = (extractedDniData: any): { isValid: boolean; age?: number; message?: string; skipValidation?: boolean } => {
+  // Si no hay datos extraídos o no hay fecha de nacimiento, no validar edad
+  // Esto significa que la extracción falló, no que el usuario sea menor de edad
   if (!extractedDniData || !extractedDniData.birthDate) {
     return {
-      isValid: false,
-      message: 'No se pudo extraer la fecha de nacimiento del DNI'
+      isValid: true, // No bloquear el formulario por problemas de extracción
+      skipValidation: true,
+      message: 'No se pudo extraer la fecha de nacimiento del DNI - validación manual requerida'
     };
   }
 
+  // Solo validar edad si tenemos una fecha de nacimiento válida extraída
   return validateAge(extractedDniData.birthDate);
 };
 
