@@ -180,7 +180,7 @@ const BoughtTogetherWidget = ({ data }) => {
             return (
               <div
                 key={id}
-                className="flex items-center bg-gray-100 dark:bg-ui-button-inverted shadow-buttons-inverted bg-ui-button-inverted px-3 py-1 rounded-full"
+                className="flex items-center bg-gray-100 dark:bg-ui-button-inverted text-white shadow-buttons-inverted bg-ui-button-inverted px-3 py-1 rounded-full"
               >
                 <span className="mr-2 text-sm">{prod?.title ?? id}</span>
                 <button

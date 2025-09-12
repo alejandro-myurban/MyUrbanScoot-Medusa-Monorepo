@@ -149,8 +149,8 @@ export const PersonalInfoSection = ({
           }
         />
 
-        {/* Age Validation Tooltip - Solo aparece si hay ERROR de edad */}
-        {ageValidation && !ageValidation.isValid && (
+        {/* Age Validation Tooltip - Solo aparece si hay ERROR de edad real (no por problemas de extracción) */}
+        {ageValidation && !ageValidation.isValid && !ageValidation.skipValidation && (
           <div className="md:col-span-2">
             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
               <div className="flex items-start">

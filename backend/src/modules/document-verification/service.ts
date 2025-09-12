@@ -654,20 +654,28 @@ VALIDACIONES IMPORTANTES:
 5. ¿Contiene los conceptos típicos de una nómina (salario bruto, retenciones, cotizaciones, etc.)?
 6. ¿Hay signos de falsificación, manipulación o edición digital?
 
-INFORMACIÓN A EXTRAER:
+INFORMACIÓN CLAVE A EXTRAER:
+
+**DATOS DEL EMPLEADO:**
 - Nombre completo del empleado
-- Nombre de la empresa empleadora
-- Dirección de la empresa
 - Período de la nómina (mes/año)
-- Salario bruto
-- Salario neto
-- Número de la Seguridad Social
-- Fecha de pago
-- Horas trabajadas
-- Puesto de trabajo
-- Departamento
-- Retenciones fiscales
-- Cotizaciones a la Seguridad Social`;
+- Salario bruto (importe total antes de deducciones)
+- Salario neto/líquido (importe final a cobrar)
+
+**DATOS DE LA EMPRESA (MUY IMPORTANTE):**
+- Nombre completo de la empresa empleadora
+- Actividad económica/sector de la empresa (ej: "Servicios informáticos", "Construcción", "Hostelería", "Comercio", etc.)
+- Teléfono de contacto de la empresa (buscar en membrete o pie de página)
+- Dirección completa de la empresa
+
+**DATOS LABORALES (SI APARECEN):**
+- Tipo de contrato (indefinido, temporal, obra y servicio, etc.)
+- Año de ingreso/alta en la empresa (buscar fecha de antigüedad)
+- Puesto de trabajo o categoría profesional
+
+**DATOS ADICIONALES:**
+- Número de la Seguridad Social del trabajador
+- Fecha de pago de la nómina`;
 
       const jsonFormat = `{
   "isValid": false,
@@ -680,11 +688,11 @@ INFORMACIÓN A EXTRAER:
     "netSalary": null,
     "socialSecurityNumber": null,
     "paymentDate": null,
-    "workingHours": null,
     "jobTitle": null,
-    "department": null,
-    "taxWithholdings": null,
-    "socialSecurityContributions": null,
+    "companyActivity": null,
+    "companyPhone": null,
+    "contractType": null,
+    "yearOfEntry": null,
     "hasOfficialPayrollFormat": false
   },
   "confidence": 0,
@@ -720,13 +728,18 @@ INSTRUCCIONES ESPECÍFICAS PARA NÓMINAS:
 - Si solo ves algunos datos pero formato correcto = confidence 60-75
 - SOLO marca como inválido si es obviamente otra cosa
 
-CONCEPTOS CLAVE A BUSCAR:
+INSTRUCCIONES ESPECÍFICAS PARA NUEVOS CAMPOS:
+- **companyActivity**: Buscar en membrete descripción como "Servicios de consultoría", "Construcción y obras públicas", "Actividades de programación informática", etc.
+- **companyPhone**: Buscar teléfonos en formato español (9XX XXX XXX, +34 9XX XXX XXX)
+- **contractType**: Buscar texto como "INDEFINIDO", "TEMPORAL", "OBRA Y SERVICIO", "INTERINIDAD"
+- **yearOfEntry**: Buscar fechas de "Antigüedad", "Fecha de alta", "Ingreso" (extraer solo el año)
+
+CONCEPTOS SALARIALES CLAVE:
 - Salario Base, Complementos, Pagas Extra
 - IRPF (retención fiscal)
 - Cotización SS (Seguridad Social)
-- Desempleo, Formación Profesional
 - Total Devengado, Total Deducciones
-- Líquido a Percibir
+- Líquido a Percibir/Neto
 
 - Si el documento SÍ es una nómina válida, cambia isValid a true y completa los datos
 - confidence debe ser un NÚMERO ENTERO entre 0 y 100
@@ -911,20 +924,28 @@ VALIDACIONES IMPORTANTES:
 5. ¿Contiene los conceptos típicos de una nómina (salario bruto, retenciones, cotizaciones, etc.)?
 6. ¿Hay signos de falsificación, manipulación o edición digital?
 
-INFORMACIÓN A EXTRAER:
+INFORMACIÓN CLAVE A EXTRAER:
+
+**DATOS DEL EMPLEADO:**
 - Nombre completo del empleado
-- Nombre de la empresa empleadora
-- Dirección de la empresa
 - Período de la nómina (mes/año)
-- Salario bruto
-- Salario neto
-- Número de la Seguridad Social
-- Fecha de pago
-- Horas trabajadas
-- Puesto de trabajo
-- Departamento
-- Retenciones fiscales
-- Cotizaciones a la Seguridad Social`;
+- Salario bruto (importe total antes de deducciones)
+- Salario neto/líquido (importe final a cobrar)
+
+**DATOS DE LA EMPRESA (MUY IMPORTANTE):**
+- Nombre completo de la empresa empleadora
+- Actividad económica/sector de la empresa (ej: "Servicios informáticos", "Construcción", "Hostelería", "Comercio", etc.)
+- Teléfono de contacto de la empresa (buscar en membrete o pie de página)
+- Dirección completa de la empresa
+
+**DATOS LABORALES (SI APARECEN):**
+- Tipo de contrato (indefinido, temporal, obra y servicio, etc.)
+- Año de ingreso/alta en la empresa (buscar fecha de antigüedad)
+- Puesto de trabajo o categoría profesional
+
+**DATOS ADICIONALES:**
+- Número de la Seguridad Social del trabajador
+- Fecha de pago de la nómina`;
 
       const jsonFormat = `{
   "isValid": false,
@@ -937,15 +958,15 @@ INFORMACIÓN A EXTRAER:
     "netSalary": null,
     "socialSecurityNumber": null,
     "paymentDate": null,
-    "workingHours": null,
     "jobTitle": null,
-    "department": null,
-    "taxWithholdings": null,
-    "socialSecurityContributions": null,
+    "companyActivity": null,
+    "companyPhone": null,
+    "contractType": null,
+    "yearOfEntry": null,
     "hasOfficialPayrollFormat": false
   },
   "confidence": 0,
-  "issues": ["La imagen no es una nómina válida o no se puede procesar"],
+  "issues": ["El documento no es una nómina válida o no se puede procesar"],
   "imageQuality": "poor"
 }`;
 
@@ -969,6 +990,13 @@ CONCEPTOS CLAVE A BUSCAR:
 - Desempleo, Formación Profesional
 - Total Devengado, Total Deducciones
 - Líquido a Percibir
+
+INFORMACIÓN DE EMPRESA A EXTRAER:
+- companyName: Nombre completo de la empresa empleadora (buscar en encabezado o pie de página)
+- companyActivity: Actividad económica o sector de la empresa (ej: "Comercio al por menor", "Servicios informáticos", "Construcción", etc.)
+- companyPhone: Número de teléfono de la empresa (formato: incluir prefijo si aparece)
+- contractType: Tipo de contrato laboral (ej: "Indefinido", "Temporal", "Parcial", "Completo", etc.)
+- yearOfEntry: Año de ingreso/antigüedad del empleado en la empresa (puede aparecer como "Antigüedad" o fecha de alta)
 
 - Si el documento SÍ es una nómina válida, cambia isValid a true y completa los datos
 - confidence debe ser un NÚMERO ENTERO entre 0 y 100

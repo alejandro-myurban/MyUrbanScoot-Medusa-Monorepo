@@ -1,12 +1,99 @@
 import { FinancingData, ExtractedDniInfo } from '../types';
 
+// Mapeo de códigos de nacionalidad a nombres en español
+const NATIONALITY_MAP: Record<string, string> = {
+  'ESP': 'Española',
+  'MAR': 'Marroquí', 
+  'COL': 'Colombiana',
+  'ARG': 'Argentina',
+  'VEN': 'Venezolana',
+  'PER': 'Peruana',
+  'ECU': 'Ecuatoriana',
+  'BOL': 'Boliviana',
+  'CHL': 'Chilena',
+  'URY': 'Uruguaya',
+  'PRY': 'Paraguaya',
+  'BRA': 'Brasileña',
+  'MEX': 'Mexicana',
+  'CUB': 'Cubana',
+  'DOM': 'Dominicana',
+  'GTM': 'Guatemalteca',
+  'HND': 'Hondureña',
+  'NIC': 'Nicaragüense',
+  'CRI': 'Costarricense',
+  'PAN': 'Panameña',
+  'SLV': 'Salvadoreña',
+  'FRA': 'Francesa',
+  'ITA': 'Italiana',
+  'PRT': 'Portuguesa',
+  'DEU': 'Alemana',
+  'GBR': 'Británica',
+  'IRL': 'Irlandesa',
+  'NLD': 'Neerlandesa',
+  'BEL': 'Belga',
+  'LUX': 'Luxemburguesa',
+  'CHE': 'Suiza',
+  'AUT': 'Austriaca',
+  'POL': 'Polaca',
+  'CZE': 'Checa',
+  'SVK': 'Eslovaca',
+  'HUN': 'Húngara',
+  'SVN': 'Eslovena',
+  'HRV': 'Croata',
+  'SRB': 'Serbia',
+  'BGR': 'Búlgara',
+  'ROU': 'Rumana',
+  'GRC': 'Griega',
+  'UKR': 'Ucraniana',
+  'RUS': 'Rusa',
+  'CHN': 'China',
+  'JPN': 'Japonesa',
+  'KOR': 'Coreana',
+  'IND': 'India',
+  'PAK': 'Pakistaní',
+  'BGD': 'Bangladesí',
+  'PHL': 'Filipina',
+  'VNM': 'Vietnamita',
+  'THA': 'Tailandesa',
+  'USA': 'Estadounidense',
+  'CAN': 'Canadiense',
+  'AUS': 'Australiana',
+  'NZL': 'Neozelandesa',
+  'ZAF': 'Sudafricana',
+  'EGY': 'Egipcia',
+  'DZA': 'Argelina',
+  'TUN': 'Tunecina',
+  'LBY': 'Libia',
+  'SEN': 'Senegalesa',
+  'NGA': 'Nigeriana',
+  'GHA': 'Ghanesa',
+  'CMR': 'Camerunesa',
+  'ETH': 'Etíope',
+  'KEN': 'Keniana',
+  'UGA': 'Ugandesa',
+  'TZA': 'Tanzana',
+  'MWI': 'Malauí',
+  'ZMB': 'Zambiana',
+  'ZWE': 'Zimbabuense',
+  'MOZ': 'Mozambiqueña',
+};
+
 export const extractionHelpers = {
+  // Format nationality code to Spanish name
+  formatNationality: (nationalityCode: string | null): string | null => {
+    if (!nationalityCode) return null;
+    
+    const code = nationalityCode.toUpperCase().trim();
+    return NATIONALITY_MAP[code] || nationalityCode; // Return original if not found in map
+  },
+
   // Extract DNI information from verification data (matching original structure)
   extractDniInfo: (request: FinancingData): any => {
     let dniData = {
       fullName: null as string | null,
       documentNumber: null as string | null,
       birthDate: null as string | null,
+      birthPlace: null as string | null,
       nationality: null as string | null,
       sex: null as string | null,
       addresses: null as string | null,
@@ -25,6 +112,7 @@ export const extractionHelpers = {
     if (request.dni_back_verification?.extractedData) {
       const backData = request.dni_back_verification.extractedData;
       dniData.addresses = backData.addresses || dniData.addresses;
+      dniData.birthPlace = backData.birthPlace || dniData.birthPlace;
     }
 
     // Si no hay datos del frontal, intentar con el trasero
@@ -34,6 +122,7 @@ export const extractionHelpers = {
       dniData.documentNumber =
         backData.documentNumber || dniData.documentNumber;
       dniData.birthDate = backData.birthDate || dniData.birthDate;
+      dniData.birthPlace = backData.birthPlace || dniData.birthPlace;
       dniData.nationality = backData.nationality || dniData.nationality;
       dniData.sex = backData.sex || dniData.sex;
     }
