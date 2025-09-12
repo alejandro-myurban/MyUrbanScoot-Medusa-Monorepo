@@ -51,23 +51,34 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
             });
         }
 
-        if (incomingMsg === "confirmar") {
+        // 🔧 CORREGIDO: Manejo de confirmación de citas
+        if (ButtonPayload === "CONFIRM" || incomingMsg === "confirmar") {
             try {
                 const customerPhone = userId.replace("whatsapp:", "");
+                console.log("🔍 Buscando citas para teléfono:", customerPhone);
+                
+                // Buscar citas pendientes del usuario
                 const latestPendingAppointment = await appointmentsService.list(
                     { customer_phone: customerPhone, state: "pending" },
-                    { order: { created_at: "desc" } }
+                    { order: { created_at: "desc" }, take: 5 }
                 );
+                
+                console.log("🔍 Citas pendientes encontradas:", latestPendingAppointment.length);
+                console.log("🔍 Datos de las citas:", latestPendingAppointment);
 
                 if (latestPendingAppointment && latestPendingAppointment.length > 0) {
                     const appointmentId = latestPendingAppointment[0].id;
-                    await appointmentsService.updateAppointment(appointmentId, { state: "confirmed" });
+                    console.log("🔍 Confirmando cita con ID:", appointmentId);
+                    
+                    // 🔧 CAMBIO: Usar confirmAppointment en lugar de updateAppointment
+                    await appointmentsService.confirmAppointment(appointmentId);
                     
                     const confirmationMessage = "¡Cita confirmada! Te esperamos en la fecha y hora seleccionada.";
                     await sendWhatsApp(userId, confirmationMessage);
                     console.log(`✅ Cita ${appointmentId} confirmada por el cliente.`);
                 } else {
                     await sendWhatsApp(userId, "No se encontró ninguna cita pendiente para confirmar.");
+                    console.log("❌ No se encontraron citas pendientes para el usuario:", customerPhone);
                 }
             } catch (confirmError) {
                 console.error("❌ Error al confirmar la cita:", confirmError);
@@ -76,23 +87,40 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
             return res.status(200).send("<Response></Response>");
         }
 
-        if (incomingMsg === "cancelar") {
+        // 🔧 CORREGIDO: Manejo de cancelación de citas
+        if (ButtonPayload === "CANCEL" || incomingMsg === "cancelar") {
             try {
                 const customerPhone = userId.replace("whatsapp:", "");
-                const latestPendingAppointment = await appointmentsService.list(
-                    { customer_phone: customerPhone, state: "pending" },
-                    { order: { created_at: "desc" } }
+                console.log("🔍 Buscando citas para cancelar, teléfono:", customerPhone);
+                
+                // Buscar citas pendientes o confirmadas del usuario
+                const latestAppointment = await appointmentsService.list(
+                    { customer_phone: customerPhone },
+                    { 
+                        order: { created_at: "desc" }, 
+                        take: 5,
+                        where: {
+                            state: { $in: ["pending", "confirmed"] }
+                        }
+                    }
                 );
+                
+                console.log("🔍 Citas encontradas para cancelar:", latestAppointment.length);
+                console.log("🔍 Datos de las citas:", latestAppointment);
 
-                if (latestPendingAppointment && latestPendingAppointment.length > 0) {
-                    const appointmentId = latestPendingAppointment[0].id;
-                    await appointmentsService.updateAppointment(appointmentId, { state: "canceled" });
+                if (latestAppointment && latestAppointment.length > 0) {
+                    const appointmentId = latestAppointment[0].id;
+                    console.log("🔍 Cancelando cita con ID:", appointmentId);
+                    
+                    // 🔧 CAMBIO: Usar cancelAppointment en lugar de updateAppointment
+                    await appointmentsService.cancelAppointment(appointmentId);
                     
                     const cancellationMessage = "Cita cancelada correctamente.";
                     await sendWhatsApp(userId, cancellationMessage);
                     console.log(`❌ Cita ${appointmentId} cancelada por el cliente.`);
                 } else {
                     await sendWhatsApp(userId, "No se encontró ninguna cita para cancelar.");
+                    console.log("❌ No se encontraron citas para cancelar del usuario:", customerPhone);
                 }
             } catch (cancelError) {
                 console.error("❌ Error al cancelar la cita:", cancelError);
@@ -101,7 +129,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
             return res.status(200).send("<Response></Response>");
         }
         
-        // ... (Tu lógica existente para asistencia personal e IA)
+        // ... Tu lógica existente para asistencia personal e IA
         const isPersonalAssistanceRequest = incomingMsg.includes("asistencia personal");
         if (numMedia > 0 || isPersonalAssistanceRequest) {
             console.log(`💬 Mensaje de ${profileName} (${userId}) contiene una imagen o solicitud de AGENTE. Cambiando a modo AGENTE.`);

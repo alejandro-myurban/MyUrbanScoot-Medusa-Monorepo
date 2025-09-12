@@ -226,10 +226,16 @@ export default class AppointmentsModuleService extends MedusaService({
     await this.appointmentRepository_.delete({ id }, sharedContext)
   }
 
-  // Métodos restantes (list, getAvailableTimeSlots, etc.)
+  // 🔧 CORREGIDO: Método list con soporte mejorado para filtros
   @InjectManager()
   async list(
-    filters: { workshop_id?: string; date?: Date; state?: string } = {},
+    filters: { 
+      workshop_id?: string; 
+      date?: Date; 
+      state?: string;
+      state_in?: string[]; // 🆕 NUEVO: Filtro para múltiples estados
+      customer_phone?: string; // 🆕 NUEVO: Añadir filtro por teléfono
+    } = {},
     config?: FindConfig<AppointmentType>,
     @MedusaContext() sharedContext?: Context
   ): Promise<AppointmentType[]> {
@@ -247,6 +253,22 @@ export default class AppointmentsModuleService extends MedusaService({
     if (filters.state) {
       where.state = filters.state
     }
+
+    // 🆕 NUEVO: Filtro para múltiples estados
+    if (filters.state_in && filters.state_in.length > 0) {
+      where.state = { $in: filters.state_in }
+    }
+
+    // 🆕 NUEVO: Filtro por teléfono del cliente con soporte para diferentes formatos
+    if (filters.customer_phone) {
+      const phone = filters.customer_phone.replace("whatsapp:", "");
+      // Buscar en todos los formatos posibles del teléfono
+      where.$or = [
+        { customer_phone: filters.customer_phone },
+        { customer_phone: phone },
+        { customer_phone: `whatsapp:${phone}` }
+      ];
+    }
     
     if (filters.date) {
       const startOfDay = new Date(filters.date)
@@ -259,12 +281,8 @@ export default class AppointmentsModuleService extends MedusaService({
     }
 
     console.log("🔍 Final where clause:", where);
-    console.log("🔍 Final query options:", {
-      where,
-      relations: ["workshop"],
-      ...config
-    });
-
+    
+    // 🔧 CORRECCIÓN: Usar where y config por separado según Medusa v2
     const result = await this.appointmentRepository_.find({
       where,
       relations: ["workshop"],
