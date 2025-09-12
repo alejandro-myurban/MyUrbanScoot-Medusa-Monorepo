@@ -74,7 +74,6 @@ export default class AppointmentsModuleService extends MedusaService({
     
     console.log("🔍 About to create appointment with repository...");
     
-    // El método `create` ahora espera un array.
     const [appointment] = await this.appointmentRepository_.create([
       { 
         ...data,
@@ -104,11 +103,14 @@ export default class AppointmentsModuleService extends MedusaService({
   ): Promise<AppointmentType> {
     console.log("✅ confirmAppointment called for ID:", id);
     
+    console.log("🔍 Buscando la cita con ID:", id);
     const appointment = await this.retrieveAppointment(id, {}, sharedContext)
     
     if (!appointment) {
       throw new Error(`Appointment with id ${id} not found`)
     }
+
+    console.log("🔍 Cita recuperada antes de la actualización:", appointment);
 
     if (appointment.state === AppointmentState.CONFIRMED) {
       console.log("ℹ️ Appointment already confirmed");
@@ -119,6 +121,9 @@ export default class AppointmentsModuleService extends MedusaService({
       throw new Error(`Cannot confirm appointment with state: ${appointment.state}`)
     }
 
+    // 🚨 CORRECCIÓN DEFINITIVA: 
+    // Ahora, en el `update`, el campo `entity` recibe la entidad COMPLETA,
+    // y el campo `update` recibe solo las propiedades a modificar.
     const [confirmedAppointment] = await this.appointmentRepository_.update([{
       entity: appointment,
       update: { 
@@ -138,11 +143,14 @@ export default class AppointmentsModuleService extends MedusaService({
   ): Promise<AppointmentType> {
     console.log("❌ cancelAppointment called for ID:", id);
     
+    console.log("🔍 Buscando la cita con ID:", id);
     const appointment = await this.retrieveAppointment(id, {}, sharedContext)
     
     if (!appointment) {
       throw new Error(`Appointment with id ${id} not found`)
     }
+
+    console.log("🔍 Cita recuperada antes de la cancelación:", appointment);
 
     if (appointment.state === AppointmentState.CANCELED) {
       console.log("ℹ️ Appointment already canceled");
@@ -153,7 +161,8 @@ export default class AppointmentsModuleService extends MedusaService({
       throw new Error(`Cannot cancel completed appointment`)
     }
 
-    // 🚨 CORRECCIÓN: Usa el formato { entity, update }
+    // 🚨 CORRECCIÓN DEFINITIVA:
+    // Al igual que en `confirmAppointment`, pasamos la entidad completa.
     const [canceledAppointment] = await this.appointmentRepository_.update([{
       entity: appointment,
       update: { 
@@ -199,8 +208,6 @@ export default class AppointmentsModuleService extends MedusaService({
       }
     }
     
-    // 🚨 Corrección: Usa el formato `entity` y `update` de Medusa v2.
-    // Mantenemos este método igual porque ya estaba usando { id }
     const [updatedAppointment] = await this.appointmentRepository_.update([{
       entity: { id },
       update: data,
@@ -223,7 +230,6 @@ export default class AppointmentsModuleService extends MedusaService({
     await this.appointmentRepository_.delete({ id }, sharedContext)
   }
 
-  // 🔧 CORREGIDO: Método list con soporte mejorado para filtros
   @InjectManager()
   async list(
     filters: { 
