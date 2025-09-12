@@ -18,6 +18,21 @@ export default function AppointmentSuccessPage() {
   const [appointmentInfo, setAppointmentInfo] = useState<AppointmentInfo | null>(null)
   const comprobanteRef = useRef<HTMLDivElement>(null)
 
+  // Use useEffect to read from sessionStorage on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const storedInfo = sessionStorage.getItem('appointmentInfo');
+      if (storedInfo) {
+        try {
+          const info = JSON.parse(storedInfo);
+          setAppointmentInfo(info);
+        } catch (error) {
+          console.error("Failed to parse appointment info from sessionStorage", error);
+        }
+      }
+    }
+  }, []); // The empty dependency array ensures this runs only once
+
   const handleGoBack = () => {
     window.location.href = '/appointments'
   }
