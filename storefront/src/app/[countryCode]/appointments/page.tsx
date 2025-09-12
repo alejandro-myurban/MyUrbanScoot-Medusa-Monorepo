@@ -1,253 +1,44 @@
 'use client'
 
-import { useState, useEffect } from "react"
 import { Button, Text, Select, Input, Heading, Container, Badge, Alert } from "@medusajs/ui"
-import { format } from 'date-fns'
 import { Calendar, Clock, User, Phone, MapPin, Loader2, ChevronDown } from "lucide-react"
-
-// Definición de tipos
-interface Workshop {
-  id: string
-  name: string
-  address: string
-  phone: string
-  email?: string
-}
-
-const API_URL = "https://backend-production-9e9f.up.railway.app";
+import { useAppointments } from "./hooks/useAppointments";
 
 export default function AppointmentsPage() {
-  const [selectedWorkshopId, setSelectedWorkshopId] = useState("")
-  const [selectedDate, setSelectedDate] = useState("")
-  const [selectedSlot, setSelectedSlot] = useState("")
-  const [customerName, setCustomerName] = useState("")
-  const [customerPhone, setCustomerPhone] = useState("")
-  const [description, setDescription] = useState("")
-  
-  const [honeypot, setHoneypot] = useState("")
-
-  const [workshops, setWorkshops] = useState<Workshop[]>([])
-  const [workshopsLoading, setWorkshopsLoading] = useState(false)
-  const [workshopsError, setWorkshopsError] = useState<string | null>(null)
-
-  const [availableSlots, setAvailableSlots] = useState<string[]>([])
-  const [slotsLoading, setSlotsLoading] = useState(false)
-  const [slotsError, setSlotsError] = useState<string | null>(null)
-
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [submitSuccess, setSubmitSuccess] = useState(false)
-
-  const [nameError, setNameError] = useState<string | null>(null)
-  const [phoneError, setPhoneError] = useState<string | null>(null)
-  const [dateError, setDateError] = useState<string | null>(null)
-  const [slotError, setSlotError] = useState<string | null>(null)
-  const [workshopError, setWorkshopError] = useState<string | null>(null)
-
-  const today = format(new Date(), 'yyyy-MM-dd')
-
-  useEffect(() => {
-    const fetchWorkshops = async () => {
-      setWorkshopsLoading(true)
-      setWorkshopsError(null)
-      try {
-        const response = await fetch(`${API_URL}/workshops`, {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
-        }
-
-        const data = await response.json()
-        setWorkshops(data.workshops || [])
-      } catch (err) {
-        setWorkshopsError("Error al cargar los talleres. Por favor, intenta nuevamente.")
-        console.error("Error fetching workshops:", err)
-      } finally {
-        setWorkshopsLoading(false)
-      }
-    }
-    fetchWorkshops()
-  }, [])
-
-  useEffect(() => {
-    if (!selectedWorkshopId || !selectedDate) {
-      setAvailableSlots([])
-      return
-    }
-
-    const fetchSlots = async () => {
-      setSlotsLoading(true)
-      setSlotsError(null)
-      try {
-        const response = await fetch(
-          `${API_URL}/workshops/${selectedWorkshopId}/slots?date=${selectedDate}`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        )
-
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
-        }
-
-        const data = await response.json()
-        setAvailableSlots(data.availableSlots || [])
-      } catch (err) {
-        setSlotsError("Error al cargar los horarios disponibles. Por favor, intenta nuevamente.")
-        console.error("Error fetching slots:", err)
-      } finally {
-        setSlotsLoading(false)
-      }
-    }
-    fetchSlots()
-  }, [selectedWorkshopId, selectedDate])
-
-  const validateFields = () => {
-    let isValid = true
-    setSubmitError(null)
-    setNameError(null)
-    setPhoneError(null)
-    setWorkshopError(null)
-    setDateError(null)
-    setSlotError(null)
-
-    if (!selectedWorkshopId) {
-      setWorkshopError("Por favor, selecciona un taller.")
-      isValid = false
-    }
-
-    if (!selectedDate) {
-      setDateError("Por favor, selecciona una fecha.")
-      isValid = false
-    }
-
-    if (!selectedSlot) {
-      setSlotError("Por favor, selecciona un horario disponible.")
-      isValid = false
-    }
-
-    if (!customerName.trim()) {
-      setNameError("El nombre es un campo obligatorio.")
-      isValid = false
-    }
-
-    const phoneRegex = /^\+?[0-9\s()+-]+$/;
-    if (!customerPhone.trim() || !phoneRegex.test(customerPhone.trim())) {
-      setPhoneError("Ingresa un número de teléfono válido.")
-      isValid = false
-    }
-
-    return isValid
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (honeypot) {
-      console.log("Honeypot field was filled. This is likely a bot.")
-      return
-    }
-
-    if (!validateFields()) {
-      setSubmitError("Por favor, corrige los campos marcados antes de continuar.")
-      setSubmitSuccess(false)
-      return
-    }
-
-    setIsSubmitting(true)
-    setSubmitError(null)
-    setSubmitSuccess(false)
-
-    try {
-      const [hour, minute] = selectedSlot.split(":").map(Number)
-      const [year, month, day] = selectedDate.split('-').map(Number)
-      const start_time = new Date(year, month - 1, day, hour, minute)
-
-      const end_time = new Date(start_time)
-      end_time.setMinutes(start_time.getMinutes() + 30)
-
-      const appointmentData = {
-        customer_name: customerName.trim(),
-        customer_phone: customerPhone.trim(),
-        description: description.trim() || "Cita agendada",
-        start_time,
-        end_time,
-        workshop_id: selectedWorkshopId,
-      }
-
-      const response = await fetch(`${API_URL}/appointments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(appointmentData),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`)
-      }
-
-      setSubmitSuccess(true)
-      setSelectedWorkshopId("")
-      setSelectedDate("")
-      setSelectedSlot("")
-      setCustomerName("")
-      setCustomerPhone("")
-      setDescription("")
-      setAvailableSlots([])
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Error desconocido al reservar la cita."
-      setSubmitError(errorMessage)
-      console.error("Error al reservar la cita:", err)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const selectedWorkshop = workshops.find((w: Workshop) => w.id === selectedWorkshopId)
-  const formattedDate = selectedDate.split('-').reverse().join('/')
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCustomerName(e.target.value)
-    if (e.target.value.trim()) {
-      setNameError(null)
-    }
-  }
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCustomerPhone(e.target.value)
-    const phoneRegex = /^\+?[0-9\s()+-]*$/;
-    if (e.target.value.trim() && phoneRegex.test(e.target.value.trim())) {
-      setPhoneError(null)
-    }
-  }
-
-  const handleWorkshopChange = (value: string) => {
-    setSelectedWorkshopId(value)
-    setSelectedDate("")
-    setSelectedSlot("")
-    setAvailableSlots([])
-    setWorkshopError(null)
-  }
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(e.target.value)
-    setSelectedSlot("")
-    setDateError(null)
-  }
-
-  const handleSlotChange = (slot: string) => {
-    setSelectedSlot(slot)
-    setSlotError(null)
-  }
+  const {
+    selectedWorkshopId,
+    selectedDate,
+    selectedSlot,
+    customerName,
+    customerPhone,
+    description,
+    honeypot,
+    workshops,
+    workshopsLoading,
+    workshopsError,
+    availableSlots,
+    slotsLoading,
+    slotsError,
+    isSubmitting,
+    submitError,
+    submitSuccess,
+    nameError,
+    phoneError,
+    dateError,
+    slotError,
+    workshopError,
+    tomorrowFormatted,
+    setHoneypot,
+    handleNameChange,
+    handlePhoneChange,
+    handleWorkshopChange,
+    handleDateChange,
+    handleSlotChange,
+    handleSubmit,
+    setDescription,
+    selectedWorkshop,
+    formattedDate,
+  } = useAppointments();
 
   return (
     <div className="min-h-screen bg-grey-5 py-4 sm:py-6 lg:py-8 px-3 sm:px-4 lg:px-6 font-poppins">
@@ -270,7 +61,7 @@ export default function AppointmentsPage() {
 
         <div className="bg-grey-0 rounded-lg sm:rounded-large shadow-lg border border-grey-20 overflow-hidden">
           <form onSubmit={handleSubmit} className="divide-y divide-grey-10">
-          
+            
             <input 
               type="text" 
               name="honeypot" 
@@ -417,7 +208,7 @@ export default function AppointmentsPage() {
                     </label>
                     <Input
                       type="date"
-                      min={today}
+                      min={tomorrowFormatted}
                       value={selectedDate}
                       onChange={handleDateChange}
                       disabled={!selectedWorkshopId}
@@ -522,6 +313,10 @@ export default function AppointmentsPage() {
                       onChange={handlePhoneChange}
                       className={`w-full border-grey-30 focus:ring-1 font-dmSans text-sm sm:text-base py-2.5 sm:py-3 ${phoneError ? "border-mysRed-100 focus:border-mysRed-100 focus:ring-mysRed-100" : "focus:border-mysGreen-100 focus:ring-mysGreen-100"}`}
                     />
+                    <Text className="text-grey-60 text-xs sm:text-sm font-medium mt-2 flex items-center gap-1.5">
+                      <Phone className="w-3 h-3 text-grey-50" />
+                      Te contactaremos por WhatsApp para confirmar tu cita.
+                    </Text>
                     {phoneError && <Text className="text-mysRed-100 text-xs sm:text-sm mt-1">{phoneError}</Text>}
                   </div>
                 </div>
