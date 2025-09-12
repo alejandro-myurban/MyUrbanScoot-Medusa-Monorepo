@@ -121,11 +121,8 @@ export default class AppointmentsModuleService extends MedusaService({
       throw new Error(`Cannot confirm appointment with state: ${appointment.state}`)
     }
 
-    // 🚨 CORRECCIÓN DEFINITIVA: 
-    // Ahora, en el `update`, el campo `entity` recibe la entidad COMPLETA,
-    // y el campo `update` recibe solo las propiedades a modificar.
     const [confirmedAppointment] = await this.appointmentRepository_.update([{
-      entity: appointment,
+      entity: appointment, 
       update: { 
         state: AppointmentState.CONFIRMED,
         completed: false
@@ -161,10 +158,8 @@ export default class AppointmentsModuleService extends MedusaService({
       throw new Error(`Cannot cancel completed appointment`)
     }
 
-    // 🚨 CORRECCIÓN DEFINITIVA:
-    // Al igual que en `confirmAppointment`, pasamos la entidad completa.
     const [canceledAppointment] = await this.appointmentRepository_.update([{
-      entity: appointment,
+      entity: appointment, 
       update: { 
         state: AppointmentState.CANCELED,
         completed: false
