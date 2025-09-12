@@ -116,6 +116,9 @@ const medusaConfig = {
     {
       resolve: "./src/modules/chat-history"
     },
+    { 
+      resolve: "./src/modules/appointments" 
+    },
     {
       key: Modules.FILE,
       resolve: "@medusajs/file",

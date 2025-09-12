@@ -169,7 +169,30 @@
     "resultsCount_other": "{{count}} Fragen gefunden",
     "noResults": "Es wurden keine Fragen für Ihre Suche gefunden.",
     "error": "Fehler: {{message}}",
-    "loadingMessage": "Häufig gestellte Fragen werden geladen..."
+    "loadingMessage": "Häufig gestellte Fragen werden geladen...",
+    "faqs": {
+    "title": "Alle Fragen",
+    "loading": "Laden...",
+    "resultsCount_one": "{{count}} Frage gefunden",
+    "resultsCount_other": "{{count}} Fragen gefunden",
+    "noResults": "Keine Fragen für Ihre Suche gefunden.",
+    "error": "Fehler: {{message}}",
+    "loadingMessage": "Häufig gestellte Fragen laden...",
+    "categories": {
+      "general": "Allgemein",
+      "orders": "Bestellungen",
+      "shipping": "Versand",
+      "returns": "Rücksendungen",
+      "warranty": "Garantie",
+      "scooters": "Roller",
+      "accessories": "Zubehör"
+    },
+    "questions": {
+      "cancel_order": "Wie kann ich eine Bestellung stornieren?",
+      "get_refund": "Wie erhalte ich eine Rückerstattung?",
+      "contact": "Wie kann ich MYURBANSCOOT kontaktieren?"
+    }
+  }
   },
     "blog": {
     "header": {

@@ -61,9 +61,10 @@ export class WhatsAppService {
         return this.twilioService.sendMessage(to, body, mediaUrl);
     }
 
-    // Envía plantilla de WhatsApp
-    async sendTemplate(to: string, templateName: string, fallbackMessage: string) {
-        return this.twilioService.sendTemplate(to, templateName, fallbackMessage);
+    // 🛠️ CORRECCIÓN: Se añade el parámetro opcional para las opciones de los botones.
+    async sendTemplate(to: string, templateSid: string, fallbackMessage: string, variables: any, buttonOptions?: { appointmentId: string }) {
+        // Pasa el nuevo parámetro al servicio de Twilio.
+        return this.twilioService.sendTemplate(to, templateSid, fallbackMessage, variables, buttonOptions);
     }
 
     // Verifica si hay un mensaje en procesamiento para el usuario

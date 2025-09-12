@@ -1,3 +1,4 @@
+// src/api/whatsapp/services/twilio.service.ts
 import twilio, { Twilio } from 'twilio';
 
 export class TwilioService {
@@ -7,14 +8,12 @@ export class TwilioService {
     private authToken: string;
 
     constructor() {
-        // Inicialización de credenciales y cliente de Twilio
         this.accountSid = process.env.TWILIO_ACCOUNT_SID!;
         this.authToken = process.env.TWILIO_AUTH_TOKEN!;
         this.twilioNumber = process.env.TWILIO_NUMBER!;
         this.client = twilio(this.accountSid, this.authToken);
     }
 
-    // Envía mensaje de WhatsApp (simple, largo o con media)
     async sendMessage(to: string, body: string, mediaUrl?: string) {
         console.log(`➡️ [TWILIO] Mensaje de entrada completo: ${body}`);
         const MAX_TWILIO_MESSAGE_LENGTH = 1600;
@@ -31,23 +30,47 @@ export class TwilioService {
         return this.sendSimpleMessage(whatsappTo, body);
     }
 
-    // Envía plantilla predefinida de WhatsApp
-    async sendTemplate(to: string, templateName: string, fallbackMessage: string) {
+    async sendTemplate(to: string, templateSid: string, fallbackMessage: string, variables?: any, buttonOptions?: { appointmentId: string }) {
         const whatsappTo = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
+        
         try {
-            await this.client.messages.create({
+            const messagePayload: any = {
                 to: whatsappTo,
                 from: `whatsapp:${this.twilioNumber}`,
-                contentSid: templateName,
-            });
-            console.log(`✅ Plantilla de mensaje '${templateName}' enviada a ${to}`);
+                contentSid: templateSid,
+            };
+
+            // Solo manejar variables simples por ahora (sin botones)
+            if (variables) {
+                messagePayload.contentVariables = JSON.stringify(variables);
+            }
+
+            console.log("➡️ [DEBUG] Payload FINAL a Twilio:", JSON.stringify(messagePayload, null, 2));
+            
+            const message = await this.client.messages.create(messagePayload);
+            
+            console.log(`✅ Plantilla de mensaje '${templateSid}' enviada a ${to} (SID: ${message.sid})`);
+            
+            return message;
         } catch (err: any) {
-            console.error(`❌ Error enviando plantilla de WhatsApp (${templateName}):`, err.message || err);
-            await this.sendMessage(to, fallbackMessage);
+            console.error(`❌ [ERROR] Ocurrió un error al enviar la plantilla de WhatsApp (${templateSid}):`, err.message || err);
+            console.error(`❌ [ERROR CODE]: ${err.code}`);
+            
+            if (err.code === 63016) {
+                console.error("🚫 Error 63016: Fuera de ventana de 24h - Solo se pueden usar templates aprobados");
+            } else if (err.code === 21656) {
+                console.error("🚫 Error 21656: Variables del template inválidas o template no aprobado");
+            }
+            
+            // Solo intentar fallback si NO es error de ventana 24h
+            if (err.code !== 63016) {
+                console.warn(`⚠️ Enviando mensaje de respaldo (fallback) a ${to} debido a un fallo en la plantilla.`);
+                await this.sendMessage(to, fallbackMessage);
+            }
+            
+            throw err;
         }
     }
-
-    // Descarga archivo multimedia de Twilio
     async downloadMedia(mediaUrl: string): Promise<string> {
         try {
             const res = await fetch(mediaUrl, {
@@ -67,7 +90,6 @@ export class TwilioService {
         }
     }
 
-    // Envía mensaje con archivo adjunto
     private async sendMediaMessage(to: string, body: string, mediaUrl: string) {
         try {
             const message = await this.client.messages.create({
@@ -82,7 +104,6 @@ export class TwilioService {
         }
     }
 
-    // Divide y envía mensajes largos
     private async sendLongMessage(to: string, body: string, maxLength: number) {
         const messagesToSend = [];
         let currentMessage = "";
@@ -112,7 +133,6 @@ export class TwilioService {
         }
     }
 
-    // Envía mensaje simple de texto
     private async sendSimpleMessage(to: string, body: string) {
         try {
             const message = await this.client.messages.create({

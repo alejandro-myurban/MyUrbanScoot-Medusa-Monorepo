@@ -168,7 +168,22 @@
     "resultsCount_other": "{{count}} domande trovate",
     "noResults": "Nessuna domanda trovata per la tua ricerca.",
     "error": "Errore: {{message}}",
-    "loadingMessage": "Caricamento delle domande frequenti..."
+    "loadingMessage": "Caricamento delle domande frequenti...",
+    "categories": {
+      "general": "Generale",
+      "orders": "Ordini",
+      "shipping": "Spedizione",
+      "returns": "Resi",
+      "warranty": "Garanzia",
+      "scooters": "Monopattini",
+      "accessories": "Accessori"
+    },
+    "questions": {
+      "cancel_order": "Come annullare un ordine?",
+      "get_refund": "Come ottenere un rimborso?",
+      "contact": "Come contattare MYURBANSCOOT?"
+    }
+
   },
     "blog": {
     "header": {

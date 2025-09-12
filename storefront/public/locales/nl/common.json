@@ -169,7 +169,22 @@
     "resultsCount_other": "{{count}} vragen gevonden",
     "noResults": "Geen vragen gevonden voor uw zoekopdracht.",
     "error": "Fout: {{message}}",
-    "loadingMessage": "Veelgestelde vragen worden geladen..."
+    "loadingMessage": "Veelgestelde vragen worden geladen...",
+    "categories": {
+      "general": "Algemeen",
+      "orders": "Bestellingen",
+      "shipping": "Verzending",
+      "returns": "Retouren",
+      "warranty": "Garantie",
+      "scooters": "Scooters",
+      "accessories": "Accessoires"
+    },
+    "questions": {
+      "cancel_order": "Hoe annuleer ik een bestelling?",
+      "get_refund": "Hoe krijg ik een terugbetaling?",
+      "contact": "Hoe kan ik MYURBANSCOOT contacteren?"
+    }
+
   },
     "blog": {
     "header": {

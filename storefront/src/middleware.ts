@@ -100,6 +100,7 @@ function checkAccessRestrictions(request: NextRequest): NextResponse | null {
   const allowedPublicPaths = [
     '/financing-products',
     '/financing-success',
+    '/appointments',
     '/api', // APIs necesarias para el funcionamiento
     '/_next', // Assets de Next.js
     '/favicon.ico',
